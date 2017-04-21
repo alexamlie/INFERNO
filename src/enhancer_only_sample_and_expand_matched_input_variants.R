@@ -29,8 +29,8 @@ sessionInfo()
 ## -----------------------------------------------------------------------------
 ## 1. Function Definitions
 ## -----------------------------------------------------------------------------
-make_graphic <- function(filename, width_ratio=1, height_ratio=1, type='png') {
-# make_graphic <- function(filename, width_ratio=1, height_ratio=1, type='pdf') {
+# make_graphic <- function(filename, width_ratio=1, height_ratio=1, type='png') {
+make_graphic <- function(filename, width_ratio=1, height_ratio=1, type='pdf') {
     if(type=='pdf') {
         pdf(file=paste0(filename, ".pdf"), width=10*width_ratio, height=10*height_ratio, pointsize=12, onefile=FALSE)
     } else if(type=='png') {
@@ -1249,13 +1249,13 @@ split_pval_df$tissue_class <- factor(split_pval_df$tissue_class, ordered=T,
                                levels=sort(unique(split_pval_df$tissue_class), dec=T))
 
 write.table(split_pval_df, paste0(output_dir, '/tables/split_region_bootstrap_results.txt'), quote=F, sep="\t", row.names=F, col.names=T)
-## ## to read in this data
-## split_pval_df <- read.table(paste0(output_dir, '/tables/split_region_bootstrap_results.txt'), header=T, sep="\t", quote="", as.is=T)
-## split_pval_df$annotation <- factor(split_pval_df$annotation, ordered=T,
-##                              levels=c("GTEx eQTL", "FANTOM5 Enhancer", "Roadmap HMM Enhancer",
-##                                  "FANTOM5 Enh+GTEx eQTL", "GTEx eQTL+Roadmap HMM Enh", "FANTOM5 Enh+Roadmap HMM Enh", "FANTOM5 Enh+GTEx eQTL+Roadmap HMM Enh"))
-## split_pval_df$tissue_class <- factor(split_pval_df$tissue_class, ordered=T,
-##                                levels=sort(unique(split_pval_df$tissue_class), dec=T))
+## to read in this data
+split_pval_df <- read.table(paste0(output_dir, '/tables/split_region_bootstrap_results.txt'), header=T, sep="\t", quote="", as.is=T)
+split_pval_df$annotation <- factor(split_pval_df$annotation, ordered=T,
+                             levels=c("GTEx eQTL", "FANTOM5 Enhancer", "Roadmap HMM Enhancer",
+                                 "FANTOM5 Enh+GTEx eQTL", "GTEx eQTL+Roadmap HMM Enh", "FANTOM5 Enh+Roadmap HMM Enh", "FANTOM5 Enh+GTEx eQTL+Roadmap HMM Enh"))
+split_pval_df$tissue_class <- factor(split_pval_df$tissue_class, ordered=T,
+                               levels=sort(unique(split_pval_df$tissue_class), dec=T))
 
 dir.create(paste0(output_dir, '/plots/split_tag_regions/'), F, T)
 for(this_tag in unique(split_pval_df$tag_region)) {
@@ -1589,7 +1589,6 @@ print(ggplot(collapsed_pval_df[collapsed_pval_df$pval=="BH-adjusted P-value",],
                     label=format(round(value, digits=4), scientific=F)), color="black", size=4))
 dev.off()
 
-
 ## -------------------
 ## split tag region analysis
 ## melt the results
@@ -1604,12 +1603,12 @@ collapsed_split_pval_df$tissue_class <- factor(collapsed_split_pval_df$tissue_cl
 
 write.table(collapsed_split_pval_df, paste0(output_dir, '/tables/split_region_collapsed_bootstrap_results.txt'), quote=F, sep="\t", row.names=F, col.names=T)
 ## ## to read in this data
-## split_pval_df <- read.table(paste0(output_dir, '/tables/split_region_bootstrap_results.txt'), header=T, sep="\t", quote="", as.is=T)
-## split_pval_df$annotation <- factor(split_pval_df$annotation, ordered=T,
+## collapsed_split_pval_df <- read.table(paste0(output_dir, '/tables/split_region_collapsed_bootstrap_results.txt'), header=T, sep="\t", quote="", as.is=T)
+## collapsed_split_pval_df$annotation <- factor(collapsed_split_pval_df$annotation, ordered=T,
 ##                              levels=c("GTEx eQTL", "FANTOM5 Enhancer", "Roadmap HMM Enhancer",
 ##                                  "FANTOM5 Enh+GTEx eQTL", "GTEx eQTL+Roadmap HMM Enh", "FANTOM5 Enh+Roadmap HMM Enh", "FANTOM5 Enh+GTEx eQTL+Roadmap HMM Enh"))
-## split_pval_df$tissue_class <- factor(split_pval_df$tissue_class, ordered=T,
-##                                levels=sort(unique(split_pval_df$tissue_class), dec=T))
+## collapsed_split_pval_df$tissue_class <- factor(collapsed_split_pval_df$tissue_class, ordered=T,
+##                                levels=sort(unique(collapsed_split_pval_df$tissue_class), dec=T))
 
 dir.create(paste0(output_dir, '/plots/ld_collapsed_split_tag_regions/'), F, T)
 for(this_tag in unique(collapsed_split_pval_df$tag_region)) {
