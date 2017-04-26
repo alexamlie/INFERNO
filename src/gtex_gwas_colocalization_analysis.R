@@ -62,20 +62,36 @@ check_param <- function(param_vec, param) {
 ## set a variable for printing messages or not
 PRINT_MSGS <- FALSE
 
-outdir <- "/home/alexaml/data/ad_enhancer_analysis/gtex_gwas_colocalization_analysis/"
-dir.create(paste0(outdir, "/plots/"), F, T)
-dir.create(paste0(outdir, "/tables/"), F, T)
-
-## read in GWAS data:
+## read in parameters:
 args <- commandArgs(trailingOnly=TRUE)
-if (length(args)==4) {
-    ## set up the INFERNO directory for enhancer and direct eQTL overlaps
-    inferno_param_f <- args[1]
+
+if (length(args)==11) {
+    ## the main output directory
+    outdir <- args[1]
+    ## set up the INFERNO directory for enhancer, motif, and direct eQTL overlaps
+    inferno_param_f <- args[2]
     ## define the P(H_4) threshold for finding the strongest hits
-    coloc_thresh <- args[2]
-    ## get the top GWAS SNPs (INFERNO input_)
+    coloc_thresh <- args[3]
+    ## get the top GWAS SNPs (usually the file that would be given to INFERNO)
+    top_snpf <- args[4]
+    ## the directory with the summary statistics
+    gwas_summary_dir <- args[5]
+    ## the GTEx directory containing the full eQTL statistics for each tissue
+    gtex_dir <- args[6]
+    ## sample sizes file for GTEx (csv)
+    gtex_sample_sizef <- args[7]
+    ## the GTEx tissue class file for INFERNO
+    gtex_class_file <- args[8]
+    ## define the file that is used to match GTEx IDs with rsIDs
+    gtex_rsid_match <- args[9]
+    ## reference for gene names
+    hg19_ensembl_ref_file <- args[10]
+    ## define the relevant tissue classes. must be a vector e.g. "(c("Blood", "Brain"))"
+    relevant_classes <- args[11]
 }
 
+dir.create(paste0(outdir, "/plots/"), F, T)
+dir.create(paste0(outdir, "/tables/"), F, T)
 
 ## read in the parameters and make a named vector for reference
 parameter_tab <- read.table(inferno_param_f, header=F, sep="\t", quote="", as.is=T, col.names=c("param", "value"))
@@ -96,41 +112,21 @@ ld_stats_file <- paste0(param_ref[['outdir']], '/ld_expansion/', param_ref[['out
                         "_", r2_thresh, "_ld_cutoff_snps_within_", dist_thresh, ".txt")
 ld_stats_df <- read.table(ld_stats_file, header=T, sep="\t", quote="", as.is=T)
 
-
-## read in the list of the top IGAP SNPs
-top_igap_snpf <- "/home/alexaml/data/IGAP_data/IGAP_phase1_top_hits_no_HLA_DSG2.txt"
-top_igap_snps <- read.table(top_igap_snpf, header=F, sep="\t", as.is=T,
+## read in the list of the top GWAS SNPs in INFERNO format
+top_snps <- read.table(top_snpf, header=F, sep="\t", as.is=T,
                             col.names=c("chr", "rsID", "region", "pos"))
 
-## set up the IGAP directory (we don't read all the data in at once, just parse it for the
-## specific locus we're looking at)
-igap_summary_dir <- "/home/alexaml/data/IGAP_data/"
-
-## same for the GTEx directory, since we read in specific tissues
-gtex_dir <- "/home/alexaml/data/GTEx/GTEx_v6p/GTEx_Analysis_v6p_all-associations/"
-
 ## read in the sample sizes
-gtex_sample_sizes <- read.csv("/home/alexaml/data/GTEx/GTEx_v6p/GTEx_sample_sizes.csv")
+gtex_sample_sizes <- read.csv(gtex_sample_sizef)
 colnames(gtex_sample_sizes) <- c("Tissue", "eqtl_samp_num", "rnaseq_samp_num", "egene_num")
 gtex_sample_sizes$tissmatch <- gsub("- ", "", gsub("\\(|\\)", "", gtex_sample_sizes$Tissue))
 
 ## also read in the GTEx tissue classes
-gtex_class_file <- '/home/alexaml/data/GTEx/gtex_classes.txt'
 gtex_category_df <- read.table(gtex_class_file, header=T, sep="\t", quote="", as.is=T, comment.char="")
 ## to match up with the GTEx samples
 gtex_category_df$coloc_match <- gsub("_Analysis.snpgenes", "", gtex_category_df$GTEx.Data, fixed=T)
 
-## define the file that is used to match GTEx IDs with rsIDs
-gtex_rsid_match <- "/home/alexaml/data/GTEx/GTEx_Analysis_v6_OMNI_genot_1KG_imputed_var_chr1to22_info4_maf01_CR95_CHR_POSb37_ID_REF_ALT.txt"
-
-## also set up the eGWAS data directory
-egwas_dir <- "/home/alexaml/data/mayo_egwas/"
-
-## define the tissue classes that we care about here
-relevant_classes <- c("Blood", "Brain", "Connective Tissue")
-
 ## finally, read in the reference to get gene names
-hg19_ensembl_ref_file <- "/home/alexaml/data/refgenomes/hg19/hg19_ensembl_to_name.txt"
 ensembl_xref <- read.table(hg19_ensembl_ref_file, header=T, sep="\t", quote="", comment.char="", as.is=T, col.names=c("tx_id", "gene_id", "gene_name"))
 
 ## -----------------------------------------------------------------------------
@@ -141,14 +137,14 @@ coloc_start_time <- proc.time()
 ## save the GTEx eQTL column names
 gtex_eqtl_header <- c("gene_id", "variant_id", "tss_distance", "pval_nominal", "slope", "slope_se")
 
-## go through all the chromosomes since we read in the IGAP data by chromosome
-for(this_chr in unique(top_igap_snps$chr)) {
+## go through all the chromosomes since we read in the GWAS data by chromosome
+for(this_chr in unique(top_snps$chr)) {
     cat("Parsing", this_chr, "\n")
 
-    ## read in the IGAP data
-    this_igap_data <- read.table(paste0(igap_summary_dir, "/rs_tbl_sorted_", this_chr, ".txt"), header=F, sep="\t", quote="", as.is=T)
+    ## read in the GWAS data
+    this_gwas_data <- read.table(paste0(gwas_summary_dir, "/rs_tbl_sorted_", this_chr, ".txt"), header=F, sep="\t", quote="", as.is=T)
     ## set the header
-    colnames(this_igap_data) <- c("rsID", "pos", "Marker", "Allele1", "Allele2", "Freq1",
+    colnames(this_gwas_data) <- c("rsID", "pos", "Marker", "Allele1", "Allele2", "Freq1",
                                   "FreqSE", "MinFreq", "MaxFreq", "Effect", "StdErr",
                                   "pval", "Direction", "HetISq", "HetChiSq", "df", "HetPVal")
 
@@ -159,53 +155,53 @@ for(this_chr in unique(top_igap_snps$chr)) {
                                                 header=T, sep="\t", quote="", as.is=T)
     
     ## now analyze each tag region
-    for(this_tag in unique(top_igap_snps$region[top_igap_snps$chr==this_chr])) {
+    for(this_tag in unique(top_snps$region[top_snps$chr==this_chr])) {
         cat("Analyzing", this_tag, "region\n")
         dir.create(paste0(outdir, '/tables/coloc_analysis/gtex_coloc/top_regions/', gsub("/", "_", this_tag, fixed=T)), F, T)
 
-        this_tag_data <- top_igap_snps[top_igap_snps$region==this_tag,]
+        this_tag_data <- top_snps[top_snps$region==this_tag,]
         
-        this_tag_igap_data <- this_igap_data[this_igap_data$rsID==this_tag_data$rsID,]
+        this_tag_gwas_data <- this_gwas_data[this_gwas_data$rsID==this_tag_data$rsID,]
         
-        if(nrow(this_tag_igap_data) != 1) {
-            cat("Could not find single match for tag snp", this_tag_data$rsID, "in IGAP data\n")
+        if(nrow(this_tag_gwas_data) != 1) {
+            cat("Could not find single match for tag snp", this_tag_data$rsID, "in GWAS data\n")
             next
         }
 
-        this_region_igap_snps <- this_igap_data[abs(this_igap_data$pos - this_tag_igap_data$pos) <= 500000,]
-        cat(nrow(this_region_igap_snps), "SNPs found in IGAP around", this_tag_data$rsID, "\n")
+        this_region_gwas_snps <- this_gwas_data[abs(this_gwas_data$pos - this_tag_gwas_data$pos) <= 500000,]
+        cat(nrow(this_region_gwas_snps), "SNPs found in GWAS around", this_tag_data$rsID, "\n")
 
         ## add a column for the variant IDs in the GTEx format
         ## ({chr}_{pos_first_ref_base}_{ref_seq}_{alt_seq}_b37)
-        ## the IGAP alleles are defined as the ones that were first identified, so we have to try both
+        ## the GWAS alleles are defined as the ones that were first identified, so we have to try both
         ## orderings to get as many overlaps as we possibly can..
-        this_region_igap_snps$gtex_id1 <-
+        this_region_gwas_snps$gtex_id1 <-
             ## allele 1 is minor
-            paste(gsub("chr", "", this_chr), this_region_igap_snps$pos,
-                  toupper(this_region_igap_snps$Allele2),
-                  toupper(this_region_igap_snps$Allele1), "b37", sep="_")
+            paste(gsub("chr", "", this_chr), this_region_gwas_snps$pos,
+                  toupper(this_region_gwas_snps$Allele2),
+                  toupper(this_region_gwas_snps$Allele1), "b37", sep="_")
         
-        this_region_igap_snps$gtex_id2 <-
+        this_region_gwas_snps$gtex_id2 <-
             ## allele 2 is minor
-            paste(gsub("chr", "", this_chr), this_region_igap_snps$pos,
-                  toupper(this_region_igap_snps$Allele1),
-                  toupper(this_region_igap_snps$Allele2), "b37", sep="_") 
+            paste(gsub("chr", "", this_chr), this_region_gwas_snps$pos,
+                  toupper(this_region_gwas_snps$Allele1),
+                  toupper(this_region_gwas_snps$Allele2), "b37", sep="_") 
 
         ## to match up with GTEx ID, we need to try to manually figure out if our tag SNP is
-        ## oriented correctly or not. note that this uses IGAP frequencies and it might not
+        ## oriented correctly or not. note that this uses GWAS frequencies and it might not
         ## actually match up with the GTEx annotations (i deal with this in the gtex_file loop)
-        if(this_tag_igap_data$Freq1 > 0.50) {
+        if(this_tag_gwas_data$Freq1 > 0.50) {
             ## allele 1 is major (so we need to flip)
             this_tag_gtex_id <-
-                paste(gsub("chr", "", this_chr), this_tag_igap_data$pos,
-                      toupper(this_tag_igap_data$Allele1),
-                      toupper(this_tag_igap_data$Allele2), "b37", sep="_") 
+                paste(gsub("chr", "", this_chr), this_tag_gwas_data$pos,
+                      toupper(this_tag_gwas_data$Allele1),
+                      toupper(this_tag_gwas_data$Allele2), "b37", sep="_") 
         } else {
             ## allele 1 is minor
             this_tag_gtex_id <-
-                paste(gsub("chr", "", this_chr), this_tag_igap_data$pos,
-                      toupper(this_tag_igap_data$Allele2),
-                      toupper(this_tag_igap_data$Allele1), "b37", sep="_") 
+                paste(gsub("chr", "", this_chr), this_tag_gwas_data$pos,
+                      toupper(this_tag_gwas_data$Allele2),
+                      toupper(this_tag_gwas_data$Allele1), "b37", sep="_") 
         }
 
         ## now we have to loop through each GTEx tissue and define the gene sets to perform colocalization analysis on
@@ -214,33 +210,39 @@ for(this_chr in unique(top_igap_snps$chr)) {
             cat("Analyzing tissue", gtex_tiss_match, "\n")
 
             ## try to find all the genes tested with this tag SNP
-            all_genes <- system2("zcat", paste0(gtex_dir, gtex_file, " | awk -F$'\t' '$2==\"", this_tag_gtex_id, "\"' | cut -f1 | sort -u"), stdout=TRUE)
+            ## first set up a faster awk call
+            ## note that this relies on the data being sorted by chromosome!
+            
+            awk_call <- paste0("awk -F$'\t' 'BEGIN{CHR_OBS=\"\"} {split($2, SNP_INFO, \"_\"); if(SNP_INFO[1] <= ",
+                               gsub("chr", "", this_chr), ") { if($2==\"",
+                               this_tag_gtex_id, "\") {print}} else { exit;} '")
+            all_genes <- system2("zcat", paste0(gtex_dir, gtex_file, " | tail -n +2 | ", awk_call, " | cut -f1 | sort -u"), stdout=TRUE)
                         
             ## check that we actually found some genes, and flip the alleles if not
             if(length(all_genes)==0) {
                 ## we only need to change the ID we use to search here because the direction of
-                ## effect is taken care of when we search the IDs of the full IGAP dataset
-                cat("IGAP minor allele for tag SNP", this_tag_igap_data$rsID, "does not match up with GTEx ID (no genes found using IGAP minor allele); flipping direction and re-testing\n")
+                ## effect is taken care of when we search the IDs of the full GWAS dataset
+                cat("GWAS minor allele for tag SNP", this_tag_gwas_data$rsID, "does not match up with GTEx ID (no genes found using GWAS minor allele); flipping direction and re-testing\n")
                 
                 ## if we thought allele 1 was major, it's actually minor
-                if(this_tag_igap_data$Freq1 > 0.50) {
+                if(this_tag_gwas_data$Freq1 > 0.50) {
                     this_tag_gtex_id <-
-                        paste(gsub("chr", "", this_chr), this_tag_igap_data$pos,
-                              toupper(this_tag_igap_data$Allele2),
-                              toupper(this_tag_igap_data$Allele1), "b37", sep="_") 
+                        paste(gsub("chr", "", this_chr), this_tag_gwas_data$pos,
+                              toupper(this_tag_gwas_data$Allele2),
+                              toupper(this_tag_gwas_data$Allele1), "b37", sep="_") 
                 } else {
                     ## otherwise, we thought allele 1 was minor but it's actually major
                     this_tag_gtex_id <-
-                        paste(gsub("chr", "", this_chr), this_tag_igap_data$pos,
-                              toupper(this_tag_igap_data$Allele1),
-                              toupper(this_tag_igap_data$Allele2), "b37", sep="_") 
+                        paste(gsub("chr", "", this_chr), this_tag_gwas_data$pos,
+                              toupper(this_tag_gwas_data$Allele1),
+                              toupper(this_tag_gwas_data$Allele2), "b37", sep="_") 
                 }
                                 
                 all_genes <- system2("zcat", paste0(gtex_dir, gtex_file, " | awk -F$'\t' '$2==\"", this_tag_gtex_id, "\"' | cut -f1 | sort -u"), stdout=TRUE)
 
                 ## if this is still 0, just continue
                 if(length(all_genes)==0) {
-                    cat("No genes found for", this_tag_igap_data$rsID, this_tag, "in tissue",
+                    cat("No genes found for", this_tag_gwas_data$rsID, this_tag, "in tissue",
                         strsplit(gtex_file, ".", fixed=T)[[1]][1], "!\n")
                     next
                 }
@@ -285,35 +287,35 @@ for(this_chr in unique(top_igap_snps$chr)) {
                 this_eqtl_data$slope_se <- as.numeric(this_eqtl_data$slope_se)
                 
                 ## parse these datasets to only include overlapping SNPs
-                gtex_id1_match <- this_region_igap_snps$gtex_id1 %in% this_eqtl_data$variant_id
-                gtex_id2_match <- this_region_igap_snps$gtex_id2 %in% this_eqtl_data$variant_id
-                this_region_igap_snps.parsed <- this_region_igap_snps[gtex_id1_match | gtex_id2_match,]
+                gtex_id1_match <- this_region_gwas_snps$gtex_id1 %in% this_eqtl_data$variant_id
+                gtex_id2_match <- this_region_gwas_snps$gtex_id2 %in% this_eqtl_data$variant_id
+                this_region_gwas_snps.parsed <- this_region_gwas_snps[gtex_id1_match | gtex_id2_match,]
                 
                 ## set a new column for the actual matching
                 ## we use this matching a lot so save it 
-                gtex_id1_parsed_match <- this_region_igap_snps.parsed$gtex_id1 %in% this_eqtl_data$variant_id
-                this_region_igap_snps.parsed$gtex_id <- ifelse(gtex_id1_parsed_match, this_region_igap_snps.parsed$gtex_id1, this_region_igap_snps.parsed$gtex_id2)
+                gtex_id1_parsed_match <- this_region_gwas_snps.parsed$gtex_id1 %in% this_eqtl_data$variant_id
+                this_region_gwas_snps.parsed$gtex_id <- ifelse(gtex_id1_parsed_match, this_region_gwas_snps.parsed$gtex_id1, this_region_gwas_snps.parsed$gtex_id2)
                 ## we also need to set the frequency to always be the minor allele frequency
                 ## gtex_id1 corresponds to allele 1 being minor
-                this_region_igap_snps.parsed$MAF <- ifelse(gtex_id1_parsed_match, this_region_igap_snps.parsed$Freq1, 1-this_region_igap_snps.parsed$Freq1)
+                this_region_gwas_snps.parsed$MAF <- ifelse(gtex_id1_parsed_match, this_region_gwas_snps.parsed$Freq1, 1-this_region_gwas_snps.parsed$Freq1)
                 
-                ## similarly, we need to flip the effect directions when we have flipped alleles (the IGAP
+                ## similarly, we need to flip the effect directions when we have flipped alleles (the GWAS
                 ## effect is calculated relative to allele 1, and the GTEx effects are calculated relative to
                 ## the alternate allele, so this needs to be consistent)
-                this_region_igap_snps.parsed$correct_beta <- ifelse(gtex_id1_parsed_match, this_region_igap_snps.parsed$Effect, -this_region_igap_snps.parsed$Effect)
+                this_region_gwas_snps.parsed$correct_beta <- ifelse(gtex_id1_parsed_match, this_region_gwas_snps.parsed$Effect, -this_region_gwas_snps.parsed$Effect)
                 
                 ## also parse the eQTL data
-                this_eqtl_data.parsed <- this_eqtl_data[this_eqtl_data$variant_id %in% this_region_igap_snps.parsed$gtex_id,]
+                this_eqtl_data.parsed <- this_eqtl_data[this_eqtl_data$variant_id %in% this_region_gwas_snps.parsed$gtex_id,]
                 
                 ## check that the number of SNPs are equal
-                cat("Analyzing", nrow(this_region_igap_snps.parsed), "SNPs from IGAP and", nrow(this_eqtl_data.parsed), "matching SNPs tested for eQTL\n")
-                if(nrow(this_region_igap_snps.parsed)!=nrow(this_eqtl_data.parsed)) {
+                cat("Analyzing", nrow(this_region_gwas_snps.parsed), "SNPs from GWAS and", nrow(this_eqtl_data.parsed), "matching SNPs tested for eQTL\n")
+                if(nrow(this_region_gwas_snps.parsed)!=nrow(this_eqtl_data.parsed)) {
                     cat("Unequal number of SNPs in region", this_tag, "and gene", gene_name, this_gene_id, "\n")
                     next
                 }
                 
                 ## check that everything is in the same order
-                if(sum(this_eqtl_data.parsed$variant_id != this_region_igap_snps.parsed$gtex_id) != 0) {
+                if(sum(this_eqtl_data.parsed$variant_id != this_region_gwas_snps.parsed$gtex_id) != 0) {
                     cat("Wrong order in region", this_tag, "and gene", gene_name, this_gene_id, "\n")
                     next
                 }
@@ -322,13 +324,13 @@ for(this_chr in unique(top_igap_snps$chr)) {
                 
                 ## need to use the squared standard error for the variance argument
                 this_beta_coloc_results <- coloc.abf(
-                    dataset1=list(beta=this_region_igap_snps.parsed$correct_beta,
-                        varbeta=this_region_igap_snps.parsed$StdErr^2,
+                    dataset1=list(beta=this_region_gwas_snps.parsed$correct_beta,
+                        varbeta=this_region_gwas_snps.parsed$StdErr^2,
                         type="cc", s=0.3140209, N=54162),
                     dataset2=list(beta=this_eqtl_data.parsed$slope,
                         varbeta=this_eqtl_data.parsed$slope_se^2,
                         type="quant", N=this_gtex_samp_size),
-                    MAF=this_region_igap_snps.parsed$MAF)
+                    MAF=this_region_gwas_snps.parsed$MAF)
 
                 write.table(this_beta_coloc_results[['summary']],
                             file=paste0(this_tiss_outdir, gene_name, "_", this_gene_id, "_summary.txt"),
@@ -339,7 +341,7 @@ for(this_chr in unique(top_igap_snps$chr)) {
                 ## define the indexing vector
                 coloc_snp_idx <- as.numeric(unlist(lapply(strsplit(this_beta_coloc_results[['results']]$snp, ".", fixed=T), "[[", 2)))
                 
-                this_beta_coloc_results[['results']]$rsID <- as.character(this_region_igap_snps.parsed$rsID[coloc_snp_idx])
+                this_beta_coloc_results[['results']]$rsID <- as.character(this_region_gwas_snps.parsed$rsID[coloc_snp_idx])
                 
                 write.table(this_beta_coloc_results[['results']],
                             file=paste0(this_tiss_outdir, gene_name, "_", this_gene_id, "_full_results.txt"),
@@ -358,18 +360,18 @@ for(this_chr in unique(top_igap_snps$chr)) {
                     this_tag_lz_out <- paste0(outdir, '/plots/locuszoom_plots/', gsub("/", "_", this_tag, fixed=T), "_region/")
                     dir.create(this_tag_lz_out, F, T)
 
-                    ## do the IGAP analysis, only if we didn't already (this only needs to be run once, even with different GTEx genes and tissues)
-                    if(!file.exists(paste0(this_tag_lz_out, gsub("/", "_", this_tag, fixed=T), "_region_igap_locuszoom_", this_tag_data$rsID, ".pdf"))) {
-                        write.table(this_region_igap_snps.parsed[,c("rsID", "pval")],
-                                    paste0(this_tiss_outdir, gene_name, "_", this_gene_id, "_igap_pvals.txt"),
+                    ## do the GWAS analysis, only if we didn't already (this only needs to be run once, even with different GTEx genes and tissues)
+                    if(!file.exists(paste0(this_tag_lz_out, gsub("/", "_", this_tag, fixed=T), "_region_gwas_locuszoom_", this_tag_data$rsID, ".pdf"))) {
+                        write.table(this_region_gwas_snps.parsed[,c("rsID", "pval")],
+                                    paste0(this_tiss_outdir, gene_name, "_", this_gene_id, "_gwas_pvals.txt"),
                                     quote=F, sep="\t", col.names=T, row.names=F)
                         
-                        ## make an IGAP locuszoom plot around the tag SNP
+                        ## make an GWAS locuszoom plot around the tag SNP
                         system2(locuszoom, paste("--metal",
-                                                 paste0(this_tiss_outdir, gene_name, "_", this_gene_id, "_igap_pvals.txt"),
+                                                 paste0(this_tiss_outdir, gene_name, "_", this_gene_id, "_gwas_pvals.txt"),
                                                  "--markercol rsID --pvalcol pval --refsnp",
                                                  this_tag_data$rsID, "--flank 500kb --pop EUR --build hg19 --source 1000G_Nov2010 --plotonly --prefix",
-                                                 paste0(this_tag_lz_out, gsub("/", "_", this_tag, fixed=T), "_region_igap_locuszoom"),
+                                                 paste0(this_tag_lz_out, gsub("/", "_", this_tag, fixed=T), "_region_gwas_locuszoom"),
                                                  "--no-date legend='right'"))
                     }
                     
@@ -411,11 +413,11 @@ for(this_chr in unique(top_igap_snps$chr)) {
                 ## don't save this one, just keep it for comparison
                 cat("P-value-based colocalization, for comparison\n")
                 this_pval_coloc_results <- coloc.abf(
-                    dataset1=list(pvalues=this_region_igap_snps.parsed$pval,
+                    dataset1=list(pvalues=this_region_gwas_snps.parsed$pval,
                         type="cc", s=0.3140209, N=54162),
                     dataset2=list(pvalues=this_eqtl_data.parsed$pval_nominal,
                         type="quant", N=this_gtex_samp_size),
-                    MAF=this_region_igap_snps.parsed$MAF)
+                    MAF=this_region_gwas_snps.parsed$MAF)
                 
                 rm(this_eqtl_data)
             }
@@ -477,13 +479,13 @@ all_summary_data$gtex_tissue_class <- gtex_category_df$Class[match(all_summary_d
 all_summary_data <- all_summary_data[,c(1,2,11,3:10)]
 
 ## write this out in summarized form
-write.table(all_summary_data, paste0(outdir, '/tables/coloc_analysis/IGAP_top_hits_gtex_coloc_summaries.txt'), quote=F, sep="\t", row.names=F)
+write.table(all_summary_data, paste0(outdir, '/tables/coloc_analysis/GWAS_top_hits_gtex_coloc_summaries.txt'), quote=F, sep="\t", row.names=F)
 
 ## ## to read this in directly:
-## all_summary_data <- read.table(paste0(outdir, '/tables/coloc_analysis/IGAP_top_hits_gtex_coloc_summaries.txt'), header=T, sep="\t", quote="")
+## all_summary_data <- read.table(paste0(outdir, '/tables/coloc_analysis/GWAS_top_hits_gtex_coloc_summaries.txt'), header=T, sep="\t", quote="")
 
 ## make histograms for each of the different hypotheses by tag region
-make_graphic(paste0(outdir, '/plots/IGAP_top_hits_gtex_H0_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_H0_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
 ggplot(all_summary_data, aes(x=PP.H0.abf, fill=tag_region)) +
     geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
     facet_wrap(~ tag_region, scales="free_y", ncol=3, drop=FALSE) +
@@ -495,7 +497,7 @@ ggplot(all_summary_data, aes(x=PP.H0.abf, fill=tag_region)) +
           plot.title=element_text(hjust=0.5))
 dev.off()
 
-make_graphic(paste0(outdir, '/plots/IGAP_top_hits_gtex_H1_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_H1_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
 ggplot(all_summary_data, aes(x=PP.H1.abf, fill=tag_region)) +
     geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
     facet_wrap(~ tag_region, scales="free_y", ncol=3, drop=FALSE) +
@@ -507,7 +509,7 @@ ggplot(all_summary_data, aes(x=PP.H1.abf, fill=tag_region)) +
           plot.title=element_text(hjust=0.5))
 dev.off()
 
-make_graphic(paste0(outdir, '/plots/IGAP_top_hits_gtex_H2_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_H2_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
 ggplot(all_summary_data, aes(x=PP.H2.abf, fill=tag_region)) +
     geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
     facet_wrap(~ tag_region, scales="free_y", ncol=3, drop=FALSE) +
@@ -519,7 +521,7 @@ ggplot(all_summary_data, aes(x=PP.H2.abf, fill=tag_region)) +
           plot.title=element_text(hjust=0.5))
 dev.off()
 
-make_graphic(paste0(outdir, '/plots/IGAP_top_hits_gtex_H3_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_H3_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
 ggplot(all_summary_data, aes(x=PP.H3.abf, fill=tag_region)) +
     geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
     facet_wrap(~ tag_region, scales="free_y", ncol=3, drop=FALSE) +
@@ -531,7 +533,7 @@ ggplot(all_summary_data, aes(x=PP.H3.abf, fill=tag_region)) +
           plot.title=element_text(hjust=0.5))
 dev.off()
 
-make_graphic(paste0(outdir, '/plots/IGAP_top_hits_gtex_H4_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_H4_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
 ggplot(all_summary_data, aes(x=PP.H4.abf, fill=tag_region)) +
     geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
     facet_wrap(~ tag_region, scales="free_y", ncol=3, drop=FALSE) +
@@ -543,7 +545,7 @@ ggplot(all_summary_data, aes(x=PP.H4.abf, fill=tag_region)) +
           plot.title=element_text(hjust=0.5))
 dev.off()
 
-make_graphic(paste0(outdir, '/plots/IGAP_top_hits_gtex_H4_highest_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_H4_highest_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
 ggplot(all_summary_data, aes(x=PP.H4.abf, fill=tag_region)) +
     geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(0.5, 1), breaks=seq(0.5, 1, by=0.05)) +
     facet_wrap(~ tag_region, scales="free_y", ncol=3, drop=FALSE) +
@@ -556,7 +558,7 @@ ggplot(all_summary_data, aes(x=PP.H4.abf, fill=tag_region)) +
 dev.off()
 
 ## also do this split by tissue
-make_graphic(paste0(outdir, '/plots/IGAP_top_hits_gtex_H0_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_H0_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
 ggplot(all_summary_data, aes(x=PP.H0.abf, fill=tissue)) +
     geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
     facet_wrap(~ tissue, scales="free_y", ncol=5, drop=FALSE) +
@@ -568,7 +570,7 @@ ggplot(all_summary_data, aes(x=PP.H0.abf, fill=tissue)) +
           plot.title=element_text(hjust=0.5))
 dev.off()
 
-make_graphic(paste0(outdir, '/plots/IGAP_top_hits_gtex_H1_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_H1_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
 ggplot(all_summary_data, aes(x=PP.H1.abf, fill=tissue)) +
     geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
     facet_wrap(~ tissue, scales="free_y", ncol=5, drop=FALSE) +
@@ -580,7 +582,7 @@ ggplot(all_summary_data, aes(x=PP.H1.abf, fill=tissue)) +
           plot.title=element_text(hjust=0.5))
 dev.off()
 
-make_graphic(paste0(outdir, '/plots/IGAP_top_hits_gtex_H2_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_H2_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
 ggplot(all_summary_data, aes(x=PP.H2.abf, fill=tissue)) +
     geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
     facet_wrap(~ tissue, scales="free_y", ncol=5, drop=FALSE) +
@@ -592,7 +594,7 @@ ggplot(all_summary_data, aes(x=PP.H2.abf, fill=tissue)) +
           plot.title=element_text(hjust=0.5))
 dev.off()
 
-make_graphic(paste0(outdir, '/plots/IGAP_top_hits_gtex_H3_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_H3_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
 ggplot(all_summary_data, aes(x=PP.H3.abf, fill=tissue)) +
     geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
     facet_wrap(~ tissue, scales="free_y", ncol=5, drop=FALSE) +
@@ -604,7 +606,7 @@ ggplot(all_summary_data, aes(x=PP.H3.abf, fill=tissue)) +
           plot.title=element_text(hjust=0.5))
 dev.off()
 
-make_graphic(paste0(outdir, '/plots/IGAP_top_hits_gtex_H4_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_H4_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
 ggplot(all_summary_data, aes(x=PP.H4.abf, fill=tissue)) +
     geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
     facet_wrap(~ tissue, scales="free_y", ncol=5, drop=FALSE) +
@@ -616,7 +618,7 @@ ggplot(all_summary_data, aes(x=PP.H4.abf, fill=tissue)) +
           plot.title=element_text(hjust=0.5))
 dev.off()
 
-make_graphic(paste0(outdir, '/plots/IGAP_top_hits_gtex_H4_highest_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_H4_highest_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
 ggplot(all_summary_data, aes(x=PP.H4.abf, fill=tissue)) +
     geom_histogram(binwidth=0.01) +
     scale_x_continuous(limits=c(0.5, 1), breaks=seq(0.5, 1, by=0.05)) +
@@ -633,7 +635,7 @@ dev.off()
 ## need to melt the data to do this
 melted_summary_data <- melt(all_summary_data, id.vars=1:6, variable.name="hypothesis", value.name="probability")
 
-make_graphic(paste0(outdir, '/plots/IGAP_top_hits_gtex_all_hypotheses_prob_density'))
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_all_hypotheses_prob_density'))
 ggplot(melted_summary_data, aes(x=probability, fill=hypothesis, color=hypothesis)) +
     geom_density(alpha=0.5) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
     scale_fill_brewer(palette="Set1") +
@@ -947,7 +949,7 @@ table(ifelse(top_coloc_enh_overlaps$eqtl_beta > 0, "positive", "negative"))
 ##       85       69 
 
 ## now plot beta distributions across tag regions
-make_graphic(paste0(outdir, '/plots/IGAP_top_hits_gtex_coloc_eqtl_beta_dists_across_tag_regions'))
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_coloc_eqtl_beta_dists_across_tag_regions'))
 print(ggplot(top_coloc_enh_overlaps, aes(x=tag_region, y=eqtl_beta, color=eqtl_beta, fill=tag_region)) + 
 xlab("Tag region") + ylab("eQTL beta value") + theme_bw() +
 ggtitle("COLOC eQTL beta distributions across tag regions for top ABF SNPs") + 
@@ -959,7 +961,7 @@ theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=1
 dev.off()
 
 ## now plot Z-score distributions across tag regions
-make_graphic(paste0(outdir, '/plots/IGAP_top_hits_gtex_coloc_eqtl_zscore_dists_across_tag_regions'))
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_coloc_eqtl_zscore_dists_across_tag_regions'))
 print(ggplot(top_coloc_enh_overlaps, aes(x=tag_region, y=eqtl_z_score, color=eqtl_z_score, fill=tag_region)) + 
 xlab("Tag region") + ylab("eQTL Z score") + theme_bw() +
 ggtitle("COLOC eQTL Z score distributions across tag regions for top ABF SNPs") + 
@@ -971,7 +973,7 @@ theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=1
 dev.off()
 
 ## variance distributions across tag regions
-make_graphic(paste0(outdir, '/plots/IGAP_top_hits_gtex_coloc_eqtl_variance_dists_across_tag_regions'))
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_coloc_eqtl_variance_dists_across_tag_regions'))
 print(ggplot(top_coloc_enh_overlaps, aes(x=tag_region, y=eqtl_variance, color=eqtl_variance, fill=tag_region)) + 
 xlab("Tag region") + ylab("eQTL variance") + theme_bw() +
 ggtitle("COLOC eQTL variance distributions across tag regions for top ABF SNPs") + 
@@ -1072,7 +1074,7 @@ cat("Of the rest,", sum(with(expanded_eqtl_info, positive_betas > 0 & negative_b
     sum(with(expanded_eqtl_info, positive_betas==0 & negative_betas > 0)), "are all negative\n")
 
 ## now plot beta distributions across comparisons, for the full set of 154 comparisons
-make_graphic(paste0(outdir, '/plots/IGAP_top_hits_gtex_coloc_eqtl_beta_dists_', coloc_prob_thresh, '_prob_thresh'), height_ratio=3.0, width_ratio=1.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_coloc_eqtl_beta_dists_', coloc_prob_thresh, '_prob_thresh'), height_ratio=3.0, width_ratio=1.5)
 print(ggplot(top_coloc_enh_overlaps.expanded,
              aes(x=paste(tissue, eqtl_gene_name, tag_region, sep=";"),
                  y=eqtl_beta, color=eqtl_beta)) +
@@ -1087,7 +1089,7 @@ theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=1
 dev.off()
 
 ## now plot z-score distributions across comparisons, for the full set of 154 comparisons
-make_graphic(paste0(outdir, '/plots/IGAP_top_hits_gtex_coloc_eqtl_zscore_dists_', coloc_prob_thresh, '_prob_thresh'), height_ratio=3.0, width_ratio=1.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_coloc_eqtl_zscore_dists_', coloc_prob_thresh, '_prob_thresh'), height_ratio=3.0, width_ratio=1.5)
 print(ggplot(top_coloc_enh_overlaps.expanded,
              aes(x=paste(tissue, eqtl_gene_name, tag_region, sep=";"),
                  y=eqtl_z_score, color=eqtl_z_score)) +
@@ -1102,7 +1104,7 @@ theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=1
 dev.off()
 
 ## now plot variance distributions across comparisons, for the full set of 154 comparisons
-make_graphic(paste0(outdir, '/plots/IGAP_top_hits_gtex_coloc_eqtl_variance_dists_', coloc_prob_thresh, '_prob_thresh'), height_ratio=3.0, width_ratio=1.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_coloc_eqtl_variance_dists_', coloc_prob_thresh, '_prob_thresh'), height_ratio=3.0, width_ratio=1.5)
 print(ggplot(top_coloc_enh_overlaps.expanded,
              aes(x=paste(tissue, eqtl_gene_name, tag_region, sep=";"),
                  y=eqtl_variance, color=eqtl_variance)) +
@@ -1118,7 +1120,7 @@ dev.off()
 
 ## make the same plots for just the relevant tissue categories
 ## now plot beta distributions across comparisons
-make_graphic(paste0(outdir, '/plots/IGAP_top_hits_gtex_coloc_relevant_class_eqtl_beta_dists_', coloc_prob_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_coloc_relevant_class_eqtl_beta_dists_', coloc_prob_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
 print(ggplot(top_coloc_enh_overlaps.expanded[top_coloc_enh_overlaps.expanded$gtex_tissue_class %in% relevant_classes,],
              aes(x=paste(tissue, eqtl_gene_name, tag_region, sep=";"),
                  y=eqtl_beta, color=eqtl_beta)) +
@@ -1134,7 +1136,7 @@ theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=1
 dev.off()
 
 ## now plot z-score distributions across comparisons, for the full set of 154 comparisons
-make_graphic(paste0(outdir, '/plots/IGAP_top_hits_gtex_coloc_relevant_class_eqtl_zscore_dists_', coloc_prob_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_coloc_relevant_class_eqtl_zscore_dists_', coloc_prob_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
 print(ggplot(top_coloc_enh_overlaps.expanded[top_coloc_enh_overlaps.expanded$gtex_tissue_class %in% relevant_classes,],
              aes(x=paste(tissue, eqtl_gene_name, tag_region, sep=";"),
                  y=eqtl_z_score, color=eqtl_z_score)) +
@@ -1150,7 +1152,7 @@ theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=1
 dev.off()
 
 ## now plot variance distributions across comparisons
-make_graphic(paste0(outdir, '/plots/IGAP_top_hits_gtex_coloc_relevant_class_eqtl_variance_dists_', coloc_prob_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_coloc_relevant_class_eqtl_variance_dists_', coloc_prob_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
 print(ggplot(top_coloc_enh_overlaps.expanded[top_coloc_enh_overlaps.expanded$gtex_tissue_class %in% relevant_classes,],
              aes(x=paste(tissue, eqtl_gene_name, tag_region, sep=";"),
                  y=eqtl_variance, color=eqtl_variance)) +
