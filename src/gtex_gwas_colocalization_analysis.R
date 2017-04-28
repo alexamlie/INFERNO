@@ -65,29 +65,34 @@ PRINT_MSGS <- FALSE
 ## read in parameters:
 args <- commandArgs(trailingOnly=TRUE)
 
-if (length(args)==11) {
+if (length(args)==12) {
     ## the main output directory
     outdir <- args[1]
     ## set up the INFERNO directory for enhancer, motif, and direct eQTL overlaps
     inferno_param_f <- args[2]
     ## define the P(H_4) threshold for finding the strongest hits
-    coloc_thresh <- args[3]
+    coloc_h4_thresh <- args[3]
+    ## also get the probability threshold for ABF expansion
+    coloc_h4_thresh <- args[4]    
     ## get the top GWAS SNPs (usually the file that would be given to INFERNO)
-    top_snpf <- args[4]
+    top_snpf <- args[5]
     ## the directory with the summary statistics
-    gwas_summary_dir <- args[5]
+    gwas_summary_dir <- args[6]
     ## the GTEx directory containing the full eQTL statistics for each tissue
-    gtex_dir <- args[6]
+    gtex_dir <- args[7]
     ## sample sizes file for GTEx (csv)
-    gtex_sample_sizef <- args[7]
+    gtex_sample_sizef <- args[8]
     ## the GTEx tissue class file for INFERNO
-    gtex_class_file <- args[8]
+    gtex_class_file <- args[9]
     ## define the file that is used to match GTEx IDs with rsIDs
-    gtex_rsid_match <- args[9]
+    gtex_rsid_match <- args[10]
     ## reference for gene names
-    hg19_ensembl_ref_file <- args[10]
+    hg19_ensembl_ref_file <- args[11]
     ## define the relevant tissue classes. must be a vector e.g. "(c("Blood", "Brain"))"
-    relevant_classes <- args[11]
+    relevant_classes <- args[12]
+} else {
+    ## TODO: fill in and make sure to mention that GTEx files MUST be sorted
+    cat("Usage:\n")
 }
 
 dir.create(paste0(outdir, "/plots/"), F, T)
@@ -212,11 +217,10 @@ for(this_chr in unique(top_snps$chr)) {
             ## try to find all the genes tested with this tag SNP
             ## first set up a faster awk call
             ## note that this relies on the data being sorted by chromosome!
-            
-            awk_call <- paste0("awk -F$'\t' 'BEGIN{CHR_OBS=\"\"} {split($2, SNP_INFO, \"_\"); if(SNP_INFO[1] <= ",
-                               gsub("chr", "", this_chr), ") { if($2==\"",
-                               this_tag_gtex_id, "\") {print}} else { exit;} '")
-            all_genes <- system2("zcat", paste0(gtex_dir, gtex_file, " | tail -n +2 | ", awk_call, " | cut -f1 | sort -u"), stdout=TRUE)
+            awk_call <- paste0("awk -F$'\t' 'BEGIN{CHR_OBS=\"\"} {split($2, SNP_INFO, \"_\"); if(SNP_INFO[1] == ",
+                               gsub("chr", "", this_chr), ") {CHR_OBS=\"Yes\"; if($2==\"",
+                               this_tag_gtex_id, "\") {print $1}} else if(CHR_OBS) {exit;}}'")
+            all_genes <- system2("zcat", paste0(gtex_dir, gtex_file, " | tail -n +2 | ", awk_call, " | sort -u"), stdout=TRUE)
                         
             ## check that we actually found some genes, and flip the alleles if not
             if(length(all_genes)==0) {
@@ -237,8 +241,11 @@ for(this_chr in unique(top_snps$chr)) {
                               toupper(this_tag_gwas_data$Allele1),
                               toupper(this_tag_gwas_data$Allele2), "b37", sep="_") 
                 }
-                                
-                all_genes <- system2("zcat", paste0(gtex_dir, gtex_file, " | awk -F$'\t' '$2==\"", this_tag_gtex_id, "\"' | cut -f1 | sort -u"), stdout=TRUE)
+
+                awk_call <- paste0("awk -F$'\t' 'BEGIN{CHR_OBS=\"\"} {split($2, SNP_INFO, \"_\"); if(SNP_INFO[1] == ",
+                                   gsub("chr", "", this_chr), ") {CHR_OBS=\"Yes\"; if($2==\"",
+                                   this_tag_gtex_id, "\") {print $1};} else if(CHR_OBS) {exit;}}'")
+                all_genes <- system2("zcat", paste0(gtex_dir, gtex_file, " | tail -n +2 | ", awk_call, " | sort -u"), stdout=TRUE)
 
                 ## if this is still 0, just continue
                 if(length(all_genes)==0) {
@@ -253,9 +260,14 @@ for(this_chr in unique(top_snps$chr)) {
             write.table(all_genes, gene_outf, quote=F, sep="\t", row.names=F, col.names=F)
             
             ## read in all the data for all these genes at once
+            ## also speed this up by using the chromosome check
+            all_eqtl_awk_call <- paste0("awk -F$'\t' 'BEGIN{CHR_OBS=\"\"} NR==FNR {gene_ids[$1]; next} {split($2, SNP_INFO, \"_\"); if(SNP_INFO[1] == ",
+                                        gsub("chr", "", this_chr),
+                                        ") {CHR_OBS=\"Yes\"; if($1 in gene_ids) {print $0};} else if(CHR_OBS) {exit;}}' ")
+            
             all_eqtl_data <- data.frame(do.call(rbind, strsplit(
                 system2("zcat", paste0(gtex_dir, gtex_file,
-                                       " | awk -F$'\t' 'NR==FNR {gene_ids[$1]; next} {if($1 in gene_ids) {print $0}}' ",
+                                       " | ", all_eqtl_awk_call,
                                        gene_outf, " - "), stdout=TRUE),
                 split="\t")), stringsAsFactors=F)
             colnames(all_eqtl_data) <- gtex_eqtl_header
@@ -348,7 +360,7 @@ for(this_chr in unique(top_snps$chr)) {
                             quote=F, sep="\t", col.names=T, row.names=F)
 
                 ## if this comparison meets the threshold, make locuszoom plots:
-                if (this_beta_coloc_results[['summary']]['PP.H4.abf'] >= coloc_thresh) {
+                if (this_beta_coloc_results[['summary']]['PP.H4.abf'] >= coloc_h4_thresh) {
                     ## annotate the GTEx data with the matching rsIDs
                     this_eqtl_data.parsed$dbsnp135_rsid <- this_chr_gtex_rsid_match$RS_ID_dbSNP135_original_VCF[match(this_eqtl_data.parsed$variant_id, this_chr_gtex_rsid_match$VariantID)]
                     ## now write out that info
@@ -652,13 +664,13 @@ dev.off()
 ## 5. Compare GTEx COLOC hits with top GWAS enhancer overlaps and eQTL effect direction
 ## -----------------------------------------------------------------------------
 ## use the colocalization threshold parameter
-top_coloc_hits <- all_summary_data[all_summary_data$PP.H4.abf > coloc_thresh,]
+top_coloc_hits <- all_summary_data[all_summary_data$PP.H4.abf > coloc_h4_thresh,]
 nrow(top_coloc_hits)
 
 ## define the probability threshold to grab the set of SNPs up to
-coloc_prob_thresh <- 0.5
-## coloc_prob_thresh <- 0.9
-## coloc_prob_thresh <- 0.99
+coloc_abf_thresh <- 0.5
+## coloc_abf_thresh <- 0.9
+## coloc_abf_thresh <- 0.99
 
 {
 enh_start_time <- proc.time()
@@ -674,7 +686,7 @@ roadmap_enh_overlaps <- read.table(roadmap_overlap_f, header=T, sep="\t", quote=
 ## datasets.  we want to store all this information: which SNP, which tag region, which eQTL
 ## dataset and target gene, etc
 top_coloc_enh_overlaps <- data.frame(stringsAsFactors = F)
-## also make one to store more variants, accounting for some amount (coloc_prob_thresh) of the
+## also make one to store more variants, accounting for some amount (coloc_abf_thresh) of the
 ## individual SNP probability
 top_coloc_enh_overlaps.expanded <- data.frame(stringsAsFactors = F)
 
@@ -710,7 +722,7 @@ for(i in seq(nrow(top_coloc_hits))) {
     ## to do this, calculate the cumulative sum of the ordered probabilities
     snp_cumsum_values <- cumsum(this_coloc_data$SNP.PP.H4[indiv_snp_prob_order])
     ## get the SNP set, enough to get 0.5 probability
-    snp_set_idx <- indiv_snp_prob_order[1:(sum(snp_cumsum_values <= coloc_prob_thresh)+1)]
+    snp_set_idx <- indiv_snp_prob_order[1:(sum(snp_cumsum_values <= coloc_abf_thresh)+1)]
     
     top_causal_snp_set <- this_coloc_data$rsID[snp_set_idx]
     expanded_snp_data <- this_coloc_data[snp_set_idx,] 
@@ -848,7 +860,7 @@ top_coloc_enh_overlaps.expanded$hmm_category_match <- ifelse(mapply(grepl, patte
 ## use these new columns to describe another convenient column for summarizing the tissue matches
 top_coloc_enh_overlaps.expanded$enh_levels <- with(top_coloc_enh_overlaps.expanded, ifelse(any_enh_overlap=="no", "no_overlap", ifelse(f5_category_match=="yes" | hmm_category_match=="yes", "tiss_match", "tiss_non_match")))
 
-write.table(top_coloc_enh_overlaps.expanded, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_enh_overlaps.', coloc_prob_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
+write.table(top_coloc_enh_overlaps.expanded, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_enh_overlaps.', coloc_abf_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
 
 cat("Enhancer overlap analysis took", (proc.time() - enh_start_time)[["elapsed"]], "seconds\n")
 }
@@ -860,7 +872,7 @@ cat(sum(unique(top_coloc_enh_overlaps$top_coloc_snp) %in% ld_stats_df$rsID), "ou
 
 cat(sum(unique(top_coloc_enh_overlaps.expanded$high_coloc_snp) %in% ld_stats_df$rsID), "out of",
     length(unique(top_coloc_enh_overlaps.expanded$high_coloc_snp)),
-    "unique high colocalized SNPs in", coloc_prob_thresh, "expanded set match up with INFERNO SNPs\n")
+    "unique high colocalized SNPs in", coloc_abf_thresh, "expanded set match up with INFERNO SNPs\n")
 
 ## -----------------------------
 ## do some visualizations of the single max coloc SNP overlaps
@@ -945,8 +957,6 @@ dev.off()
 ## eQTL effect direction analysis for the unexpanded set
 ## number of positive and negative hits
 table(ifelse(top_coloc_enh_overlaps$eqtl_beta > 0, "positive", "negative"))
-## negative positive 
-##       85       69 
 
 ## now plot beta distributions across tag regions
 make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_coloc_eqtl_beta_dists_across_tag_regions'))
@@ -989,12 +999,12 @@ dev.off()
 ## first we want histograms of the number of SNPs for comparison by tag region
 max_snp_set_size <- max(top_coloc_enh_overlaps.expanded$num_prob_expanded_snps)
 
-make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_num_snps_to_', coloc_prob_thresh, '_thresh_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
+make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_num_snps_to_', coloc_abf_thresh, '_thresh_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
 ggplot(unique(top_coloc_enh_overlaps.expanded[,c("tag_region", "tissue", "eqtl_gene_name", "num_prob_expanded_snps")]), aes(x=num_prob_expanded_snps, fill=tag_region)) +
     geom_histogram(binwidth=1) +
     scale_x_continuous(breaks=seq(0, max_snp_set_size, by=ifelse(max_snp_set_size > 50, 10, 2))) +
     facet_wrap(~ tag_region, scales="free_y", ncol=3, drop=FALSE) +
-    ggtitle(paste("Histograms of numbers of SNPs to reach", coloc_prob_thresh, "probability")) + 
+    ggtitle(paste("Histograms of numbers of SNPs to reach", coloc_abf_thresh, "probability")) + 
     theme_bw() + xlab("Number of SNPs to reach probability threshold") + ylab("Number of GTEx - GWAS comparisons") +
     theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
           axis.text.y = element_text(size=15), strip.text=element_text(size=25),
@@ -1006,11 +1016,11 @@ dev.off()
 top_coloc_enh_overlaps.expanded$enh_levels <- factor(top_coloc_enh_overlaps.expanded$enh_levels, levels=c("no_overlap", "tiss_non_match", "tiss_match"), ordered=T)
 
 ## look at the individual SNP probability distributions by enhancer overlap and tag region
-make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_snp_abf_distributions_by_enh_overlap_and_tag_region_', coloc_prob_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
+make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_snp_abf_distributions_by_enh_overlap_and_tag_region_', coloc_abf_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
 ggplot(top_coloc_enh_overlaps.expanded, aes(x=enh_levels, y=coloc_snp_prob, color=enh_levels)) +
     geom_boxplot() +
     facet_wrap(~ tag_region, ncol=3, drop=FALSE) + 
-    ggtitle(paste("Distributions of SNP ABFs, expanded to", coloc_prob_thresh, "probability, GTEx")) + 
+    ggtitle(paste("Distributions of SNP ABFs, expanded to", coloc_abf_thresh, "probability, GTEx")) + 
     theme_bw() + xlab("Type of enhancer overlap") + ylab("Individual SNP ABFs") +
     theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
           axis.text.y = element_text(size=15), strip.text=element_text(size=25),
@@ -1020,10 +1030,10 @@ ggplot(top_coloc_enh_overlaps.expanded, aes(x=enh_levels, y=coloc_snp_prob, colo
 dev.off()
 
 ## same thing, but collapsed across tag regions
-make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_snp_abf_distributions_by_enh_overlap_', coloc_prob_thresh, '_prob_thresh'))
+make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_snp_abf_distributions_by_enh_overlap_', coloc_abf_thresh, '_prob_thresh'))
 ggplot(top_coloc_enh_overlaps.expanded, aes(x=enh_levels, y=coloc_snp_prob, color=enh_levels)) +
     geom_boxplot() + geom_jitter(height=0, shape=23, alpha=0.6) +
-    ggtitle(paste("Distributions of SNP ABFs across tag regions\nexpanded to", coloc_prob_thresh, "probability, GTEx")) + 
+    ggtitle(paste("Distributions of SNP ABFs across tag regions\nexpanded to", coloc_abf_thresh, "probability, GTEx")) + 
     theme_bw() + xlab("Type of enhancer overlaps") + ylab("Individual SNP ABFs") +
     theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
           axis.text.y = element_text(size=15), strip.text=element_text(size=25),
@@ -1049,13 +1059,13 @@ melted_expanded_enh_count_summ <- melt(expanded_tag_region_enh_count_summary, id
 
 melted_expanded_enh_count_summ$variable <- factor(melted_expanded_enh_count_summ$variable, levels=c("enh_non_overlap_hits", "enh_tiss_non_match", "enh_tiss_match"), ordered=T)
 
-make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_coloc_enh_overlaps_barplot_', coloc_prob_thresh, '_prob_thresh'))
+make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_coloc_enh_overlaps_barplot_', coloc_abf_thresh, '_prob_thresh'))
 ggplot(melted_expanded_enh_count_summ, aes(x=tag_region, y=count, fill=variable)) +
     scale_fill_manual(
         labels=c("enh_tiss_match"="Enhancer overlaps with consistent tissue class", "enh_tiss_non_match"="Enhancer overlaps without consistent tissue class", "enh_non_overlap_hits"="Colocalization hits without enhancer overlap"),
         values=c("enh_tiss_match"="#B3112E", "enh_tiss_non_match"="darkred", "enh_non_overlap_hits"="gray20")) + 
     xlab("Tag region") + ylab("Number of SNP - eQTL comparisons") + theme_bw() +
-    ggtitle(paste("Enhancer overlaps of colocalized SNPs expanded to", coloc_prob_thresh, "probability, GTEx")) + 
+    ggtitle(paste("Enhancer overlaps of colocalized SNPs expanded to", coloc_abf_thresh, "probability, GTEx")) + 
     geom_bar(stat="identity", position="stack") +
     guides(fill=guide_legend(nrow=3, title="")) + 
     theme(legend.position="bottom", axis.text.x=element_text(angle=45, hjust=1, size=15),
@@ -1074,12 +1084,12 @@ cat("Of the rest,", sum(with(expanded_eqtl_info, positive_betas > 0 & negative_b
     sum(with(expanded_eqtl_info, positive_betas==0 & negative_betas > 0)), "are all negative\n")
 
 ## now plot beta distributions across comparisons, for the full set of 154 comparisons
-make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_coloc_eqtl_beta_dists_', coloc_prob_thresh, '_prob_thresh'), height_ratio=3.0, width_ratio=1.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_coloc_eqtl_beta_dists_', coloc_abf_thresh, '_prob_thresh'), height_ratio=3.0, width_ratio=1.5)
 print(ggplot(top_coloc_enh_overlaps.expanded,
              aes(x=paste(tissue, eqtl_gene_name, tag_region, sep=";"),
                  y=eqtl_beta, color=eqtl_beta)) +
 xlab("Tissue; target gene; tag region") + ylab("eQTL beta values") + theme_bw() +
-ggtitle(paste("COLOC eQTL beta distributions, expanded to", coloc_prob_thresh, "probability")) + 
+ggtitle(paste("COLOC eQTL beta distributions, expanded to", coloc_abf_thresh, "probability")) + 
 geom_point() + geom_hline(color="red", yintercept=0, linetype=3) + coord_flip() + 
 facet_grid(tag_region ~ ., scales="free", space="free") +
 theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
@@ -1089,12 +1099,12 @@ theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=1
 dev.off()
 
 ## now plot z-score distributions across comparisons, for the full set of 154 comparisons
-make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_coloc_eqtl_zscore_dists_', coloc_prob_thresh, '_prob_thresh'), height_ratio=3.0, width_ratio=1.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_coloc_eqtl_zscore_dists_', coloc_abf_thresh, '_prob_thresh'), height_ratio=3.0, width_ratio=1.5)
 print(ggplot(top_coloc_enh_overlaps.expanded,
              aes(x=paste(tissue, eqtl_gene_name, tag_region, sep=";"),
                  y=eqtl_z_score, color=eqtl_z_score)) +
 xlab("Tissue; target gene; tag region") + ylab("eQTL Z scores") + theme_bw() +
-ggtitle(paste("COLOC eQTL Z score distributions, expanded to", coloc_prob_thresh, "probability")) + 
+ggtitle(paste("COLOC eQTL Z score distributions, expanded to", coloc_abf_thresh, "probability")) + 
 geom_point() + geom_hline(color="red", yintercept=0, linetype=3) + coord_flip() + 
 facet_grid(tag_region ~ ., scales="free", space="free") +
 theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
@@ -1104,12 +1114,12 @@ theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=1
 dev.off()
 
 ## now plot variance distributions across comparisons, for the full set of 154 comparisons
-make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_coloc_eqtl_variance_dists_', coloc_prob_thresh, '_prob_thresh'), height_ratio=3.0, width_ratio=1.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_coloc_eqtl_variance_dists_', coloc_abf_thresh, '_prob_thresh'), height_ratio=3.0, width_ratio=1.5)
 print(ggplot(top_coloc_enh_overlaps.expanded,
              aes(x=paste(tissue, eqtl_gene_name, tag_region, sep=";"),
                  y=eqtl_variance, color=eqtl_variance)) +
 xlab("Tissue; target gene; tag region") + ylab("eQTL variance") + theme_bw() +
-ggtitle(paste("COLOC eQTL variance distributions, expanded to", coloc_prob_thresh, "probability")) + 
+ggtitle(paste("COLOC eQTL variance distributions, expanded to", coloc_abf_thresh, "probability")) + 
 geom_point() + coord_flip() + 
 facet_grid(tag_region ~ ., scales="free", space="free") +
 theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
@@ -1120,12 +1130,12 @@ dev.off()
 
 ## make the same plots for just the relevant tissue categories
 ## now plot beta distributions across comparisons
-make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_coloc_relevant_class_eqtl_beta_dists_', coloc_prob_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_coloc_relevant_class_eqtl_beta_dists_', coloc_abf_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
 print(ggplot(top_coloc_enh_overlaps.expanded[top_coloc_enh_overlaps.expanded$gtex_tissue_class %in% relevant_classes,],
              aes(x=paste(tissue, eqtl_gene_name, tag_region, sep=";"),
                  y=eqtl_beta, color=eqtl_beta)) +
 xlab("Tissue; target gene; tag region") + ylab("eQTL beta values") + theme_bw() +
-ggtitle(paste("COLOC eQTL beta distributions, expanded to", coloc_prob_thresh, "probability\n",
+ggtitle(paste("COLOC eQTL beta distributions, expanded to", coloc_abf_thresh, "probability\n",
               "Only comparisons in", paste(relevant_classes, collapse=", "))) + 
 geom_point() + geom_hline(color="red", yintercept=0, linetype=3) + coord_flip() + 
 facet_grid(tag_region ~ ., scales="free", space="free") +
@@ -1136,12 +1146,12 @@ theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=1
 dev.off()
 
 ## now plot z-score distributions across comparisons, for the full set of 154 comparisons
-make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_coloc_relevant_class_eqtl_zscore_dists_', coloc_prob_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_coloc_relevant_class_eqtl_zscore_dists_', coloc_abf_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
 print(ggplot(top_coloc_enh_overlaps.expanded[top_coloc_enh_overlaps.expanded$gtex_tissue_class %in% relevant_classes,],
              aes(x=paste(tissue, eqtl_gene_name, tag_region, sep=";"),
                  y=eqtl_z_score, color=eqtl_z_score)) +
 xlab("Tissue; target gene; tag region") + ylab("eQTL Z scores") + theme_bw() +
-ggtitle(paste("COLOC eQTL Z score distributions, expanded to", coloc_prob_thresh, "probability\n",
+ggtitle(paste("COLOC eQTL Z score distributions, expanded to", coloc_abf_thresh, "probability\n",
               "Only comparisons in", paste(relevant_classes, collapse=", "))) +
 geom_point() + geom_hline(color="red", yintercept=0, linetype=3) + coord_flip() + 
 facet_grid(tag_region ~ ., scales="free", space="free") +
@@ -1152,12 +1162,12 @@ theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=1
 dev.off()
 
 ## now plot variance distributions across comparisons
-make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_coloc_relevant_class_eqtl_variance_dists_', coloc_prob_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
+make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_coloc_relevant_class_eqtl_variance_dists_', coloc_abf_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
 print(ggplot(top_coloc_enh_overlaps.expanded[top_coloc_enh_overlaps.expanded$gtex_tissue_class %in% relevant_classes,],
              aes(x=paste(tissue, eqtl_gene_name, tag_region, sep=";"),
                  y=eqtl_variance, color=eqtl_variance)) +
 xlab("Tissue; target gene; tag region") + ylab("eQTL variance") + theme_bw() +
-ggtitle(paste("COLOC eQTL variance distributions, expanded to", coloc_prob_thresh, "probability\n",
+ggtitle(paste("COLOC eQTL variance distributions, expanded to", coloc_abf_thresh, "probability\n",
               "Only comparisons in", paste(relevant_classes, collapse=", "))) +
 geom_point() + coord_flip() + 
 facet_grid(tag_region ~ ., scales="free", space="free") +
@@ -1436,9 +1446,9 @@ if(check_param(param_ref, "homer_motif_pwm_file") & check_param(param_ref, "home
                ifelse(enh_levels=="tiss_non_match", "no_motif_non_tiss_match", "no_motif_tiss_match"))))
 
     ## write these out
-    write.table(top_coloc_enh_motif_overlaps.expanded, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_enh_motif_overlap_summary.', coloc_prob_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
+    write.table(top_coloc_enh_motif_overlaps.expanded, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_enh_motif_overlap_summary.', coloc_abf_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
 
-    write.table(top_coloc_motif_overlaps.expanded, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_motif_overlaps.', coloc_prob_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
+    write.table(top_coloc_motif_overlaps.expanded, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_motif_overlaps.', coloc_abf_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
 
     ## now look at the individual SNP probability distributions
     ## set the factor levels to get the plots in the right order
@@ -1447,11 +1457,11 @@ if(check_param(param_ref, "homer_motif_pwm_file") & check_param(param_ref, "home
     top_coloc_enh_motif_overlaps.expanded$motif_overlap <- factor(ifelse(top_coloc_enh_motif_overlaps.expanded$num_motif_hits > 0, "TFBS", "no TFBS"))
 
     ## look at the individual SNP probability distributions by enhancer overlap and tag region
-    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_snp_abf_distributions_by_enh_motif_overlap_and_tag_region_', coloc_prob_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_snp_abf_distributions_by_enh_motif_overlap_and_tag_region_', coloc_abf_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
     print(ggplot(top_coloc_enh_motif_overlaps.expanded, aes(x=motif_levels, y=coloc_snp_prob, color=motif_levels)) +
         geom_boxplot() +
         facet_wrap(~ tag_region, ncol=3, drop=FALSE) + 
-        ggtitle(paste("Distributions of SNP ABFs, expanded to", coloc_prob_thresh, "probability, GTEx")) + 
+        ggtitle(paste("Distributions of SNP ABFs, expanded to", coloc_abf_thresh, "probability, GTEx")) + 
         theme_bw() + xlab("Type of motif and enhancer overlap") + ylab("Individual SNP ABFs") +
         theme(legend.position="none", axis.text.x=element_text(angle=90, hjust=1, size=15),
               axis.text.y = element_text(size=15), strip.text=element_text(size=25),
@@ -1461,10 +1471,10 @@ if(check_param(param_ref, "homer_motif_pwm_file") & check_param(param_ref, "home
     dev.off()
 
     ## same thing, but collapsed across tag regions
-    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_snp_abf_distributions_by_enh_motif_overlap_', coloc_prob_thresh, '_prob_thresh'))
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_snp_abf_distributions_by_enh_motif_overlap_', coloc_abf_thresh, '_prob_thresh'))
     print(ggplot(top_coloc_enh_motif_overlaps.expanded, aes(x=enh_levels, y=coloc_snp_prob, color=enh_levels)) +
         geom_boxplot() + geom_jitter(height=0, shape=23, alpha=0.6) +
-        ggtitle(paste("Distributions of SNP ABFs across tag regions\nexpanded to", coloc_prob_thresh, "probability, GTEx")) +
+        ggtitle(paste("Distributions of SNP ABFs across tag regions\nexpanded to", coloc_abf_thresh, "probability, GTEx")) +
         scale_color_manual(values=c("tiss_match"="#B3112E", "tiss_non_match"="darkred", "no_overlap"="gray20")) +
         scale_x_discrete(breaks=c("no_overlap", "tiss_non_match", "tiss_match"), labels=c("No enhancer overlap", "Inconsistent tissue class", "Consistent tissue class")) + 
         facet_grid(motif_overlap ~ ., scales="free") + 
@@ -1512,20 +1522,20 @@ if(check_param(param_ref, "homer_motif_pwm_file") & check_param(param_ref, "home
                                           data.frame(tag_region=all_regions[!(all_regions %in% expanded_tag_region_motif_enh_summary$tag_region)], hit_motif="no_motif_overlap", num_coloc_hits=0, enh_overlap_hits=0, enh_non_overlap_hits=0, enh_tiss_match=0, enh_tiss_non_match=0))
     
     ## write this summary table out
-    write.table(expanded_tag_region_motif_enh_summary, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_motif_enh_tag_region_summary.', coloc_prob_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
+    write.table(expanded_tag_region_motif_enh_summary, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_motif_enh_tag_region_summary.', coloc_abf_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
 
     ## melt this down
     melted_expanded_enh_motif_summ <- melt(expanded_tag_region_motif_enh_summary, id.vars=c("tag_region", "hit_motif"), measure.vars=c("enh_tiss_non_match", "enh_tiss_match", "enh_non_overlap_hits"), value.name="count")
 
     melted_expanded_enh_motif_summ$variable <- factor(melted_expanded_enh_motif_summ$variable, levels=c("enh_non_overlap_hits", "enh_tiss_non_match", "enh_tiss_match"), ordered=T)
 
-    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_coloc_enh_and_motif_overlaps_barplot_', coloc_prob_thresh, '_prob_thresh'), width_ratio=2.0)
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_coloc_enh_and_motif_overlaps_barplot_', coloc_abf_thresh, '_prob_thresh'), width_ratio=2.0)
     print(ggplot(melted_expanded_enh_motif_summ, aes(x=tag_region, y=count, fill=variable)) +
         scale_fill_manual(
             labels=c("enh_tiss_match"="Enhancer overlaps with consistent tissue class", "enh_tiss_non_match"="Enhancer overlaps without consistent tissue class", "enh_non_overlap_hits"="Colocalization hits without enhancer overlap"),
             values=c("enh_tiss_match"="#B3112E", "enh_tiss_non_match"="darkred", "enh_non_overlap_hits"="gray20")) + 
     xlab("Tag region") + ylab("Number of SNP - eQTL comparisons") + theme_bw() +
-    ggtitle(paste("Enhancer and motif analysis of GTEx-colocalized SNPs expanded to", coloc_prob_thresh, "probability")) + 
+    ggtitle(paste("Enhancer and motif analysis of GTEx-colocalized SNPs expanded to", coloc_abf_thresh, "probability")) + 
     geom_bar(stat="identity", position="stack") +
     guides(fill=guide_legend(nrow=3, title="")) +
     facet_wrap(~hit_motif, nrow=1, scales="free") + 
@@ -1578,7 +1588,7 @@ if(check_param(param_ref, "homer_motif_pwm_file") & check_param(param_ref, "home
                                           data.frame(tag_region=all_regions[!(all_regions %in% expanded_relevant_class_tag_region_motif_enh_summary$tag_region)], hit_motif="no_motif_overlap", num_coloc_hits=0, enh_overlap_hits=0, enh_non_overlap_hits=0, enh_relevant_tiss_match=0, enh_irrelevant_tiss_match=0, enh_tiss_non_match=0))
     
     ## write this summary table out
-    write.table(expanded_relevant_class_tag_region_motif_enh_summary, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_motif_enh_tag_region_relevant_class_summary.', coloc_prob_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
+    write.table(expanded_relevant_class_tag_region_motif_enh_summary, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_motif_enh_tag_region_relevant_class_summary.', coloc_abf_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
 
     ## melt this down
     melted_relevant_class_expanded_enh_motif_summ <- melt(expanded_relevant_class_tag_region_motif_enh_summary, id.vars=c("tag_region", "hit_motif"), measure.vars=c("enh_tiss_non_match", "enh_relevant_tiss_match", "enh_irrelevant_tiss_match", "enh_non_overlap_hits"), value.name="count")
@@ -1586,13 +1596,13 @@ if(check_param(param_ref, "homer_motif_pwm_file") & check_param(param_ref, "home
     melted_relevant_class_expanded_enh_motif_summ$variable <- factor(melted_relevant_class_expanded_enh_motif_summ$variable, levels=c("enh_non_overlap_hits", "enh_tiss_non_match", "enh_irrelevant_tiss_match", "enh_relevant_tiss_match"), ordered=T)
 
     ## make two barplots: one vertical (for paper) and one horizontal (for talks)
-    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_coloc_relevant_class_enh_and_motif_overlaps_barplot_', coloc_prob_thresh, '_prob_thresh'), height_ratio=1.5)
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_coloc_relevant_class_enh_and_motif_overlaps_barplot_', coloc_abf_thresh, '_prob_thresh'), height_ratio=1.5)
     print(ggplot(melted_relevant_class_expanded_enh_motif_summ, aes(x=tag_region, y=count, fill=variable)) +
         scale_fill_manual(
             labels=c("enh_relevant_tiss_match"=paste("Enhancer overlaps in", paste0(relevant_classes, collapse=", ")), "enh_irrelevant_tiss_match"="Enhancer overlaps in other tissue classes", "enh_tiss_non_match"="Enhancer overlaps without consistent tissue class", "enh_non_overlap_hits"="Colocalization hits without enhancer overlap"),
             values=c("enh_relevant_tiss_match"="red", "enh_irrelevant_tiss_match"="firebrick3", "enh_tiss_non_match"="darkred", "enh_non_overlap_hits"="gray20")) + 
     xlab("Tag region") + ylab("Number of SNP - eQTL comparisons") + theme_bw() +
-    ggtitle(paste("Enhancer and motif analysis of GTEx-colocalized SNPs expanded to", coloc_prob_thresh, "probability")) + 
+    ggtitle(paste("Enhancer and motif analysis of GTEx-colocalized SNPs expanded to", coloc_abf_thresh, "probability")) + 
     geom_bar(stat="identity", position="stack") +
     guides(fill=guide_legend(nrow=2, title="")) +
     facet_wrap(~factor(hit_motif, levels=c("motif_overlap", "no_motif_overlap"),
@@ -1604,13 +1614,13 @@ if(check_param(param_ref, "homer_motif_pwm_file") & check_param(param_ref, "home
           plot.title=element_text(hjust=0.5)))
     dev.off()
 
-    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_coloc_relevant_class_enh_and_motif_overlaps_horizontal_barplot_', coloc_prob_thresh, '_prob_thresh'), width_ratio=1.5)
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_coloc_relevant_class_enh_and_motif_overlaps_horizontal_barplot_', coloc_abf_thresh, '_prob_thresh'), width_ratio=1.5)
     print(ggplot(melted_relevant_class_expanded_enh_motif_summ, aes(x=tag_region, y=count, fill=variable)) +
         scale_fill_manual(
             labels=c("enh_relevant_tiss_match"=paste("Enhancer overlaps in", paste0(relevant_classes, collapse=", ")), "enh_irrelevant_tiss_match"="Enhancer overlaps in other tissue classes", "enh_tiss_non_match"="Enhancer overlaps without consistent tissue class", "enh_non_overlap_hits"="Colocalization hits without enhancer overlap"),
             values=c("enh_relevant_tiss_match"="red", "enh_irrelevant_tiss_match"="firebrick3", "enh_tiss_non_match"="darkred", "enh_non_overlap_hits"="gray20")) + 
     xlab("Tag region") + ylab("Number of SNP - eQTL comparisons") + theme_bw() +
-    ggtitle(paste("Enhancer and motif analysis of GTEx-colocalized SNPs expanded to", coloc_prob_thresh, "probability")) + 
+    ggtitle(paste("Enhancer and motif analysis of GTEx-colocalized SNPs expanded to", coloc_abf_thresh, "probability")) + 
     geom_bar(stat="identity", position="stack") +
     guides(fill=guide_legend(nrow=2, title="")) +
     facet_wrap(~factor(hit_motif, levels=c("motif_overlap", "no_motif_overlap"),
@@ -1741,7 +1751,7 @@ if(check_param(param_ref, 'gtex_dir')) {
     cat(sum(expanded_coloc_eqtl_overlap_count$eqtl_overlap), "out of", nrow(expanded_coloc_eqtl_overlap_count), "colocalization signals were found in direct eQTL overlap dataset after ABF expansion\n")    
     
     ## write this out
-    write.table(top_coloc_enh_motif_eqtl_overlaps.expanded, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_enh_motif_eqtl_info.', coloc_prob_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
+    write.table(top_coloc_enh_motif_eqtl_overlaps.expanded, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_enh_motif_eqtl_info.', coloc_abf_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
 
     ## check whether the eQTLs in each comparison line up or not:
     expanded_direct_eqtl_info <- ddply(top_coloc_enh_motif_eqtl_overlaps.expanded, .(tag_region, tissue, gtex_tissue_class, eqtl_gene_name), summarize, eqtl_overlaps = sum(!is.na(beta)), eqtl_overlap_prop = sum(!is.na(beta)) / length(beta), positive_betas = sum(beta > 0, na.rm=T), negative_betas = sum(beta < 0, na.rm=T))
@@ -1752,12 +1762,12 @@ if(check_param(param_ref, 'gtex_dir')) {
         sum(with(expanded_direct_eqtl_info[expanded_direct_eqtl_info$eqtl_overlaps!=0,], positive_betas==0 & negative_betas > 0)), "are all negative\n")
 
     ## make a plot of the beta distributions across comparisons
-    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_coloc_direct_eqtl_beta_dists_', coloc_prob_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_coloc_direct_eqtl_beta_dists_', coloc_abf_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
     print(ggplot(top_coloc_enh_motif_eqtl_overlaps.expanded[!is.na(top_coloc_enh_motif_eqtl_overlaps.expanded$beta),],
                  aes(x=paste(tissue, eqtl_gene_name, tag_region, sep=";"),
                      y=beta, color=beta)) +
     xlab("Tissue; target gene; tag region") + ylab("Beta value from direct eQTL overlap") + theme_bw() +
-    ggtitle(paste("Direct eQTL overlap beta distributions, expanded to", coloc_prob_thresh, "probability")) + 
+    ggtitle(paste("Direct eQTL overlap beta distributions, expanded to", coloc_abf_thresh, "probability")) + 
     geom_point() + geom_hline(color="red", yintercept=0, linetype=3) + coord_flip() + 
     facet_grid(tag_region ~ ., scales="free", space="free") +
     theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
@@ -1771,12 +1781,12 @@ if(check_param(param_ref, 'gtex_dir')) {
     tstat_min <- round_any(min(top_coloc_enh_motif_eqtl_overlaps.expanded$t_stat, na.rm=T), accuracy=1, f=floor)
     tstat_max <- round_any(max(top_coloc_enh_motif_eqtl_overlaps.expanded$t_stat, na.rm=T), accuracy=1, f=ceiling)
     
-    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_coloc_direct_eqtl_t_stat_dists_', coloc_prob_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_coloc_direct_eqtl_t_stat_dists_', coloc_abf_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
     print(ggplot(top_coloc_enh_motif_eqtl_overlaps.expanded[!is.na(top_coloc_enh_motif_eqtl_overlaps.expanded$t_stat),],
                  aes(x=paste(tissue, eqtl_gene_name, tag_region, sep=";"),
                      y=t_stat, color=t_stat)) +
     xlab("Tissue; target gene; tag region") + ylab("T statistics value from direct eQTL overlap") + theme_bw() +
-    ggtitle(paste("Direct eQTL overlap T-statistic distributions, expanded to", coloc_prob_thresh, "probability")) +
+    ggtitle(paste("Direct eQTL overlap T-statistic distributions, expanded to", coloc_abf_thresh, "probability")) +
     scale_y_continuous(breaks=seq(tstat_min, tstat_max, by=1)) + 
     geom_point() + geom_hline(color="red", yintercept=0, linetype=3) + coord_flip() + 
     facet_grid(tag_region ~ ., scales="free", space="free") +
@@ -1787,12 +1797,12 @@ if(check_param(param_ref, 'gtex_dir')) {
     dev.off()
 
     ## make a plot of the se distributions across comparisons
-    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_coloc_direct_eqtl_se_dists_', coloc_prob_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_coloc_direct_eqtl_se_dists_', coloc_abf_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
     print(ggplot(top_coloc_enh_motif_eqtl_overlaps.expanded[!is.na(top_coloc_enh_motif_eqtl_overlaps.expanded$se),],
                  aes(x=paste(tissue, eqtl_gene_name, tag_region, sep=";"),
                      y=se, color=se)) +
     xlab("Tissue; target gene; tag region") + ylab("Standard error value from direct eQTL overlap") + theme_bw() +
-    ggtitle(paste("Direct eQTL overlap SE distributions, expanded to", coloc_prob_thresh, "probability")) + 
+    ggtitle(paste("Direct eQTL overlap SE distributions, expanded to", coloc_abf_thresh, "probability")) + 
     geom_point() + coord_flip() + 
     facet_grid(tag_region ~ ., scales="free", space="free") +
     theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
@@ -1802,12 +1812,12 @@ if(check_param(param_ref, 'gtex_dir')) {
     dev.off()
 
     ## make a plot of the p value distributions across comparisons
-    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_coloc_direct_eqtl_p_value_dists_', coloc_prob_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_coloc_direct_eqtl_p_value_dists_', coloc_abf_thresh, '_prob_thresh'), height_ratio=1.5, width_ratio=1.5)
     print(ggplot(top_coloc_enh_motif_eqtl_overlaps.expanded[!is.na(top_coloc_enh_motif_eqtl_overlaps.expanded$p_value),],
                  aes(x=paste(tissue, eqtl_gene_name, tag_region, sep=";"),
                      y=p_value, color=p_value)) +
     xlab("Tissue; target gene; tag region") + ylab("P-value from direct eQTL overlap") + theme_bw() +
-    ggtitle(paste("Direct eQTL overlap P value distributions, expanded to", coloc_prob_thresh, "probability")) + 
+    ggtitle(paste("Direct eQTL overlap P value distributions, expanded to", coloc_abf_thresh, "probability")) + 
     geom_point() + coord_flip() + 
     facet_grid(tag_region ~ ., scales="free", space="free") +
     theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),

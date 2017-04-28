@@ -17,7 +17,7 @@ if [ $# == 1 ]; then
 	FNAME=`basename ${f%.gz}`
 	echo "Sorting file ${FNAME%.gz}"
 	zcat $f | head -1 > sorted/$FNAME
-	zcat $f | tail -n +2 | awk -F$'\t' 'BEGIN{OFS=FS} {split($2, SNP_INFO, "_"); print SNP_INFO[1], SNP_INFO[2], $0}' | sort -k1,1n -k2,2n | cut -f3-8 >> sorted/$FNAME
+	zcat $f | tail -n +2 | awk -F$'\t' 'BEGIN{OFS=FS} {split($2, SNP_INFO, "_"); print SNP_INFO[1], SNP_INFO[2], $0}' | sort -k1,1V -k2,2n | cut -f3-8 >> sorted/$FNAME
 	## now compress the target
 	gzip sorted/${FNAME}
     done
