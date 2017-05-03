@@ -1880,8 +1880,6 @@ def compute_fantom5_locus_overlap(outdir, outprefix, ld_snp_file, ld_threshold, 
                 enh_dists[k] = []
                             
                 ## now compare the SNP to the possible enhancers in this tissue type
-                ## note that these are all guaranteed to overlap because of the above section
-                ## i leave the redundant check in for now
                 for enh in enh_loci[k]:
                     enh_start = int(enh[bed_idx['start']])
                     enh_end = int(enh[bed_idx['end']])

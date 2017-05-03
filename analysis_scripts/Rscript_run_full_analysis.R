@@ -151,7 +151,6 @@ if (length(args)==2) {
 
 ## we have to define this function after SKIP_SUBTITLES is defined
 ## a function to plot the title of a plot, containing a switch for including the parameters or not
-## a function to plot the title of a plot, containing a switch for including the parameters or not
 plot_title <- function(title_string, r2_thresh, dist_thresh, out_subtitle, skip_subtitles=SKIP_SUBTITLES, strwrap_width=35) {
     if(skip_subtitles) {
         ## wrap the string!

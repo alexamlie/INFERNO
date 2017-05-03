@@ -1,10 +1,11 @@
 # enhancer_only_sample_and_expand_matched_input_variants.R
-## alex amlie-wolf 12/14/2016
+## alex amlie-wolf 05/03/17
 ## a script to sample some number of matched variants by LD, distance to nearest TSS, and MAF
 ## this script just directly uses the input variant list and matches those, then does LD expansion
 ## unlike sample_and_expand_matched_input_variants.R, this one only bootstraps against enhancer
 ## annotations (since direct eQTL overlap is not the right way to get eQTL overlap)
 ## NOTE: this uses around 30 Gb of memory to achieve fast annotation overlapping
+## this script runs automatically with Rscript
 
 library(plyr)
 library(ggplot2)
@@ -54,38 +55,25 @@ check_param <- function(param_vec, param) {
     ret_val
 }
 
-{
 full_analysis_start_time <- proc.time()    
 ## -----------------------------------------------------------------------------
 ## 2. Parameter settings, read in data
 ## -----------------------------------------------------------------------------
-## these brackets are so that I can run a section at a time interactively
-{
-## sampling parameters
-num_samples <- 10000
-## num_samples <- 50000
-maf_bin_size <- 0.01
-dist_round <- 1000
-## parameters for upper thresholds on distance and number of LD partners, beyond which all SNPs
-## are lumped together into the 'high' category (set to Inf to not do this)
-dist_threshold <- Inf
-ld_partner_threshold <- Inf
+args <- commandArgs(trailingOnly=TRUE)
+if (length(args)==6) {
+    ## sampling parameters
+    num_samples <- 10000
+    ## num_samples <- 50000
+    maf_bin_size <- 0.01
+    dist_round <- 1000
+    ## parameters for upper thresholds on distance and number of LD partners, beyond which all SNPs
+    ## are lumped together into the 'high' category (set to Inf to not do this)
+    dist_threshold <- Inf
+    ld_partner_threshold <- Inf
 
-## pipeline parameter file for input
-## parameter_file <- '/home/alexaml/data/enhancer_snp_pipeline/output/IGAP_pval_expanded_no_HLA_DSG2_no_indels/parameters/05_17_2016_15:09:27_parameters.txt'
-## parameter_file <- '/home/alexaml/data/enhancer_snp_pipeline/output/IGAP_pval_expanded_no_HLA_DSG2_06_03_16/parameters/06_03_2016_14:15:59_parameters.txt'
-
-## ## this is the LD pruned IGAP data
-## parameter_file <- "/home/alexaml/data/enhancer_snp_pipeline/output/IGAP_pval_expanded_ld_pruned_no_HLA_DSG2/parameters/08_26_2016_16:39:10_parameters.txt"
-
-## LD pruned IGAP data, p-val expansion only allowing same effect direction SNPs
-parameter_file <- "/home/alexaml/data/enhancer_snp_pipeline/output/IGAP_same_dir_pval_expanded_ld_pruned_no_HLA_DSG2/parameters/12_12_2016_12:51:51_parameters.txt"
-
-## ## suggestive region analysis
-## parameter_file <- "/home/alexaml/data/enhancer_snp_pipeline/output/IGAP_suggestive_pval_expanded_ld_pruned/parameters/08_31_2016_12:59:39_parameters.txt"
-
-## ## PSP top region LD pruned
-## parameter_file <- "/home/alexaml/data/psp_enhancer_analysis/output/PSP_HRC_top_region_ld_pruned/parameters/08_25_2016_13:15:21_parameters.txt"
+    ## pipeline parameter file for input
+    parameter_file <- 
+    }
 
 parameter_tab <- read.table(parameter_file, header=F, sep="\t", quote="", as.is=T, col.names=c("param", "value"))
 param_ref <- parameter_tab$value

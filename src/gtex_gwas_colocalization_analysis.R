@@ -73,7 +73,7 @@ if (length(args)==12) {
     ## define the P(H_4) threshold for finding the strongest hits
     coloc_h4_thresh <- args[3]
     ## also get the probability threshold for ABF expansion
-    coloc_h4_thresh <- args[4]    
+    coloc_abf_thresh <- args[4]    
     ## get the top GWAS SNPs (usually the file that would be given to INFERNO)
     top_snpf <- args[5]
     ## the directory with the summary statistics
@@ -162,7 +162,7 @@ for(this_chr in unique(top_snps$chr)) {
     ## now analyze each tag region
     for(this_tag in unique(top_snps$region[top_snps$chr==this_chr])) {
         cat("Analyzing", this_tag, "region\n")
-        dir.create(paste0(outdir, '/tables/coloc_analysis/gtex_coloc/top_regions/', gsub("/", "_", this_tag, fixed=T)), F, T)
+        dir.create(paste0(outdir, '/tables/gtex_coloc/', gsub("/", "_", this_tag, fixed=T)), F, T)
 
         this_tag_data <- top_snps[top_snps$region==this_tag,]
         
@@ -215,12 +215,12 @@ for(this_chr in unique(top_snps$chr)) {
             cat("Analyzing tissue", gtex_tiss_match, "\n")
 
             ## try to find all the genes tested with this tag SNP
-            ## first set up a faster awk call
+            ## first set up a fast awk call
             ## note that this relies on the data being sorted by chromosome!
             awk_call <- paste0("awk -F$'\t' 'BEGIN{CHR_OBS=\"\"} {split($2, SNP_INFO, \"_\"); if(SNP_INFO[1] == ",
                                gsub("chr", "", this_chr), ") {CHR_OBS=\"Yes\"; if($2==\"",
-                               this_tag_gtex_id, "\") {print $1}} else if(CHR_OBS) {exit;}}'")
-            all_genes <- system2("zcat", paste0(gtex_dir, gtex_file, " | tail -n +2 | ", awk_call, " | sort -u"), stdout=TRUE)
+                               this_tag_gtex_id, "\") {print $1};} else if(CHR_OBS) {exit;}}'")
+            all_genes <- system2("zcat", paste0(gtex_dir, gtex_file, " | ", awk_call, " | sort -u"), stdout=TRUE)
                         
             ## check that we actually found some genes, and flip the alleles if not
             if(length(all_genes)==0) {
@@ -245,7 +245,7 @@ for(this_chr in unique(top_snps$chr)) {
                 awk_call <- paste0("awk -F$'\t' 'BEGIN{CHR_OBS=\"\"} {split($2, SNP_INFO, \"_\"); if(SNP_INFO[1] == ",
                                    gsub("chr", "", this_chr), ") {CHR_OBS=\"Yes\"; if($2==\"",
                                    this_tag_gtex_id, "\") {print $1};} else if(CHR_OBS) {exit;}}'")
-                all_genes <- system2("zcat", paste0(gtex_dir, gtex_file, " | tail -n +2 | ", awk_call, " | sort -u"), stdout=TRUE)
+                all_genes <- system2("zcat", paste0(gtex_dir, gtex_file, " | ", awk_call, " | sort -u"), stdout=TRUE)
 
                 ## if this is still 0, just continue
                 if(length(all_genes)==0) {
@@ -256,7 +256,7 @@ for(this_chr in unique(top_snps$chr)) {
             }
 
             ## write the gene list to a file for awk purposes
-            gene_outf <- paste0(outdir, '/tables/coloc_analysis/gtex_coloc/top_regions/', gsub("/", "_", this_tag, fixed=T), "/", gsub("_Analysis", "", strsplit(gtex_file, ".", fixed=T)[[1]][1]), "_gene_ids.txt")
+            gene_outf <- paste0(outdir, '/tables/gtex_coloc/', gsub("/", "_", this_tag, fixed=T), "/", gsub("_Analysis", "", strsplit(gtex_file, ".", fixed=T)[[1]][1]), "_gene_ids.txt")
             write.table(all_genes, gene_outf, quote=F, sep="\t", row.names=F, col.names=F)
             
             ## read in all the data for all these genes at once
@@ -278,7 +278,7 @@ for(this_chr in unique(top_snps$chr)) {
                 "total eQTL pairs tested\n")
 
             ## only make the directory if we found any genes to test
-            this_tiss_outdir <- paste0(outdir, '/tables/coloc_analysis/gtex_coloc/top_regions/', gsub("/", "_", this_tag, fixed=T), "/", gsub(" ", "_", gtex_tiss_match), "/")
+            this_tiss_outdir <- paste0(outdir, '/tables/gtex_coloc/', gsub("/", "_", this_tag, fixed=T), "/", gsub(" ", "_", gtex_tiss_match), "/")
             dir.create(this_tiss_outdir, F, T)
             
             ## finally, loop through all these genes and perform colocalization analysis on each
@@ -450,7 +450,7 @@ cur_tag <- ""
 summ_start <- proc.time()
 
 ## i want to read in all the summary data into one unified data frame
-all_summ_files <- list.files(paste0(outdir, '/tables/coloc_analysis/gtex_coloc/top_regions/'), pattern="*.summary.txt",
+all_summ_files <- list.files(paste0(outdir, '/tables/gtex_coloc/'), pattern="*.summary.txt",
                              full.names=T, recursive=T)
 
 all_summary_data <- data.frame(stringsAsFactors = F)
@@ -491,10 +491,10 @@ all_summary_data$gtex_tissue_class <- gtex_category_df$Class[match(all_summary_d
 all_summary_data <- all_summary_data[,c(1,2,11,3:10)]
 
 ## write this out in summarized form
-write.table(all_summary_data, paste0(outdir, '/tables/coloc_analysis/GWAS_top_hits_gtex_coloc_summaries.txt'), quote=F, sep="\t", row.names=F)
+write.table(all_summary_data, paste0(outdir, '/tables/GWAS_top_hits_gtex_coloc_summaries.txt'), quote=F, sep="\t", row.names=F)
 
 ## ## to read this in directly:
-## all_summary_data <- read.table(paste0(outdir, '/tables/coloc_analysis/GWAS_top_hits_gtex_coloc_summaries.txt'), header=T, sep="\t", quote="")
+## all_summary_data <- read.table(paste0(outdir, '/tables/GWAS_top_hits_gtex_coloc_summaries.txt'), header=T, sep="\t", quote="")
 
 ## make histograms for each of the different hypotheses by tag region
 make_graphic(paste0(outdir, '/plots/GWAS_top_hits_gtex_H0_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
@@ -697,7 +697,7 @@ for(i in seq(nrow(top_coloc_hits))) {
     this_orig_comparison <- this_comparison
 
     ## to read in the full data, we need to reconstruct the path
-    this_data_file <- paste0(outdir, '/tables/coloc_analysis/gtex_coloc/top_regions/', this_comparison$tag_region, '/',
+    this_data_file <- paste0(outdir, '/tables/gtex_coloc/', this_comparison$tag_region, '/',
                              this_comparison$tissue, '/', this_comparison$eqtl_gene_name, '_',
                              this_comparison$eqtl_gene_id, '_full_results.txt')
 
@@ -849,7 +849,7 @@ top_coloc_enh_overlaps$hmm_category_match <- ifelse(mapply(grepl, pattern=top_co
 ## finally, add a column to describe the three levels: enhancer overlap without tissue match, with tissue match, and no enhancer overlap
 top_coloc_enh_overlaps$enh_levels <- with(top_coloc_enh_overlaps, ifelse(any_enh_overlap=="no", "no_overlap", ifelse(f5_category_match=="yes" | hmm_category_match=="yes", "tiss_match", "tiss_non_match")))
 
-write.table(top_coloc_enh_overlaps, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_enh_overlaps.txt'), quote=F, sep="\t", row.names=F)
+write.table(top_coloc_enh_overlaps, paste0(outdir, '/tables/', outprefix, '_gtex_coloc_enh_overlaps.txt'), quote=F, sep="\t", row.names=F)
 
 ## do the same thing for the expanded data
 ## add a column for whether there is enhancer overlap or not
@@ -860,7 +860,7 @@ top_coloc_enh_overlaps.expanded$hmm_category_match <- ifelse(mapply(grepl, patte
 ## use these new columns to describe another convenient column for summarizing the tissue matches
 top_coloc_enh_overlaps.expanded$enh_levels <- with(top_coloc_enh_overlaps.expanded, ifelse(any_enh_overlap=="no", "no_overlap", ifelse(f5_category_match=="yes" | hmm_category_match=="yes", "tiss_match", "tiss_non_match")))
 
-write.table(top_coloc_enh_overlaps.expanded, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_enh_overlaps.', coloc_abf_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
+write.table(top_coloc_enh_overlaps.expanded, paste0(outdir, '/tables/', outprefix, '_gtex_coloc_enh_overlaps.', coloc_abf_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
 
 cat("Enhancer overlap analysis took", (proc.time() - enh_start_time)[["elapsed"]], "seconds\n")
 }
@@ -1260,9 +1260,9 @@ if(check_param(param_ref, "homer_motif_pwm_file") & check_param(param_ref, "home
                ifelse(enh_levels=="tiss_non_match", "no_motif_non_tiss_match", "no_motif_tiss_match"))))
     
     ## write these out
-    write.table(top_coloc_enh_motif_overlaps, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_enh_motif_overlap_summary.txt'), quote=F, sep="\t", row.names=F)
+    write.table(top_coloc_enh_motif_overlaps, paste0(outdir, '/tables/', outprefix, '_gtex_coloc_enh_motif_overlap_summary.txt'), quote=F, sep="\t", row.names=F)
 
-    write.table(top_coloc_motif_overlaps, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_motif_overlaps.txt'), quote=F, sep="\t", row.names=F)
+    write.table(top_coloc_motif_overlaps, paste0(outdir, '/tables/', outprefix, '_gtex_coloc_motif_overlaps.txt'), quote=F, sep="\t", row.names=F)
     
     ## now look at the individual SNP probability distributions
     ## set the factor levels to get the plots in the right order
@@ -1350,7 +1350,7 @@ if(check_param(param_ref, "homer_motif_pwm_file") & check_param(param_ref, "home
                                           data.frame(tag_region=all_regions[!(all_regions %in% tag_region_motif_enh_summary$tag_region)], hit_motif="no_motif_overlap", num_coloc_hits=0, enh_overlap_hits=0, enh_non_overlap_hits=0, enh_tiss_match=0, enh_tiss_non_match=0))
     
     ## write this summary table out
-    write.table(tag_region_motif_enh_summary, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_motif_enh_tag_region_summary.txt'), quote=F, sep="\t", row.names=F)
+    write.table(tag_region_motif_enh_summary, paste0(outdir, '/tables/', outprefix, '_gtex_coloc_motif_enh_tag_region_summary.txt'), quote=F, sep="\t", row.names=F)
     
     ## melt this down
     melted_enh_motif_summ <- melt(tag_region_motif_enh_summary, id.vars=c("tag_region", "hit_motif"), measure.vars=c("enh_tiss_non_match", "enh_tiss_match", "enh_non_overlap_hits"), value.name="count")
@@ -1446,9 +1446,9 @@ if(check_param(param_ref, "homer_motif_pwm_file") & check_param(param_ref, "home
                ifelse(enh_levels=="tiss_non_match", "no_motif_non_tiss_match", "no_motif_tiss_match"))))
 
     ## write these out
-    write.table(top_coloc_enh_motif_overlaps.expanded, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_enh_motif_overlap_summary.', coloc_abf_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
+    write.table(top_coloc_enh_motif_overlaps.expanded, paste0(outdir, '/tables/', outprefix, '_gtex_coloc_enh_motif_overlap_summary.', coloc_abf_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
 
-    write.table(top_coloc_motif_overlaps.expanded, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_motif_overlaps.', coloc_abf_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
+    write.table(top_coloc_motif_overlaps.expanded, paste0(outdir, '/tables/', outprefix, '_gtex_coloc_motif_overlaps.', coloc_abf_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
 
     ## now look at the individual SNP probability distributions
     ## set the factor levels to get the plots in the right order
@@ -1522,7 +1522,7 @@ if(check_param(param_ref, "homer_motif_pwm_file") & check_param(param_ref, "home
                                           data.frame(tag_region=all_regions[!(all_regions %in% expanded_tag_region_motif_enh_summary$tag_region)], hit_motif="no_motif_overlap", num_coloc_hits=0, enh_overlap_hits=0, enh_non_overlap_hits=0, enh_tiss_match=0, enh_tiss_non_match=0))
     
     ## write this summary table out
-    write.table(expanded_tag_region_motif_enh_summary, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_motif_enh_tag_region_summary.', coloc_abf_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
+    write.table(expanded_tag_region_motif_enh_summary, paste0(outdir, '/tables/', outprefix, '_gtex_coloc_motif_enh_tag_region_summary.', coloc_abf_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
 
     ## melt this down
     melted_expanded_enh_motif_summ <- melt(expanded_tag_region_motif_enh_summary, id.vars=c("tag_region", "hit_motif"), measure.vars=c("enh_tiss_non_match", "enh_tiss_match", "enh_non_overlap_hits"), value.name="count")
@@ -1588,7 +1588,7 @@ if(check_param(param_ref, "homer_motif_pwm_file") & check_param(param_ref, "home
                                           data.frame(tag_region=all_regions[!(all_regions %in% expanded_relevant_class_tag_region_motif_enh_summary$tag_region)], hit_motif="no_motif_overlap", num_coloc_hits=0, enh_overlap_hits=0, enh_non_overlap_hits=0, enh_relevant_tiss_match=0, enh_irrelevant_tiss_match=0, enh_tiss_non_match=0))
     
     ## write this summary table out
-    write.table(expanded_relevant_class_tag_region_motif_enh_summary, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_motif_enh_tag_region_relevant_class_summary.', coloc_abf_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
+    write.table(expanded_relevant_class_tag_region_motif_enh_summary, paste0(outdir, '/tables/', outprefix, '_gtex_coloc_motif_enh_tag_region_relevant_class_summary.', coloc_abf_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
 
     ## melt this down
     melted_relevant_class_expanded_enh_motif_summ <- melt(expanded_relevant_class_tag_region_motif_enh_summary, id.vars=c("tag_region", "hit_motif"), measure.vars=c("enh_tiss_non_match", "enh_relevant_tiss_match", "enh_irrelevant_tiss_match", "enh_non_overlap_hits"), value.name="count")
@@ -1695,7 +1695,7 @@ if(check_param(param_ref, 'gtex_dir')) {
     cat(sum(!is.na(top_coloc_enh_motif_eqtl_overlaps$beta)), "out of", nrow(top_coloc_enh_motif_eqtl_overlaps), "colocalization signals were found in direct eQTL overlap dataset\n")
     
     ## write this out
-    write.table(top_coloc_enh_motif_eqtl_overlaps, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_enh_motif_eqtl_info.txt'), quote=F, sep="\t", row.names=F)
+    write.table(top_coloc_enh_motif_eqtl_overlaps, paste0(outdir, '/tables/', outprefix, '_gtex_coloc_enh_motif_eqtl_info.txt'), quote=F, sep="\t", row.names=F)
     
     ## -----------------------------------    
     ## next do the expanded SNP set
@@ -1751,7 +1751,7 @@ if(check_param(param_ref, 'gtex_dir')) {
     cat(sum(expanded_coloc_eqtl_overlap_count$eqtl_overlap), "out of", nrow(expanded_coloc_eqtl_overlap_count), "colocalization signals were found in direct eQTL overlap dataset after ABF expansion\n")    
     
     ## write this out
-    write.table(top_coloc_enh_motif_eqtl_overlaps.expanded, paste0(outdir, '/tables/coloc_analysis/', outprefix, '_gtex_coloc_enh_motif_eqtl_info.', coloc_abf_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
+    write.table(top_coloc_enh_motif_eqtl_overlaps.expanded, paste0(outdir, '/tables/', outprefix, '_gtex_coloc_enh_motif_eqtl_info.', coloc_abf_thresh, '_thresh_expanded.txt'), quote=F, sep="\t", row.names=F)
 
     ## check whether the eQTLs in each comparison line up or not:
     expanded_direct_eqtl_info <- ddply(top_coloc_enh_motif_eqtl_overlaps.expanded, .(tag_region, tissue, gtex_tissue_class, eqtl_gene_name), summarize, eqtl_overlaps = sum(!is.na(beta)), eqtl_overlap_prop = sum(!is.na(beta)) / length(beta), positive_betas = sum(beta > 0, na.rm=T), negative_betas = sum(beta < 0, na.rm=T))
