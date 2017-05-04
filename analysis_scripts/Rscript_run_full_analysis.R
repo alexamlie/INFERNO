@@ -132,20 +132,22 @@ distance_breaks <- function(limit_vec) {
 ## 2. Read in parameter file
 ## -----------------------------------------------------------------------------
 args <- commandArgs(trailingOnly=TRUE)
-if (length(args)==2) {
-    parameter_file <- args[1]
-    out_subtitle <- args[2]
+if (length(args)==3) {
+    script_dir <- args[1]
+    parameter_file <- args[2]
+    out_subtitle <- args[3]
     SKIP_SUBTITLES <- FALSE
-} else if (length(args==3)) {
-    parameter_file <- args[1]
-    out_subtitle <- args[2]
-    SKIP_SUBTITLES <- as.logical(args[3])
+} else if (length(args==4)) {
+    script_dir <- args[1]
+    parameter_file <- args[2]
+    out_subtitle <- args[3]
+    SKIP_SUBTITLES <- as.logical(args[4])
     if(is.na(SKIP_SUBTITLES)) {
         stop("Error: SKIP_SUBTITLES must be a logical argument!")
     }
 } else {
-    cat("Usage: Rscript Rscript_run_full_analysis.R parameter_file out_subtitle <SKIP_SUBTITLES>\n")
-    cat("Example command: Rscript Rscript_run_full_analysis.R ~/INFERNO_output/parameters/08_26_2016_16:39:10_parameters.txt \"My experiment\" TRUE\n")
+    cat("Usage: Rscript Rscript_run_full_analysis.R script_directory parameter_file out_subtitle <SKIP_SUBTITLES>\n")
+    cat("Example command: Rscript Rscript_run_full_analysis.R ./ ~/INFERNO_output/parameters/08_26_2016_16:39:10_parameters.txt \"My experiment\" TRUE\n")
     stop("Cannot parse command line arguments")
 }
 
@@ -159,7 +161,10 @@ plot_title <- function(title_string, r2_thresh, dist_thresh, out_subtitle, skip_
         ggtitle(paste0(paste(strwrap(title_string, width=strwrap_width), collapse="\n"), "\nR2 >= ", r2_thresh, ", Distance <= ", dist_thresh, " bp\n", out_subtitle))
     }
 }
-          
+
+## set the working directory to wherever the analysis scripts are so we can source them
+setwd(script_dir)
+
 ## read in the parameters and make a named vector for reference
 parameter_tab <- read.table(parameter_file, header=F, sep="\t", quote="", as.is=T, col.names=c("param", "value"))
 param_ref <- parameter_tab$value

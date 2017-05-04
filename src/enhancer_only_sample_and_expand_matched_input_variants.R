@@ -60,27 +60,34 @@ full_analysis_start_time <- proc.time()
 ## 2. Parameter settings, read in data
 ## -----------------------------------------------------------------------------
 args <- commandArgs(trailingOnly=TRUE)
-if (length(args)==6) {
+cat(args, "\n")
+stop("Done")
+if (length(args)==9) {
     ## sampling parameters
-    num_samples <- 10000
-    ## num_samples <- 50000
-    maf_bin_size <- 0.01
-    dist_round <- 1000
+    num_samples <- args[1]
+    maf_bin_size <- args[2]
+    dist_round <- args[3]
     ## parameters for upper thresholds on distance and number of LD partners, beyond which all SNPs
     ## are lumped together into the 'high' category (set to Inf to not do this)
-    dist_threshold <- Inf
-    ld_partner_threshold <- Inf
+    dist_threshold <- args[4]
+    ld_partner_threshold <- args[5]
 
+    ## file with the precomputed background information (for bin matching)
+    bg_snp_info_f <- args[6]
+    ## precomputed pairwise LD results
+    ld_sets_dir <- args[7]
+    ## path to the annotation overlaps for all 1kg SNPs
+    ref_summary_dir <- args[8]   
+    
     ## pipeline parameter file for input
-    parameter_file <- 
-    }
+    parameter_file <- args[9]    
+}
 
 parameter_tab <- read.table(parameter_file, header=F, sep="\t", quote="", as.is=T, col.names=c("param", "value"))
 param_ref <- parameter_tab$value
 names(param_ref) <- parameter_tab$param
 ## define some variables using the param references
 output_dir <- paste0(param_ref[['outdir']], '/background_enh_sampling_match_and_expand/')
-# output_dir <- paste0(param_ref[['outdir']], '/background_enh_sampling_match_and_expand_50k_samples/')
 if(check_param(param_ref, "skip_ld_expansion")) {
     r2_thresh <- "1.0"
     dist_thresh <- "0"
@@ -89,17 +96,10 @@ if(check_param(param_ref, "skip_ld_expansion")) {
     dist_thresh <- param_ref[['ld_check_area']]
 }
 
-## parameters for the precomputed background information (for bin matching)
-bg_snp_info_f <- paste0("/home/alexaml/data/1000_genomes/phase1_release_v3/EUR/snp_maf_tss_ld_summary/snp_maf_tss_dist_", r2_thresh, "_ld_info.txt")
-
-## check that this is a real file
+## check that the background SNP info is a real file
 if (!file.exists(bg_snp_info_f)) {
     stop(paste0("Error: background SNP information does not exist for supplied R^2 threshold:", r2_thresh))
 }
-## for LD expansion, we also need the directory with the precomputed pairwise LD results
-ld_sets_dir <- "/home/alexaml/data/1000_genomes/phase1_release_v3/EUR/precomputed_ld_sets/"
-## this is the path to the annotation overlaps for all the 1kg SNPs
-ref_summary_dir <- "/home/alexaml/data/enhancer_snp_pipeline/output/all_1kg_EUR_phase1_v3_snps_11_14_16/summaries/"
 
 dir.create(paste0(output_dir, "/samples/"), F, T)
 dir.create(paste0(output_dir, "/plots/"), F, T)
@@ -134,12 +134,10 @@ annot_input_snps <- merge(input_snps, snp_info, by=c("chr", "rsID", "pos"),
 ## to find mismatches:
 mismatch_snps <- input_snps$rsID[!(input_snps$rsID %in% annot_input_snps$rsID)]
 cat(length(mismatch_snps), "SNPs did not match up correctly:", mismatch_snps, "\n")
-}
 
 ## -----------------------------------------------------------------------------
 ## 3. Perform sampling against input
 ## -----------------------------------------------------------------------------
-{
 start_time <- proc.time()
 
 ## now define each variable that we want to bin on to count combinations
@@ -240,8 +238,7 @@ write(sample_regions, paste0(output_dir, "/samples/input_sample_regions.txt"), s
 ## sample_regions <- read.table(paste0(output_dir, "/samples/input_sample_regions.txt"),
 ##                              header=F, quote="", as.is=T)$V1
 cat("Sampling against input and writing out file took:\n")
-cat((proc.time() - start_time)[["elapsed"]], '\n')
-}
+cat((proc.time() - start_time)[["elapsed"]], 'seconds\n')
 
 ## for further analysis, get the sampled SNPs information: we can just do this by directly
 ## indexing the info table and then make a huge data frame with all the SNP info (including
@@ -259,7 +256,6 @@ sampled_snp_info <- rbind(cbind(data="input", samp_num=0, annot_input_snps[,info
 ## -----------------------------------------------------------------------------
 ## 4. Analysis plots for sampling
 ## -----------------------------------------------------------------------------
-{
 ## plot the distributions of how many samples each SNP is found in
 ## first we count the number of samples containing each SNP
 snp_sample_counts <- count(c(sample_mat))
@@ -432,12 +428,11 @@ print(ggplot(ld_prop_df, aes(x=ld_bin, y=props, fill=data_source)) +
           axis.text.y = element_text(size=25), 
           title=element_text(size=30), plot.title = element_text(hjust = 0.5, size=30)))
 dev.off()
-}
+
 
 ## -----------------------------------------------------------------------------
 ## 5. LD expansion of sampled sets and input variants
 ## -----------------------------------------------------------------------------
-{
 start_time <- proc.time()
 ## in order to do LD expansion split by chromosome, we have to find out what chromosomes each
 ## of our sampled SNPs came from
@@ -624,8 +619,7 @@ write.table(expanded_input_blocks, paste0(output_dir, "/samples/expanded_input_b
 ##                                    header=F, sep="\t", quote="", as.is=T)$V1)
 
 cat("Auto LD expansion took:\n")
-cat((proc.time() - start_time)[["elapsed"]], '\n')
-}
+cat((proc.time() - start_time)[["elapsed"]], 'seconds\n')
 
 ## -----------------------------------------------------------------------------
 ## 6. Analysis plots for LD expansion
@@ -695,7 +689,6 @@ dev.off()
 ## -----------------------------------------------------------------------------
 ## 7. Compute annotation overlap p-values
 ## -----------------------------------------------------------------------------
-{
 annot_start <- proc.time()
 
 ## read in all the different tissue classes
@@ -781,20 +774,11 @@ sample_counts <- data.frame(sample_num=rep(1:num_samples, each=length(all_classe
                             annotation=rep(colnames(input_annot_mat), each=length(all_classes), times=num_samples),
                             count=rep(0, times=num_samples*length(annot_names)*length(all_classes)))
 
-## ## same thing for the region-specific analysis
-## sample_region_counts <- data.frame(sample_num=rep(1:num_samples, each=length(all_classes)*length(annot_names)*num_regions),
-##                                    tissue_class=rep(rownames(input_annot_mat), times=num_samples*length(annot_names)*num_regions),
-##                                    annotation=rep(colnames(input_annot_mat), times=num_samples*num_regions, each=length(all_classes)),
-##                                    region=rep(unique(sample_regions), times=num_samples, each=length(all_classes)*length(annot_names)), 
-##                                    count=rep(0, times=num_samples*length(annot_names)*length(all_classes)*num_regions))
-
 cat("Reading in annotation took:\n")
 cat((proc.time() - annot_start)[['elapsed']], 'seconds\n')
-}
 
 ## now we need to go through each sampled dataset, grab the annotation overlaps, and
 ## compare them to the observed count matrices/arrays
-{
 start_time <- proc.time()
 ## first do the annotation overlap on the input variants
 ## note that these input matrices are both for the LD collapsed analysis
@@ -834,7 +818,6 @@ manual_input_region_annot_arr[,"roadmap_hmm_enh",] <- t(rowsum(input_hmm_counts,
 manual_input_region_annot_arr[,"locus_enh+roadmap_hmm_enh",] <- t(rowsum(input_enh_hmm_counts, annot_input_snps$tag_name[match(input_ld_collapsed_enh_hmm_counts$Group.1, input_snp_idx)]))
 
 for(s in seq(num_samples)) {
-    if (s %% (num_samples / 10) == 0) { cat(s, '\n') }
     ## pull out the sampled snps
     this_samp <- expanded_snp_idx_mat[,s]
     ## also get the regions associated with each
@@ -927,7 +910,6 @@ for(s in seq(num_samples)) {
 }
 cat("Bootstrap counting for p-value calculation took:\n")
 cat((proc.time() - start_time)[['elapsed']], 'seconds\n')
-}
 
 ## remove the annotation matrices to save memory
 rm(enh_overlap_mat, hmm_overlap_mat)
@@ -947,11 +929,6 @@ cat(sum(empirical_pvals < 0.05), 'unadjusted tests were significant for combined
 bh_adj_pvals <- matrix(p.adjust(empirical_pvals, "BH"), nrow=nrow(empirical_pvals),
                        ncol=ncol(empirical_pvals), dimnames=dimnames(empirical_pvals))
 
-## ## use column-based approach (correct each column using BH and then Bonferroni correct for
-## ## number of annotations/combinations):
-## bh_adj_pvals <- apply(empirical_pvals, 2, p.adjust, method="BH") * ncol(empirical_pvals)
-## bh_adj_pvals[bh_adj_pvals >= 1.0] <- 1.0
-
 dimnames(bh_adj_pvals) <- dimnames(empirical_pvals)
 
 cat(sum(bh_adj_pvals < 0.05), "adjusted tests were significant for combined tag region\n")
@@ -969,11 +946,6 @@ for(i in seq(dim(split_empirical_pvals)[3])) {
     cat("Significant unadjusted tests for", dimnames(split_empirical_pvals)[[3]][i], "\n")
     cat(sum(split_empirical_pvals[,,i] < 0.05), "\n")
 }
-
-## now correct these for multiple testing
-## correct all the p-values using Benjamini-Hochberg correction together
-## split_bh_adj_pvals <- array(p.adjust(split_empirical_pvals, "BH"), dim=dim(split_empirical_pvals),
-##                             dimnames=dimnames(split_empirical_pvals))
 
 ## use BH correction within each tag region
 split_bh_adj_pvals <- aperm(aaply(split_empirical_pvals, 3, function(tag_mat) {
@@ -1007,11 +979,6 @@ collapsed_bh_adj_pvals <- matrix(p.adjust(collapsed_empirical_pvals, "BH"),
                                  ncol=ncol(collapsed_empirical_pvals),
                                  dimnames=dimnames(collapsed_empirical_pvals))
 
-## ## use column-based approach (correct each column using BH and then Bonferroni correct for
-## ## number of annotations/combinations):
-## bh_adj_pvals <- apply(empirical_pvals, 2, p.adjust, method="BH") * ncol(empirical_pvals)
-## bh_adj_pvals[bh_adj_pvals >= 1.0] <- 1.0
-
 dimnames(collapsed_bh_adj_pvals) <- dimnames(collapsed_empirical_pvals)
 
 cat(sum(collapsed_bh_adj_pvals < 0.05), "adjusted tests were significant for LD collapsed combined tag region analysis\n")
@@ -1029,11 +996,6 @@ for(i in seq(dim(collapsed_split_empirical_pvals)[3])) {
     cat("Significant unadjusted tests for", dimnames(collapsed_split_empirical_pvals)[[3]][i], "\n")
     cat(sum(collapsed_split_empirical_pvals[,,i] < 0.05), "\n")
 }
-
-## now correct these for multiple testing
-## correct all the p-values using Benjamini-Hochberg correction together
-## split_bh_adj_pvals <- array(p.adjust(split_empirical_pvals, "BH"), dim=dim(split_empirical_pvals),
-##                             dimnames=dimnames(split_empirical_pvals))
 
 ## use BH correction within each tag region
 collapsed_split_bh_adj_pvals <- aperm(aaply(collapsed_split_empirical_pvals, 3,
@@ -1248,7 +1210,6 @@ split_pval_df$tissue_class <- factor(split_pval_df$tissue_class, ordered=T,
 dir.create(paste0(output_dir, '/plots/split_tag_regions/'), F, T)
 for(this_tag in unique(split_pval_df$tag_region)) {
     tag_out <- gsub("/", "_", strsplit(this_tag, ":")[[1]][1])
-    cat(tag_out, '\n')
     dir.create(paste0(output_dir, "/plots/split_tag_regions/", tag_out), F, T)
 
     ## define the breaks
@@ -1383,7 +1344,6 @@ dev.off()
 
 ## now we have to make separate plots for each annotation
 for(annot in unique(input_annot_counts$annotation)) {
-    cat(annot, '\n')
     make_graphic(paste0(output_dir, "/plots/", param_ref[['outprefix']], "_sample_", annot, "_count_distributions"), width_ratio=2.0)
     print(ggplot(sample_counts[sample_counts$annotation==annot,], aes(x=count, fill=tissue_class)) +
           geom_histogram(binwidth=1, center=0.5, closed="left") +
@@ -1601,7 +1561,6 @@ write.table(collapsed_split_pval_df, paste0(output_dir, '/tables/split_region_co
 dir.create(paste0(output_dir, '/plots/ld_collapsed_split_tag_regions/'), F, T)
 for(this_tag in unique(collapsed_split_pval_df$tag_region)) {
     tag_out <- gsub("/", "_", strsplit(this_tag, ":")[[1]][1])
-    cat(tag_out, '\n')
     dir.create(paste0(output_dir, "/plots/ld_collapsed_split_tag_regions/", tag_out), F, T)
 
     ## define the breaks
@@ -1693,4 +1652,3 @@ for(this_tag in unique(collapsed_split_pval_df$tag_region)) {
 
 cat("Entire enhancer bootstrapping analysis took:\n")
 cat((proc.time() - full_analysis_start_time)[["elapsed"]], '\n')
-}
