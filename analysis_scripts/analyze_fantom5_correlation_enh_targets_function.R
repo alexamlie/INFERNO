@@ -125,9 +125,11 @@ num_ld_snps <- ddply(enh_overlap_target_df, .(tag_rsID), summarize,
 ## add 0-counts for non-overlapping ones:
 snp_descriptions <- paste(description_tab$snp_rsID,
                           paste0("(", description_tab$description,")"), sep="\n")
-num_ld_snps <- rbind(num_ld_snps,
-                     data.frame(tag_rsID = snp_descriptions[which(!(snp_descriptions %in% enh_overlap_target_df$tag_rsID))],
-                                num_enh_overlap_snps = 0, stringsAsFactors = F))
+if(sum(!(snp_descriptions %in% enh_overlap_target_df$tag_rsID)) > 0) {
+    num_ld_snps <- rbind(num_ld_snps,
+                         data.frame(tag_rsID = snp_descriptions[which(!(snp_descriptions %in% enh_overlap_target_df$tag_rsID))],
+                                    num_enh_overlap_snps = 0, stringsAsFactors = F))
+}
 
 ## re-order to match the input order
 num_ld_snps <- num_ld_snps[match(description_tab$snp_rsID, gsub("\n.*", "", num_ld_snps$tag_rsID)),]

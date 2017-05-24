@@ -16,6 +16,7 @@ if [ $# == 4 ]; then
     
     module load python/2.7.9
     module load bedtools2
+    
     ## first run the annotation script
     time python ./src/expand_and_annotate_snps.py --loglevel full --kg_pop ${KG_POP} \
     	--ld_threshold ${LD_THRESH} --ld_check_area ${LD_AREA} --gene_bed_file ${GENE_BED_FILE} \
@@ -24,7 +25,8 @@ if [ $# == 4 ]; then
     	--fantom5_correlation_file ${F5_CORR_FILE} --gtex_dir ${GTEX_DIR} --factorbook_file \
     	${FACTORBOOK_FILE} --roadmap_chromhmm_dir ${ROADMAP_HMM_DIR} --homer_motif_bed_file \
     	${HOMER_BED_FILE} --homer_motif_pwm_file ${HOMER_PWM_FILE} --homer_motif_seq_file \
-    	${HOMER_SEQ_FILE} ${KG_DIR} ${TOP_SNPF} ${OUTDIR} ${OUTPREFIX}
+    	${HOMER_SEQ_FILE} --dashr_locus_file ${DASHR_LOCUS_F} --targetscan_dir ${TARGETSCAN_DIR} \
+    	${KG_DIR} ${TOP_SNPF} ${OUTDIR} ${OUTPREFIX}
 
     ## run the summarization script
     time ./analysis_scripts/count_annotation_overlaps.sh -l ${ENH_LOCUS_WINDOW} \
@@ -39,7 +41,7 @@ if [ $# == 4 ]; then
     time Rscript ./analysis_scripts/Rscript_run_full_analysis.R ./analysis_scripts/ ${PARAMF} ${OUTPREFIX} TRUE
     
     ## submit a job to run bootstrapping
-    bsub -M 40000 -J ${OUTPREFIX}_enh_bootstrapping.%J -o ${OUTDIR}/logs/enh_bootstrapping.o%J \
+    bsub -M 40000 -J ${OUTPREFIX}_enh_bootstrapping -o ${OUTDIR}/logs/enh_bootstrapping.o%J \
     	-e ${OUTDIR}/logs/enh_bootstrapping.e%J ./bsub_wrappers/enhancer_bootstrap_bsub_wrapper.sh \
     ./src/enhancer_only_sample_and_expand_matched_input_variants.R \
     	${NUM_SAMPLES} ${MAF_BIN_SIZE} ${DIST_ROUND} ${DIST_THRESHOLD} ${LD_PARTNER_THRESHOLD} \

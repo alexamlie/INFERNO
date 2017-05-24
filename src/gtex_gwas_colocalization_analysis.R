@@ -79,6 +79,8 @@ if (length(args)==12) {
     ## the directory with the summary statistics
     gwas_summary_dir <- args[6]
     ## the GTEx directory containing the full eQTL statistics for each tissue
+    ## this MUST be sorted by position and split into individual files per chromosome
+    ## (gtex_download_and_sort_full_v6p_data.sh)
     gtex_dir <- args[7]
     ## sample sizes file for GTEx (csv)
     gtex_sample_sizef <- args[8]
@@ -140,9 +142,10 @@ ensembl_xref <- read.table(hg19_ensembl_ref_file, header=T, sep="\t", quote="", 
 {
 coloc_start_time <- proc.time()
 ## save the GTEx eQTL column names
+## this is especially important since the chromosome-split files never have headers
 gtex_eqtl_header <- c("gene_id", "variant_id", "tss_distance", "pval_nominal", "slope", "slope_se")
 
-## go through all the chromosomes since we read in the GWAS data by chromosome
+## go through all the chromosomes since we read in both the GWAS and GTEx data by chromosome
 for(this_chr in unique(top_snps$chr)) {
     cat("Parsing", this_chr, "\n")
 
@@ -209,18 +212,23 @@ for(this_chr in unique(top_snps$chr)) {
                       toupper(this_tag_gwas_data$Allele1), "b37", sep="_") 
         }
 
-        ## now we have to loop through each GTEx tissue and define the gene sets to perform colocalization analysis on
-        for(gtex_file in list.files(gtex_dir, "*.txt.gz")) {
-            gtex_tiss_match <- gsub("_", " ", gsub("_Analysis", "", strsplit(gtex_file, ".", fixed=T)[[1]][1]))
+        ## now we have to loop through each GTEx tissue and define the gene sets to perform
+        ## colocalization analysis on. first loop through the top-level tissues and then pull
+        ## out the chromosome data for that
+        for(gtex_tiss in list.files(gtex_dir)) {
+            gtex_tiss_match <- gsub("_", " ", gtex_tiss)
             cat("Analyzing tissue", gtex_tiss_match, "\n")
+
+            gtex_file <- paste0(gtex_dir, "/", gtex_tiss, "/", gtex_tiss,
+                                "_Analysis.v6p.all_snpgene_pairs.", this_chr, ".txt.gz")
 
             ## try to find all the genes tested with this tag SNP
             ## first set up a fast awk call
-            ## note that this relies on the data being sorted by chromosome!
-            awk_call <- paste0("awk -F$'\t' 'BEGIN{CHR_OBS=\"\"} {split($2, SNP_INFO, \"_\"); if(SNP_INFO[1] == ",
-                               gsub("chr", "", this_chr), ") {CHR_OBS=\"Yes\"; if($2==\"",
-                               this_tag_gtex_id, "\") {print $1};} else if(CHR_OBS) {exit;}}'")
-            all_genes <- system2("zcat", paste0(gtex_dir, gtex_file, " | ", awk_call, " | sort -u"), stdout=TRUE)
+            ## note that this relies on the data being sorted by position
+            awk_call <- paste0("awk -F$'\t' 'BEGIN{SNP_OBS=\"\"} {if($2==\"",
+                               this_tag_gtex_id, "\") {SNP_OBS=\"Yes\"; print $1} else if(SNP_OBS) {exit;}}'")
+
+            all_genes <- system2("zcat", paste0(gtex_file, " | ", awk_call, " | sort -u"), stdout=TRUE)
                         
             ## check that we actually found some genes, and flip the alleles if not
             if(length(all_genes)==0) {
@@ -242,10 +250,10 @@ for(this_chr in unique(top_snps$chr)) {
                               toupper(this_tag_gwas_data$Allele2), "b37", sep="_") 
                 }
 
-                awk_call <- paste0("awk -F$'\t' 'BEGIN{CHR_OBS=\"\"} {split($2, SNP_INFO, \"_\"); if(SNP_INFO[1] == ",
-                                   gsub("chr", "", this_chr), ") {CHR_OBS=\"Yes\"; if($2==\"",
-                                   this_tag_gtex_id, "\") {print $1};} else if(CHR_OBS) {exit;}}'")
-                all_genes <- system2("zcat", paste0(gtex_dir, gtex_file, " | ", awk_call, " | sort -u"), stdout=TRUE)
+                awk_call <- paste0("awk -F$'\t' 'BEGIN{SNP_OBS=\"\"} {if($2==\"",
+                                   this_tag_gtex_id, "\") {SNP_OBS=\"Yes\"; print $1} else if(SNP_OBS) {exit;}}'")
+                
+                all_genes <- system2("zcat", paste0(gtex_file, " | ", awk_call, " | sort -u"), stdout=TRUE)
 
                 ## if this is still 0, just continue
                 if(length(all_genes)==0) {
@@ -256,29 +264,27 @@ for(this_chr in unique(top_snps$chr)) {
             }
 
             ## write the gene list to a file for awk purposes
-            gene_outf <- paste0(outdir, '/tables/gtex_coloc/', gsub("/", "_", this_tag, fixed=T), "/", gsub("_Analysis", "", strsplit(gtex_file, ".", fixed=T)[[1]][1]), "_gene_ids.txt")
+            gene_outf <- paste0(outdir, '/tables/gtex_coloc/', gsub("/", "_", this_tag, fixed=T), "/", gtex_tiss, "_gene_ids.txt")
             write.table(all_genes, gene_outf, quote=F, sep="\t", row.names=F, col.names=F)
             
             ## read in all the data for all these genes at once
             ## also speed this up by using the chromosome check
-            all_eqtl_awk_call <- paste0("awk -F$'\t' 'BEGIN{CHR_OBS=\"\"} NR==FNR {gene_ids[$1]; next} {split($2, SNP_INFO, \"_\"); if(SNP_INFO[1] == ",
-                                        gsub("chr", "", this_chr),
-                                        ") {CHR_OBS=\"Yes\"; if($1 in gene_ids) {print $0};} else if(CHR_OBS) {exit;}}' ")
+            all_eqtl_awk_call <- paste0("awk -F$'\t' 'NR==FNR {gene_ids[$1]; next} {if($1 in gene_ids) {print $0}}' ")
             
             all_eqtl_data <- data.frame(do.call(rbind, strsplit(
-                system2("zcat", paste0(gtex_dir, gtex_file,
+                system2("zcat", paste0(gtex_file,
                                        " | ", all_eqtl_awk_call,
                                        gene_outf, " - "), stdout=TRUE),
                 split="\t")), stringsAsFactors=F)
             colnames(all_eqtl_data) <- gtex_eqtl_header
 
             cat("Found", length(unique(all_eqtl_data$gene_id)), "genes tested in tissue",
-                strsplit(gtex_file, ".", fixed=T)[[1]][1], "taking up",
+                gtex_tiss_match, "taking up",
                 format(object.size(all_eqtl_data), units="auto"), "with", nrow(all_eqtl_data),
                 "total eQTL pairs tested\n")
 
             ## only make the directory if we found any genes to test
-            this_tiss_outdir <- paste0(outdir, '/tables/gtex_coloc/', gsub("/", "_", this_tag, fixed=T), "/", gsub(" ", "_", gtex_tiss_match), "/")
+            this_tiss_outdir <- paste0(outdir, '/tables/gtex_coloc/', gsub("/", "_", this_tag, fixed=T), "/", gtex_tiss, "/")
             dir.create(this_tiss_outdir, F, T)
             
             ## finally, loop through all these genes and perform colocalization analysis on each
@@ -314,6 +320,7 @@ for(this_chr in unique(top_snps$chr)) {
                 ## similarly, we need to flip the effect directions when we have flipped alleles (the GWAS
                 ## effect is calculated relative to allele 1, and the GTEx effects are calculated relative to
                 ## the alternate allele, so this needs to be consistent)
+                ## TODO: make sure this will work for any GWAS
                 this_region_gwas_snps.parsed$correct_beta <- ifelse(gtex_id1_parsed_match, this_region_gwas_snps.parsed$Effect, -this_region_gwas_snps.parsed$Effect)
                 
                 ## also parse the eQTL data
@@ -458,14 +465,14 @@ for(f in all_summ_files) {
     ## split the path to get the tag region, tissue, and target gene
     this_info <- strsplit(gsub(outdir, "", gsub("//", "/", f)), "/")[[1]]    
     
-    this_tag <- this_info[5]
+    this_tag <- this_info[3]
     if(this_tag != cur_tag) {
         cur_tag <- this_tag
         cat("Analyzing", cur_tag, "region\n")
     }
-    this_tiss <- this_info[6]
+    this_tiss <- this_info[4]
 
-    this_eqtl_info <- strsplit(this_info[7], "_")[[1]]
+    this_eqtl_info <- strsplit(this_info[5], "_")[[1]]
     this_gene_name <- this_eqtl_info[1]
     this_gene_id <- this_eqtl_info[2]
 
@@ -666,11 +673,6 @@ dev.off()
 ## use the colocalization threshold parameter
 top_coloc_hits <- all_summary_data[all_summary_data$PP.H4.abf > coloc_h4_thresh,]
 nrow(top_coloc_hits)
-
-## define the probability threshold to grab the set of SNPs up to
-coloc_abf_thresh <- 0.5
-## coloc_abf_thresh <- 0.9
-## coloc_abf_thresh <- 0.99
 
 {
 enh_start_time <- proc.time()

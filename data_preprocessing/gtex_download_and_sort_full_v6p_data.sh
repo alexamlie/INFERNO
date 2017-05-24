@@ -11,23 +11,23 @@ if [ $# == 1 ]; then
     # tar -xvf GTEx_Analysis_v6p_all-associations.tar
     # rm GTEx_Analysis_v6p_all-associations.tar
     cd GTEx_Analysis_v6p_all-associations/
-    mkdir -p sorted.temp/
+    mkdir -p sorted/
 
     for f in *all_snpgene_pairs.txt.gz; do
 	FNAME=`basename ${f%.txt.gz}`
 	TISS=`basename ${f%_Analysis*}`
-	mkdir -p sorted.temp/${TISS}
-	# ## just to remove any previous data
-	# rm sorted.temp/${TISS}/*
-#	echo "Splitting file $FNAME"
-#	zcat $f | head -1 > sorted.temp/$FNAME
+	mkdir -p sorted/${TISS}
+	## just to remove any previous data
+	rm sorted/${TISS}/*
+	echo "Splitting file $FNAME"
+#	zcat $f | head -1 > sorted/$FNAME
 	## make a separate file for each chromosome
-#	zcat $f | tail -n +2 | awk -v OUTDIR="sorted.temp/${TISS}/" -F$'\t' 'BEGIN{OFS=FS} {split($2, SNP_INFO, "_"); print SNP_INFO[1], SNP_INFO[2], $0 >> OUTDIR"/chr"SNP_INFO[1]".txt"}'
+	zcat $f | tail -n +2 | awk -v OUTDIR="sorted/${TISS}/" -F$'\t' 'BEGIN{OFS=FS} {split($2, SNP_INFO, "_"); print SNP_INFO[1], SNP_INFO[2], $0 >> OUTDIR"/chr"SNP_INFO[1]".txt"}'
 	echo "Sorting chromosomal files for $TISS"
-	for chrf in sorted.temp/${TISS}/chr*.txt; do	    
+	for chrf in sorted/${TISS}/chr*.txt; do	    
 	    THIS_CHR=`basename ${chrf} | cut -d'.' -f1`
 	    echo -n "${THIS_CHR} "
-	    sort -k1,1V -k2,2n ${chrf} | cut -f3-8 | gzip - > sorted.temp/${TISS}/${FNAME}.${THIS_CHR}.txt.gz
+	    sort -k1,1V -k2,2n ${chrf} | cut -f3-8 | gzip - > sorted/${TISS}/${FNAME}.${THIS_CHR}.txt.gz
 	    rm ${chrf}
 	done
 	echo ""

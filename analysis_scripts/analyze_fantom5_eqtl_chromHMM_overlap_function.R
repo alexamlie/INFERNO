@@ -318,7 +318,7 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
     uniq_roadmap_snp_cols <- colnames(roadmap_state_df)[!(colnames(roadmap_state_df) %in% tagsnp_cols)]
     uniq_roadmap_snp_state_df <- ddply(roadmap_state_df, uniq_roadmap_snp_cols, function(x) {
         apply(x[,!(colnames(x) %in% uniq_roadmap_snp_cols)], 2, paste, collapse=",")
-    }, .progress="text")
+    })#, .progress="text")
 
     ## rename the state columns to reflect the actual data source
     ## first get an index to these columns

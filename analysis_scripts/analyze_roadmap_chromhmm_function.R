@@ -25,7 +25,7 @@ analyze_roadmap_chromHMM <- function(prefix, datadir, outdir, out_subtitle, r2_t
     uniq_snp_cols <- colnames(roadmap_state_df)[!(colnames(roadmap_state_df) %in% tagsnp_cols)]
     uniq_snp_state_df <- ddply(roadmap_state_df, uniq_snp_cols, function(x) {
         apply(x[,!(colnames(x) %in% uniq_snp_cols)], 2, paste, collapse=",")
-    }, .progress="text")
+    })#, .progress="text")
 
     ## rename the state columns to reflect the actual data source
     ## first get an index to these columns

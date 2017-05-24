@@ -61,16 +61,16 @@ full_analysis_start_time <- proc.time()
 ## -----------------------------------------------------------------------------
 args <- commandArgs(trailingOnly=TRUE)
 cat(args, "\n")
-stop("Done")
+## stop("Done")
 if (length(args)==9) {
     ## sampling parameters
-    num_samples <- args[1]
-    maf_bin_size <- args[2]
-    dist_round <- args[3]
+    num_samples <- as.numeric(args[1])
+    maf_bin_size <- as.numeric(args[2])
+    dist_round <- as.numeric(args[3])
     ## parameters for upper thresholds on distance and number of LD partners, beyond which all SNPs
     ## are lumped together into the 'high' category (set to Inf to not do this)
-    dist_threshold <- args[4]
-    ld_partner_threshold <- args[5]
+    dist_threshold <- as.numeric(args[4])
+    ld_partner_threshold <- as.numeric(args[5])
 
     ## file with the precomputed background information (for bin matching)
     bg_snp_info_f <- args[6]
@@ -81,6 +81,9 @@ if (length(args)==9) {
     
     ## pipeline parameter file for input
     parameter_file <- args[9]    
+} else {
+    cat(args, '\n')
+    stop("Not enough arguments")    
 }
 
 parameter_tab <- read.table(parameter_file, header=F, sep="\t", quote="", as.is=T, col.names=c("param", "value"))
@@ -131,9 +134,25 @@ rm(full_input_snps)
 annot_input_snps <- merge(input_snps, snp_info, by=c("chr", "rsID", "pos"),
                           all.x=F, all.y=F)
 
-## to find mismatches:
-mismatch_snps <- input_snps$rsID[!(input_snps$rsID %in% annot_input_snps$rsID)]
-cat(length(mismatch_snps), "SNPs did not match up correctly:", mismatch_snps, "\n")
+## to find mismatches by rsID:
+mismatch_snps <- input_snps[!(input_snps$rsID %in% annot_input_snps$rsID),]
+cat(nrow(mismatch_snps), "SNPs did not match up correctly by rsID:", mismatch_snps$rsID, "\n")
+
+## if there are mismatches, try to match by position
+if(nrow(mismatch_snps) > 0) {
+    mismatch_merge_snps <- merge(mismatch_snps, snp_info, by=c("chr", "pos"), all=F,
+                                 suffixes=c(".x", ""))
+
+    if(nrow(mismatch_merge_snps) > 0) {
+        cat(nrow(mismatch_merge_snps), "SNP matches found by position. New rsIDs from 1000 Genomes:",
+            mismatch_merge_snps$rsID, "\nInput rsIDs:", mismatch_merge_snps$rsID.x, "\n")
+        
+        annot_input_snps <- rbind(annot_input_snps, mismatch_merge_snps[,c("chr", "rsID", "pos", "tag_name", "tss_dist", "MAF", "num_ld_partners")])
+    } else {
+        cat("Could not match rsIDS! :( \n")
+    }
+}
+
 
 ## -----------------------------------------------------------------------------
 ## 3. Perform sampling against input
@@ -689,6 +708,7 @@ dev.off()
 ## -----------------------------------------------------------------------------
 ## 7. Compute annotation overlap p-values
 ## -----------------------------------------------------------------------------
+
 annot_start <- proc.time()
 
 ## read in all the different tissue classes
@@ -1095,7 +1115,7 @@ print(ggplot(pval_df[pval_df$pval=="Raw P-value",], aes(x=value, fill=annotation
       theme(legend.position="none",
             axis.text.x = element_text(angle=45, vjust=1, hjust=1, size=15),
             axis.text.y = element_text(vjust=1, hjust=1, size=15),
-            strip.text = element_text(size=20) + 
+            strip.text = element_text(size=20), 
             axis.title=element_text(size=20), plot.title = element_text(size=30, hjust = 0.5)))
 dev.off()
 
@@ -1109,7 +1129,7 @@ print(ggplot(pval_df[pval_df$pval=="BH-adjusted P-value",], aes(x=value, fill=an
       theme(legend.position="none",
             axis.text.x = element_text(angle=45, vjust=1, hjust=1, size=15),
             axis.text.y = element_text(angle=45, vjust=1, hjust=1, size=15),
-            strip.text = element_text(size=20) +             
+            strip.text = element_text(size=20),             
             axis.title=element_text(size=20), plot.title = element_text(size=30, hjust = 0.5)))
 dev.off()
 
@@ -1200,12 +1220,12 @@ split_pval_df$tissue_class <- factor(split_pval_df$tissue_class, ordered=T,
 
 write.table(split_pval_df, paste0(output_dir, '/tables/split_region_bootstrap_results.txt'), quote=F, sep="\t", row.names=F, col.names=T)
 ## to read in this data
-split_pval_df <- read.table(paste0(output_dir, '/tables/split_region_bootstrap_results.txt'), header=T, sep="\t", quote="", as.is=T)
-split_pval_df$annotation <- factor(split_pval_df$annotation, ordered=T,
-                             levels=c("GTEx eQTL", "FANTOM5 Enhancer", "Roadmap HMM Enhancer",
-                                 "FANTOM5 Enh+GTEx eQTL", "GTEx eQTL+Roadmap HMM Enh", "FANTOM5 Enh+Roadmap HMM Enh", "FANTOM5 Enh+GTEx eQTL+Roadmap HMM Enh"))
-split_pval_df$tissue_class <- factor(split_pval_df$tissue_class, ordered=T,
-                               levels=sort(unique(split_pval_df$tissue_class), dec=T))
+## split_pval_df <- read.table(paste0(output_dir, '/tables/split_region_bootstrap_results.txt'), header=T, sep="\t", quote="", as.is=T)
+## split_pval_df$annotation <- factor(split_pval_df$annotation, ordered=T,
+##                              levels=c("GTEx eQTL", "FANTOM5 Enhancer", "Roadmap HMM Enhancer",
+##                                  "FANTOM5 Enh+GTEx eQTL", "GTEx eQTL+Roadmap HMM Enh", "FANTOM5 Enh+Roadmap HMM Enh", "FANTOM5 Enh+GTEx eQTL+Roadmap HMM Enh"))
+## split_pval_df$tissue_class <- factor(split_pval_df$tissue_class, ordered=T,
+##                                levels=sort(unique(split_pval_df$tissue_class), dec=T))
 
 dir.create(paste0(output_dir, '/plots/split_tag_regions/'), F, T)
 for(this_tag in unique(split_pval_df$tag_region)) {
@@ -1445,7 +1465,7 @@ print(ggplot(collapsed_pval_df[collapsed_pval_df$pval=="Raw P-value",], aes(x=va
       theme(legend.position="none",
             axis.text.x = element_text(angle=45, vjust=1, hjust=1, size=15),
             axis.text.y = element_text(vjust=1, hjust=1, size=15),
-            strip.text = element_text(size=20) + 
+            strip.text = element_text(size=20),
             axis.title=element_text(size=20), plot.title = element_text(size=30, hjust = 0.5)))
 dev.off()
 
@@ -1460,7 +1480,7 @@ print(ggplot(collapsed_pval_df[collapsed_pval_df$pval=="BH-adjusted P-value",], 
       theme(legend.position="none",
             axis.text.x = element_text(angle=45, vjust=1, hjust=1, size=15),
             axis.text.y = element_text(angle=45, vjust=1, hjust=1, size=15),
-            strip.text = element_text(size=20) +             
+            strip.text = element_text(size=20),
             axis.title=element_text(size=20), plot.title = element_text(size=30, hjust = 0.5)))
 dev.off()
 

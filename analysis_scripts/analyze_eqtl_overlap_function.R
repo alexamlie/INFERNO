@@ -30,7 +30,7 @@ analyze_eqtl_overlap <- function(prefix, datadir, outdir, out_subtitle, r2_thres
 
     uniq_snp_eqtl_df <- ddply(eqtl_overlap_df, uniq_snp_cols, function(x) {
         apply(x[,!(colnames(x) %in% uniq_snp_cols)], 2, paste, collapse=",")
-    }, .progress='text')
+    })#, .progress='text')
     
     ## write out the unique table
     uniq_tab_outf <- paste0(outdir, 'tables/', prefix, "_", r2_thresh,
@@ -235,10 +235,12 @@ analyze_eqtl_overlap <- function(prefix, datadir, outdir, out_subtitle, r2_thres
     ## add 0-counts for tissues with no eQTLs
     ## get the index
     zero_eqtl_tiss <- which(!(gtex_category_df$tissue %in% num_eqtls_per_tissue$tissue))
-    num_eqtls_per_tissue <- rbind(num_eqtls_per_tissue,
-                                  data.frame(tissue = gtex_category_df$tissue[zero_eqtl_tiss],
-                                             eqtl_class = gtex_category_df$Class[zero_eqtl_tiss],
-                                             num_tissue_eqtls = 0))
+    if(length(zero_eqtl_tiss) > 0) {
+        num_eqtls_per_tissue <- rbind(num_eqtls_per_tissue,
+                                      data.frame(tissue = gtex_category_df$tissue[zero_eqtl_tiss],
+                                                 eqtl_class = gtex_category_df$Class[zero_eqtl_tiss],
+                                                 num_tissue_eqtls = 0))
+    }
     
     ## make sure the tissues are sorted by class, decreasing because we flip it
     tissue_order <- order(num_eqtls_per_tissue$eqtl_class, num_eqtls_per_tissue$tissue, decreasing=T)
