@@ -146,10 +146,15 @@ if(nrow(mismatch_snps) > 0) {
     if(nrow(mismatch_merge_snps) > 0) {
         cat(nrow(mismatch_merge_snps), "SNP matches found by position. New rsIDs from 1000 Genomes:",
             mismatch_merge_snps$rsID, "\nInput rsIDs:", mismatch_merge_snps$rsID.x, "\n")
-        
-        annot_input_snps <- rbind(annot_input_snps, mismatch_merge_snps[,c("chr", "rsID", "pos", "tag_name", "tss_dist", "MAF", "num_ld_partners")])
+
+        ## make sure the number of SNPs matches up
+        if(nrow(mismatch_merge_snps)==nrow(mismatch_snps)) {
+            annot_input_snps <- rbind(annot_input_snps, mismatch_merge_snps[,c("chr", "rsID", "pos", "tag_name", "tss_dist", "MAF", "num_ld_partners")])
+        } else {
+            stop("Did not match the same number of variants!\n")
+        }
     } else {
-        cat("Could not match rsIDS! :( \n")
+        stop("Could not match rsIDS! :( \n")
     }
 }
 

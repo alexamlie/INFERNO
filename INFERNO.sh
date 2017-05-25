@@ -43,7 +43,7 @@ if [ $# == 4 ]; then
     ## submit a job to run bootstrapping
     bsub -M 40000 -J ${OUTPREFIX}_enh_bootstrapping -o ${OUTDIR}/logs/enh_bootstrapping.o%J \
     	-e ${OUTDIR}/logs/enh_bootstrapping.e%J ./bsub_wrappers/enhancer_bootstrap_bsub_wrapper.sh \
-    ./src/enhancer_only_sample_and_expand_matched_input_variants.R \
+	./src/enhancer_only_sample_and_expand_matched_input_variants.R \
     	${NUM_SAMPLES} ${MAF_BIN_SIZE} ${DIST_ROUND} ${DIST_THRESHOLD} ${LD_PARTNER_THRESHOLD} \
     	${BG_SNP_INFOF} ${LD_SETS_DIR} ${REF_SUMMARY_DIR} "${PARAMF}"
 
