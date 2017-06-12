@@ -57,20 +57,20 @@ if(tag_naming=="name") {
 }
 
 ## some color definitions for integrative functions
-## eRNA enhancers are red
-erna_color <- c("eRNA Enh"="#B3112E")
-## HMM enhancers are blue (there are three types, so I use 3 similar light blues)
-hmm_colors <- c("HMM Enh"="#6393F3", "HMM Genic Enh"="#2D70F3", "HMM Biv Enh"="#0353F1")
-merge_hmm_color <- c("HMM Enh"="#6393F3")
+## FANTOM5 enhancers are red
+erna_color <- c("FANTOM5 Enh"="#B3112E")
+## Roadmap enhancers are blue (there are three types, so I use 3 similar light blues)
+hmm_colors <- c("Roadmap Enh"="#6393F3", "Roadmap Genic Enh"="#2D70F3", "Roadmap Biv Enh"="#0353F1")
+merge_hmm_color <- c("Roadmap Enh"="#6393F3")
 ## eQTLs are yellow
 eqtl_color <- c("eQTL"="#BACC1C")
 
 ## also do combinations with merged enhancer states
-## eQTL + eRNA enhancer is orange
-eqtl_erna_color <- c("eQTL+eRNA Enh"="#D06900")
-erna_merged_hmm_color <- c("eRNA Enh+HMM Enh"="#660BAB")
-eqtl_merged_hmm_color <- c("eQTL+HMM Enh"="#88BDAD")
-eqtl_erna_merged_hmm_color <- c("eQTL+eRNA Enh+HMM Enh"="#12C702")
+## eQTL + FANTOM5 enhancer is orange
+eqtl_erna_color <- c("eQTL+FANTOM5 Enh"="#D06900")
+erna_merged_hmm_color <- c("FANTOM5 Enh+Roadmap Enh"="#660BAB")
+eqtl_merged_hmm_color <- c("eQTL+Roadmap Enh"="#88BDAD")
+eqtl_erna_merged_hmm_color <- c("eQTL+FANTOM5 Enh+Roadmap Enh"="#12C702")
 
 ## ---------------------------------------------------
 ## FUNCTIONS

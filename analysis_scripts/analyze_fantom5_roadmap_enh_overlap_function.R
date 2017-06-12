@@ -118,48 +118,52 @@ analyze_fantom5_roadmap_enh_overlap <- function(prefix, datadir, outdir, out_sub
 
     ## now find any overlapping SNPs
     roadmap_fantom5_overlap_snp_df <- join(fantom5_uniq_enh_snp_df, roadmap_uniq_enh_snp_df, type="inner")
-    ## add a column for overlapping classes
-    roadmap_fantom5_overlap_snp_df$overlap_classes <- apply(roadmap_fantom5_overlap_snp_df, 1, function(x) {
-        hmm_classes <- strsplit(x["hmm_classes"], ",")[[1]]
-        f5_classes <- strsplit(x["f5_classes"], ",")[[1]]
-        common_classes <- intersect(hmm_classes, f5_classes)
-        if(length(common_classes) > 0) {
-            return(paste(common_classes, collapse=","))
-        } else {
-            return("None")
-        }
-    })
-
-    ## write out the full overlap file
-    overlap_snp_outf <- paste0(outdir, 'tables/', prefix, "_", r2_thresh,
-                               "_ld_cutoff_snps_within_", dist_thresh,
-                               "_", fantom5_overlap_type,
-                               "_fantom5_roadmap_overlap.txt")
-    write.table(roadmap_fantom5_overlap_snp_df, overlap_snp_outf, quote=F, sep="\t", col.names=T, row.names=F)
-
+    if(nrow(roadmap_fantom5_overlap_snp_df) > 0) {
+        ## add a column for overlapping classes
+        roadmap_fantom5_overlap_snp_df$overlap_classes <- apply(roadmap_fantom5_overlap_snp_df, 1, function(x) {
+            hmm_classes <- strsplit(x["hmm_classes"], ",")[[1]]
+            f5_classes <- strsplit(x["f5_classes"], ",")[[1]]
+            common_classes <- intersect(hmm_classes, f5_classes)
+            if(length(common_classes) > 0) {
+                return(paste(common_classes, collapse=","))
+            } else {
+                return("None")
+            }
+        })
+        
+        ## write out the full overlap file
+        overlap_snp_outf <- paste0(outdir, 'tables/', prefix, "_", r2_thresh,
+                                   "_ld_cutoff_snps_within_", dist_thresh,
+                                   "_", fantom5_overlap_type,
+                                   "_fantom5_roadmap_overlap.txt")
+        write.table(roadmap_fantom5_overlap_snp_df, overlap_snp_outf, quote=F, sep="\t", col.names=T, row.names=F)
+    }
+        
     ## also make a table of all the SNPs with their support from the two different sources
     roadmap_fantom5_union_snp_df <- join(fantom5_uniq_enh_snp_df, roadmap_uniq_enh_snp_df, type="full")
-    roadmap_fantom5_union_snp_df$overlap_classes <- apply(roadmap_fantom5_union_snp_df, 1, function(x) {
-        if(is.na(x["hmm_classes"]) | is.na(x["f5_classes"])) {
-            return("None")
-        }
-        hmm_classes <- strsplit(x["hmm_classes"], ",")[[1]]
-        f5_classes <- strsplit(x["f5_classes"], ",")[[1]]
-        common_classes <- intersect(hmm_classes, f5_classes)
-        if(length(common_classes) > 0) {
-            return(paste(common_classes, collapse=","))
-        } else {
-            return("None")
-        }
-    })
+    if(nrow(roadmap_fantom5_union_snp_df) > 0) {
+        roadmap_fantom5_union_snp_df$overlap_classes <- apply(roadmap_fantom5_union_snp_df, 1, function(x) {
+            if(is.na(x["hmm_classes"]) | is.na(x["f5_classes"])) {
+                return("None")
+            }
+            hmm_classes <- strsplit(x["hmm_classes"], ",")[[1]]
+            f5_classes <- strsplit(x["f5_classes"], ",")[[1]]
+            common_classes <- intersect(hmm_classes, f5_classes)
+            if(length(common_classes) > 0) {
+                return(paste(common_classes, collapse=","))
+            } else {
+                return("None")
+            }
+        })
 
-    ## write out the union file
-    union_snp_outf <- paste0(outdir, 'tables/', prefix, "_", r2_thresh,
-                               "_ld_cutoff_snps_within_", dist_thresh,
-                               "_", fantom5_overlap_type,
-                               "_fantom5_roadmap_union.txt")
-    write.table(roadmap_fantom5_union_snp_df, union_snp_outf, quote=F, sep="\t", col.names=T, row.names=F)
-
+        ## write out the union file
+        union_snp_outf <- paste0(outdir, 'tables/', prefix, "_", r2_thresh,
+                                 "_ld_cutoff_snps_within_", dist_thresh,
+                                 "_", fantom5_overlap_type,
+                                 "_fantom5_roadmap_union.txt")
+        write.table(roadmap_fantom5_union_snp_df, union_snp_outf, quote=F, sep="\t", col.names=T, row.names=F)
+    }
+    
     ## ----------------------
     ## analysis plots
     ## want a heatmap for tissue class x tag region support from these two data sources
@@ -186,17 +190,17 @@ analyze_fantom5_roadmap_enh_overlap <- function(prefix, datadir, outdir, out_sub
                                 ## also make one for the merged HMM states
                                 merged_hmm_support <- ""
                                 if(f5_present) {
-                                    support <- paste(support, "eRNA Enh", sep="+")
-                                    merged_hmm_support <- paste(merged_hmm_support, "eRNA Enh", sep="+") }
+                                    support <- paste(support, "FANTOM5 Enh", sep="+")
+                                    merged_hmm_support <- paste(merged_hmm_support, "FANTOM5 Enh", sep="+") }
                                 if(hmm_enh_present) {
-                                    support <- paste(support, "HMM Enh", sep="+") }
+                                    support <- paste(support, "Roadmap Enh", sep="+") }
                                 if(hmm_enhG_present) {
-                                    support <- paste(support, "HMM Genic Enh", sep="+") }
+                                    support <- paste(support, "Roadmap Genic Enh", sep="+") }
                                 if(hmm_enh_biv_present) {
-                                    support <- paste(support, "HMM Biv Enh", sep="+") }
+                                    support <- paste(support, "Roadmap Biv Enh", sep="+") }
 
                                 if(hmm_enh_present || hmm_enhG_present || hmm_enh_biv_present) {
-                                    merged_hmm_support <- paste(merged_hmm_support, "HMM Enh", sep="+") }
+                                    merged_hmm_support <- paste(merged_hmm_support, "Roadmap Enh", sep="+") }
 
                                 ## remove the separator at the beginning of the support strings
                                 support <- gsub("^\\+", "", support)
@@ -248,23 +252,23 @@ analyze_fantom5_roadmap_enh_overlap <- function(prefix, datadir, outdir, out_sub
     ## same thing for the merged HMM states
     unique_merged_hmm_supports <- sort(unique(snp_support_df_full$merged_hmm_support))
     snp_support_df_full$merged_hmm_support <- factor(snp_support_df_full$merged_hmm_support, ordered=T,
-                                                     levels=c("eRNA Enh", "HMM Enh",
-                                                         "eRNA Enh+HMM Enh", "No support"))
+                                                     levels=c("FANTOM5 Enh", "Roadmap Enh",
+                                                         "FANTOM5 Enh+Roadmap Enh", "No support"))
 
     ## use this data to summarize the overlaps in each tag region
     tag_region_support_df <- ddply(snp_support_df_full, .(tissue_class, tag_name, tag_no_rsid), function(x) {
-        erna <- "eRNA Enh" %in% x$merged_hmm_support
-        hmm <- "HMM Enh" %in% x$merged_hmm_support
-        erna_hmm <- "eRNA Enh+HMM Enh" %in% x$merged_hmm_support
+        erna <- "FANTOM5 Enh" %in% x$merged_hmm_support
+        hmm <- "Roadmap Enh" %in% x$merged_hmm_support
+        erna_hmm <- "FANTOM5 Enh+Roadmap Enh" %in% x$merged_hmm_support
 
         ## add columns for each state, noting that variants that overlap more sources of data
         ## should also count towards the individual (or combination) of sources
         return(data.frame(erna=ifelse(erna | erna_hmm,
-                              "eRNA Enh", "No overlap"),
+                              "FANTOM5 Enh", "No overlap"),
                           hmm=ifelse(hmm | erna_hmm,
-                              "HMM Enh", "No overlap"),
+                              "Roadmap Enh", "No overlap"),
                           erna_hmm=ifelse(erna_hmm,
-                              "eRNA Enh+HMM Enh", "No overlap"),
+                              "FANTOM5 Enh+Roadmap Enh", "No overlap"),
                           stringsAsFactors = F))
     })
 
@@ -294,11 +298,11 @@ analyze_fantom5_roadmap_enh_overlap <- function(prefix, datadir, outdir, out_sub
     
     ## make a factor to order the annotation levels:
     melt_tag_region_support$value <- factor(melt_tag_region_support$value, ordered=T,
-                                            levels=c("eRNA Enh", "HMM Enh", "eRNA Enh+HMM Enh",
+                                            levels=c("FANTOM5 Enh", "Roadmap Enh", "FANTOM5 Enh+Roadmap Enh",
                                                 "No overlap"))
 
     ## finally, we need to map our tag names to numbers so that we can actually use the shift!
-    tag_name_numbers <- as.numeric(sort(unique(melt_tag_region_support$tag_name)))
+    tag_name_numbers <- seq(1, length(unique(melt_tag_region_support$tag_name)))
     ## set this for the different settings for tag region naming
     if(TAG_VAR=="tag_no_rsid") {
         names(tag_name_numbers) <- sort(unique(melt_tag_region_support$tag_no_rsid))
@@ -314,13 +318,13 @@ analyze_fantom5_roadmap_enh_overlap <- function(prefix, datadir, outdir, out_sub
                         r2_thresh, "_ld_", dist_thresh,
                         "_dist"), width_ratio = 3.0, height_ratio = 2.0)
     print(ggplot(melt_tag_region_support,
-                 aes(x=as.numeric(tag_name)+shift, y=tissue_class, width=width, fill=value)) +
+                 aes(x=tag_name_numbers[tag_name]+shift, y=tissue_class, width=width, fill=value)) +
           geom_tile(size=1) +
           scale_fill_manual(name="Annotation overlaps",
                             values=c(erna_color, merge_hmm_color, erna_merged_hmm_color,
                                 "No overlap"=bg_color)) +
           ## add a tile to outline the categories
-          geom_tile(aes(x=as.numeric(tag_name), y=tissue_class, width=1),
+          geom_tile(aes(x=tag_name_numbers[tag_name], y=tissue_class, width=1),
                     ## old color: #948300
                     color="grey39", fill=NA, size=1) +
           scale_x_continuous(breaks=tag_name_numbers, labels=names(tag_name_numbers),
@@ -342,13 +346,13 @@ analyze_fantom5_roadmap_enh_overlap <- function(prefix, datadir, outdir, out_sub
                         r2_thresh, "_ld_", dist_thresh,
                         "_dist"), width_ratio = 3.0, height_ratio = 2.0)
     print(ggplot(melt_tag_region_support,
-                 aes(x=as.numeric(tag_name)+shift, y=tissue_class, width=width, fill=value)) +
+                 aes(x=tag_name_numbers[tag_name]+shift, y=tissue_class, width=width, fill=value)) +
           geom_tile(size=1) +
           scale_fill_manual(name="Annotation overlaps",
                             values=c(erna_color, merge_hmm_color, erna_merged_hmm_color,
                                 "No overlap"=bg_color)) +
           ## add a tile to outline the categories
-          geom_tile(aes(x=as.numeric(tag_name), y=tissue_class, width=1),
+          geom_tile(aes(x=tag_name_numbers[tag_name], y=tissue_class, width=1),
                     color="grey39", fill=NA, size=1) +
           scale_x_continuous(breaks=tag_name_numbers, labels=names(tag_name_numbers),
                              limits=c(0.5, max(tag_name_numbers)+0.5), expand=c(0, 0)) +

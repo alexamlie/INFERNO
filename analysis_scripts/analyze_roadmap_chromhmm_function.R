@@ -66,6 +66,17 @@ analyze_roadmap_chromHMM <- function(prefix, datadir, outdir, out_subtitle, r2_t
     
     ## now grab the enhancer states:
     roadmap_enhancer_snps <- melt_uniq_state_df[melt_uniq_state_df$state %in% c("6_EnhG", "7_Enh", "12_EnhBiv"),]
+    if(nrow(roadmap_enhancer_snps)==0) {
+        ## still write a spoofed output file
+        roadmap_uniq_enh_snp_df <- data.frame(chr=numeric(0), rsID=numeric(0), pos=numeric(0), ref=numeric(0), alt=numeric(0), MAF=numeric(0), tag_name=numeric(0), tag_no_rsid=numeric(0), num_hmm_tissues=numeric(0), hmm_tissues=numeric(0), num_hmm_enh_states=numeric(0), hmm_enh_states=numeric(0), num_hmm_classes=numeric(0), hmm_classes=numeric(0))
+        
+        enh_tab_outf <- paste0(outdir, 'tables/', prefix, "_", r2_thresh,
+                               "_ld_cutoff_snps_within_", dist_thresh,
+                               "_uniq_chromHMM_enh_snps.txt")
+        write.table(roadmap_uniq_enh_snp_df, enh_tab_outf, quote=F, sep="\t", col.names=T, row.names=F)
+        cat("No variants overlapping Roadmap ChromHMM enhancer found in this dataset!\n")
+        return("No variants overlapping Roadmap ChromHMM enhancer found in this dataset!")
+    } 
 
     ## summarize these per snp:
     roadmap_uniq_enh_snp_df <- ddply(roadmap_enhancer_snps, .(chr, rsID, pos, ref, alt, MAF, tag_name, tag_no_rsid), summarize,
@@ -558,7 +569,6 @@ analyze_roadmap_chromHMM <- function(prefix, datadir, outdir, out_subtitle, r2_t
                 legend.text = element_text(size=LEGEND_TEXT_SIZE),
                 title=element_text(size=TITLE_SIZE), plot.title = element_text(hjust = 0.5)))
     dev.off()
-    
 }
 
 ## prefix <- param_ref[['outprefix']]

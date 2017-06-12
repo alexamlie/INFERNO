@@ -17,28 +17,28 @@ snp_support_heatmap <- function(support_df, outdir, prefix, this_tag_name, suppo
 
     ## now do the ones that we need palettes for (because i don't want to have to enumerate
     ## every possible state)
-    ## eQTL + eRNA + HMM is range of reddish-brown
+    ## eQTL + FANTOM5 + HMM is range of reddish-brown
 
     ## count all the unique types of support
     unique_supports <- sort(unique(support_df$support))
     unique_merged_hmm_supports <- sort(unique(support_df$merged_hmm_support))
 
-    eqtl_erna_hmm_supports <- grep("^eQTL\\+eRNA Enh\\+HMM", unique_supports, value=T)
+    eqtl_erna_hmm_supports <- grep("^eQTL\\+FANTOM5 Enh\\+Roadmap", unique_supports, value=T)
     eqtl_erna_hmm_colors <- colorRampPalette(c("#521C0A", "#8F4E38"))(length(eqtl_erna_hmm_supports))
     names(eqtl_erna_hmm_colors) <- eqtl_erna_hmm_supports
 
     ## eQTL + HMM is green (yellow + blue)
-    eqtl_hmm_supports <- grep("^eQTL\\+HMM", unique_supports, value=T)
+    eqtl_hmm_supports <- grep("^eQTL\\+Roadmap", unique_supports, value=T)
     eqtl_hmm_colors <- colorRampPalette(c("#88BDAD", "#1E5645"))(length(eqtl_hmm_supports))
     names(eqtl_hmm_colors) <- eqtl_hmm_supports
 
-    ## eRNA + HMM is purple
-    erna_hmm_supports <- grep("^eRNA Enh\\+HMM", unique_supports, value=T)
+    ## FANTOM5 + HMM is purple
+    erna_hmm_supports <- grep("^FANTOM5 Enh\\+Roadmap", unique_supports, value=T)
     erna_hmm_colors <- colorRampPalette(c("#660BAB", "#3D0568"))(length(erna_hmm_supports))
     names(erna_hmm_colors) <- erna_hmm_supports
 
     ## now we just need the range of HMM colors (range of darker blues)
-    hmm_supports <- grep("^HMM .*\\+", unique_supports, value=T)
+    hmm_supports <- grep("^Roadmap .*\\+", unique_supports, value=T)
     hmm_combo_colors <- colorRampPalette(c("#152B55", "#061739"))(length(hmm_supports))
     names(hmm_combo_colors) <- hmm_supports
 
@@ -125,7 +125,7 @@ snp_support_heatmap <- function(support_df, outdir, prefix, this_tag_name, suppo
           scale_x_discrete(position="top") +           
           theme_bw() +
           xlab("Linked SNP") + ylab("Tissue Category") +
-          plot_title(paste0("Heatmap of sources of functional support for SNPs across ", this_tag_name, " tag region(s) and tissue categories, with collapsed HMM enhancer states"), r2_thresh, dist_thresh, out_subtitle) +
+          plot_title(paste0("Heatmap of sources of functional support for SNPs across ", this_tag_name, " tag region(s) and tissue categories, with collapsed Roadmap enhancer states"), r2_thresh, dist_thresh, out_subtitle) +
           guides(colour = guide_legend(override.aes=list(shape=15, size=10), ncol=1),
                  fill = guide_legend(override.aes=list(size=10), ncol=1)) +
           ## +1e-09 was the 'hack' number to use for the angle adjustment
@@ -150,7 +150,7 @@ snp_support_heatmap <- function(support_df, outdir, prefix, this_tag_name, suppo
           scale_x_discrete(position="top") +           
           theme_bw() +
           xlab("Linked SNP") + ylab("Tissue Category") +
-          plot_title(paste0("Heatmap of sources of functional support for SNPs across ", this_tag_name, " tag region(s) and tissue categories, with collapsed HMM enhancer states"), r2_thresh, dist_thresh, out_subtitle) +
+          plot_title(paste0("Heatmap of sources of functional support for SNPs across ", this_tag_name, " tag region(s) and tissue categories, with collapsed Roadmap enhancer states"), r2_thresh, dist_thresh, out_subtitle) +
           guides(colour = guide_legend(override.aes=list(shape=15, size=10), ncol=1),
                  fill = guide_legend(override.aes=list(size=10), ncol=1)) +
           ## +1e-09 was the 'hack' number to use for the angle adjustment
@@ -176,7 +176,7 @@ snp_support_heatmap <- function(support_df, outdir, prefix, this_tag_name, suppo
               scale_x_discrete(position="top") +               
               theme_bw() +
               xlab("Linked SNP") + ylab("Tissue Category") +
-              plot_title(paste0("Heatmap of sources of functional support for SNPs across ", this_tag_name, " tag region(s) and tissue categories, with collapsed HMM enhancer states and only present tissues"), r2_thresh, dist_thresh, out_subtitle) +
+              plot_title(paste0("Heatmap of sources of functional support for SNPs across ", this_tag_name, " tag region(s) and tissue categories, with collapsed Roadmap enhancer states and only present tissues"), r2_thresh, dist_thresh, out_subtitle) +
               guides(colour = guide_legend(override.aes=list(shape=15, size=10), ncol=1),
                      fill = guide_legend(override.aes=list(size=10), ncol=1)) +
               theme(axis.text.x = element_text(angle=-90, hjust=1, vjust=1, size=snp_text_size, colour=snp_text_cols),
@@ -201,7 +201,7 @@ snp_support_heatmap <- function(support_df, outdir, prefix, this_tag_name, suppo
               scale_x_discrete(position="top") +               
               theme_bw() +
               xlab("Linked SNP") + ylab("Tissue Category") +
-              plot_title(paste0("Heatmap of sources of functional support for SNPs across ", this_tag_name, " tag region(s) and tissue categories, with collapsed HMM enhancer states and only present tissues"), r2_thresh, dist_thresh, out_subtitle) +
+              plot_title(paste0("Heatmap of sources of functional support for SNPs across ", this_tag_name, " tag region(s) and tissue categories, with collapsed Roadmap enhancer states and only present tissues"), r2_thresh, dist_thresh, out_subtitle) +
               guides(colour = guide_legend(override.aes=list(shape=15, size=10), ncol=1),
                      fill = guide_legend(override.aes=list(size=10), ncol=1)) +
               theme(axis.text.x = element_text(angle=-90, hjust=1, vjust=1, size=snp_text_size, colour=snp_text_cols),
@@ -360,26 +360,28 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
     ## ----------------------
     ## find the SNPs that have all 3 data sources:
     roadmap_enh_eqtl_overlap_snps <- join(roadmap_uniq_enh_snp_df, enh_eqtl_overlap_snp_df, type="inner")
-    ## add a column for the classes that overlap between all 3 (if any)
-    roadmap_enh_eqtl_overlap_snps$overlap_classes <- apply(roadmap_enh_eqtl_overlap_snps, 1, function(x) {
-        hmm_classes <- strsplit(x["hmm_classes"], ",")[[1]]
-        enh_classes <- strsplit(x["enh_classes"], ",")[[1]]
-        eqtl_classes <- strsplit(x["eqtl_classes"], ",")[[1]]
-        common_classes <- intersect(hmm_classes, intersect(enh_classes, eqtl_classes))
-        if(length(common_classes) > 0) {
-            return(paste(common_classes, collapse=","))
-        } else {
-            return("None")
-        }
-    })
+    if(nrow(roadmap_enh_eqtl_overlap_snps) > 0) {
+        ## add a column for the classes that overlap between all 3 (if any)
+        roadmap_enh_eqtl_overlap_snps$overlap_classes <- apply(roadmap_enh_eqtl_overlap_snps, 1, function(x) {
+            hmm_classes <- strsplit(x["hmm_classes"], ",")[[1]]
+            enh_classes <- strsplit(x["enh_classes"], ",")[[1]]
+            eqtl_classes <- strsplit(x["eqtl_classes"], ",")[[1]]
+            common_classes <- intersect(hmm_classes, intersect(enh_classes, eqtl_classes))
+            if(length(common_classes) > 0) {
+                return(paste(common_classes, collapse=","))
+            } else {
+                return("None")
+            }
+        })
         
-    ## write out the full overlap file
-    overlap_snp_outf <- paste0(outdir, 'tables/', prefix, "_", r2_thresh,
-                               "_ld_cutoff_snps_within_", dist_thresh,
-                               "_", enh_overlap_type,
-                               "_fantom5_eqtl_roadmap_enh_states_overlap_gene_targets.txt")
-    write.table(roadmap_enh_eqtl_overlap_snps, overlap_snp_outf, quote=F, sep="\t", col.names=T, row.names=F)
-
+        ## write out the full overlap file
+        overlap_snp_outf <- paste0(outdir, 'tables/', prefix, "_", r2_thresh,
+                                   "_ld_cutoff_snps_within_", dist_thresh,
+                                   "_", enh_overlap_type,
+                                   "_fantom5_eqtl_roadmap_enh_states_overlap_gene_targets.txt")
+        write.table(roadmap_enh_eqtl_overlap_snps, overlap_snp_outf, quote=F, sep="\t", col.names=T, row.names=F)
+    }
+    
     ## ----------------------
     ## figure out the average number of tissue classes affected by each SNP in each data type
     cat("Average number of tissue classes affected by FANTOM5 enhancer overlapping SNPs:\n")
@@ -400,8 +402,9 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
         enh_count <- sum(this_region_snps %in% enh_overlap_df$rsID)
         hmm_count <- sum(this_region_snps %in% roadmap_uniq_enh_snp_df$rsID)
         eqtl_count <- sum(this_region_snps %in% eqtl_uniq_snp_df$rsID)
-        return(data.frame("FANTOM5 Enhancer" = enh_count, "Roadmap HMM" = hmm_count, "GTEx eQTL" = eqtl_count, stringsAsFactors=F))
+        return(data.frame("FANTOM5 Enhancer" = enh_count, "Roadmap Roadmap" = hmm_count, "GTEx eQTL" = eqtl_count, stringsAsFactors=F))
     }), id.vars=c("tag_name"), variable.name="annotation", value.name="SNP_Count")
+    
     max_snp_count <- round_any(max(tagregion_support_counts$SNP_Count)+1, accuracy=5, f=ceiling)
 
     ## write a specific break function for this
@@ -436,20 +439,22 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
     threeway_snp_count <- as.data.frame(table(roadmap_enh_eqtl_overlap_snps$tag_name[!duplicated(roadmap_enh_eqtl_overlap_snps[,c("rsID", "tag_name")])], dnn="tag_name"))
     max_snp_count <- round_any(max(threeway_snp_count$Freq)+1, accuracy=5, f=ceiling)
 
-    make_graphic(paste0(outdir, 'plots/', prefix, '_hmm_fantom5_gtex_snp_counts_per_region_',
-                        r2_thresh, "_ld_", dist_thresh, "_dist"))
-    print(ggplot(threeway_snp_count, aes(x=tag_name, y=Freq, fill=tag_name)) +
-          scale_fill_hue(h=c(180, 270)) +
-          xlab("Tag SNP rsID and region") + ylab("Number of unique SNPs") +
-          theme_bw() + geom_bar(position="dodge", stat="identity") +
-          scale_y_continuous(breaks=seq(0, max_snp_count, by=1),
-                             limits=c(0, max_snp_count), expand=c(0, 0)) +
-          theme(legend.position="none", axis.text.x = element_text(angle=45, hjust=1, size=AXIS_TEXT_X_SIZE),
-                axis.text.y = element_text(size=AXIS_TEXT_Y_SIZE), axis.title=element_text(size=TITLE_SIZE),
-                plot.title=element_text(size=TITLE_SIZE, hjust=0.5)) + 
-          plot_title("Number of SNPs overlapping FANTOM5 Enhancers, Roadmap HMM Enhancers, and GTEx eQTLs", r2_thresh, dist_thresh, out_subtitle))
-    dev.off()
-
+    if(max_snp_count > 0) {
+        make_graphic(paste0(outdir, 'plots/', prefix, '_hmm_fantom5_gtex_snp_counts_per_region_',
+                            r2_thresh, "_ld_", dist_thresh, "_dist"))
+        print(ggplot(threeway_snp_count, aes(x=tag_name, y=Freq, fill=tag_name)) +
+              scale_fill_hue(h=c(180, 270)) +
+              xlab("Tag SNP rsID and region") + ylab("Number of unique SNPs") +
+              theme_bw() + geom_bar(position="dodge", stat="identity") +
+              scale_y_continuous(breaks=seq(0, max_snp_count, by=1),
+                                 limits=c(0, max_snp_count), expand=c(0, 0)) +
+              theme(legend.position="none", axis.text.x = element_text(angle=45, hjust=1, size=AXIS_TEXT_X_SIZE),
+                    axis.text.y = element_text(size=AXIS_TEXT_Y_SIZE), axis.title=element_text(size=TITLE_SIZE),
+                    plot.title=element_text(size=TITLE_SIZE, hjust=0.5)) + 
+              plot_title("Number of SNPs overlapping FANTOM5 Enhancers, Roadmap HMM Enhancers, and GTEx eQTLs", r2_thresh, dist_thresh, out_subtitle))
+        dev.off()
+    }
+    
     ## ----------------------
     ## get the supporting data sets across all SNPs and tissue categories
     ## for this, we are just looking for the data source - tissue category combinations that
@@ -485,17 +490,17 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
                                     support <- paste(support, "eQTL", sep="+")
                                     merged_hmm_support <- paste(merged_hmm_support, "eQTL", sep="+") }
                                 if(enh_present) {
-                                    support <- paste(support, "eRNA Enh", sep="+")
-                                    merged_hmm_support <- paste(merged_hmm_support, "eRNA Enh", sep="+") }
+                                    support <- paste(support, "FANTOM5 Enh", sep="+")
+                                    merged_hmm_support <- paste(merged_hmm_support, "FANTOM5 Enh", sep="+") }
                                 if(hmm_enh_present) {
-                                    support <- paste(support, "HMM Enh", sep="+") }
+                                    support <- paste(support, "Roadmap Enh", sep="+") }
                                 if(hmm_enhG_present) {
-                                    support <- paste(support, "HMM Genic Enh", sep="+") }
+                                    support <- paste(support, "Roadmap Genic Enh", sep="+") }
                                 if(hmm_enh_biv_present) {
-                                    support <- paste(support, "HMM Biv Enh", sep="+") }
+                                    support <- paste(support, "Roadmap Biv Enh", sep="+") }
 
                                 if(hmm_enh_present || hmm_enhG_present || hmm_enh_biv_present) {
-                                    merged_hmm_support <- paste(merged_hmm_support, "HMM Enh", sep="+") }
+                                    merged_hmm_support <- paste(merged_hmm_support, "Roadmap Enh", sep="+") }
 
                                 ## remove the separator at the beginning of the support strings
                                 support <- gsub("^\\+", "", support)
@@ -548,9 +553,9 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
     ## same thing for the merged HMM states
     unique_merged_hmm_supports <- sort(unique(snp_support_df_full$merged_hmm_support))
     snp_support_df_full$merged_hmm_support <- factor(snp_support_df_full$merged_hmm_support, ordered=T,
-                                          levels=c("eQTL", "eRNA Enh", "HMM Enh", "eQTL+eRNA Enh",
-                                              "eQTL+HMM Enh", "eRNA Enh+HMM Enh",
-                                              "eQTL+eRNA Enh+HMM Enh", "No support"))
+                                          levels=c("eQTL", "FANTOM5 Enh", "Roadmap Enh", "eQTL+FANTOM5 Enh",
+                                              "eQTL+Roadmap Enh", "FANTOM5 Enh+Roadmap Enh",
+                                              "eQTL+FANTOM5 Enh+Roadmap Enh", "No support"))
 
     ## ----------------------
     ## plot the full heatmap of all states
@@ -582,29 +587,29 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
     ## for each possible state and find the regions containing SNPs meeting those criteria
     tag_region_support_df <- ddply(snp_support_df_full, .(tissue_class, tag_name), function(x) {
         eqtl <- "eQTL" %in% x$merged_hmm_support
-        erna <- "eRNA Enh" %in% x$merged_hmm_support
-        hmm <- "HMM Enh" %in% x$merged_hmm_support
-        eqtl_erna <- "eQTL+eRNA Enh" %in% x$merged_hmm_support
-        eqtl_hmm <- "eQTL+HMM Enh" %in% x$merged_hmm_support
-        erna_hmm <- "eRNA Enh+HMM Enh" %in% x$merged_hmm_support
-        eqtl_erna_hmm <- "eQTL+eRNA Enh+HMM Enh" %in% x$merged_hmm_support
+        erna <- "FANTOM5 Enh" %in% x$merged_hmm_support
+        hmm <- "Roadmap Enh" %in% x$merged_hmm_support
+        eqtl_erna <- "eQTL+FANTOM5 Enh" %in% x$merged_hmm_support
+        eqtl_hmm <- "eQTL+Roadmap Enh" %in% x$merged_hmm_support
+        erna_hmm <- "FANTOM5 Enh+Roadmap Enh" %in% x$merged_hmm_support
+        eqtl_erna_hmm <- "eQTL+FANTOM5 Enh+Roadmap Enh" %in% x$merged_hmm_support
 
         ## ## now enumerate the types of overlaps that are present
         ## support <- ""
         ## if (eqtl) {
         ##     support <- paste(support, "eQTL", sep=", ") }
         ## if(erna) {
-        ##     support <- paste(support, "eRNA Enh", sep=", ") }
+        ##     support <- paste(support, "FANTOM5 Enh", sep=", ") }
         ## if(hmm) {
-        ##     support <- paste(support, "HMM Enh", sep=", ") }
+        ##     support <- paste(support, "Roadmap Enh", sep=", ") }
         ## if(eqtl_erna) {
-        ##     support <- paste(support, "eQTL+eRNA Enh", sep=", ") }
+        ##     support <- paste(support, "eQTL+FANTOM5 Enh", sep=", ") }
         ## if(eqtl_hmm) {
-        ##     support <- paste(support, "eQTL+HMM Enh", sep=", ") }
+        ##     support <- paste(support, "eQTL+Roadmap Enh", sep=", ") }
         ## if(erna_hmm) {
-        ##     support <- paste(support, "eRNA Enh+HMM Enh", sep=", ") }
+        ##     support <- paste(support, "FANTOM5 Enh+Roadmap Enh", sep=", ") }
         ## if(eqtl_erna_hmm) {
-        ##     support <- paste(support, "eQTL+eRNA Enh+HMM Enh", sep=", ") }
+        ##     support <- paste(support, "eQTL+FANTOM5 Enh+Roadmap Enh", sep=", ") }
         ## if(!eqtl && !erna && !hmm && !eqtl_erna && !eqtl_hmm && !erna_hmm && !eqtl_erna_hmm) {
         ##     support <- "No support"
         ## }
@@ -617,17 +622,17 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
                           eqtl=ifelse(eqtl | eqtl_erna | eqtl_hmm | eqtl_erna_hmm,
                               "eQTL", "No overlap"),
                           erna=ifelse(erna | eqtl_erna | erna_hmm | eqtl_erna_hmm,
-                              "eRNA Enh", "No overlap"),
+                              "FANTOM5 Enh", "No overlap"),
                           hmm=ifelse(hmm | eqtl_hmm | erna_hmm | eqtl_erna_hmm,
-                              "HMM Enh", "No overlap"),
+                              "Roadmap Enh", "No overlap"),
                           eqtl_erna=ifelse(eqtl_erna | eqtl_erna_hmm,
-                              "eQTL+eRNA Enh", "No overlap"),
+                              "eQTL+FANTOM5 Enh", "No overlap"),
                           eqtl_hmm=ifelse(eqtl_hmm | eqtl_erna_hmm,
-                              "eQTL+HMM Enh", "No overlap"),
+                              "eQTL+Roadmap Enh", "No overlap"),
                           erna_hmm=ifelse(erna_hmm | eqtl_erna_hmm,
-                              "eRNA Enh+HMM Enh", "No overlap"),
+                              "FANTOM5 Enh+Roadmap Enh", "No overlap"),
                           eqtl_erna_hmm=ifelse(eqtl_erna_hmm,
-                              "eQTL+eRNA Enh+HMM Enh", "No overlap"),
+                              "eQTL+FANTOM5 Enh+Roadmap Enh", "No overlap"),
                           stringsAsFactors = F))
     })
 
@@ -661,9 +666,9 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
 
     ## make a factor to order the annotation levels:
     melt_tag_region_support$value <- factor(melt_tag_region_support$value, ordered=T,
-                                            levels=c("eQTL", "eRNA Enh", "HMM Enh", "eQTL+eRNA Enh",
-                                                "eQTL+HMM Enh", "eRNA Enh+HMM Enh",
-                                                "eQTL+eRNA Enh+HMM Enh", "No overlap"))
+                                            levels=c("eQTL", "FANTOM5 Enh", "Roadmap Enh", "eQTL+FANTOM5 Enh",
+                                                "eQTL+Roadmap Enh", "FANTOM5 Enh+Roadmap Enh",
+                                                "eQTL+FANTOM5 Enh+Roadmap Enh", "No overlap"))
     melt_tag_region_support$tag_no_rsid <- gsub(":rs.*", "", melt_tag_region_support$tag_name)
 
     ## finally, we need to map our tag names to numbers so that we can actually use the shift!
@@ -745,24 +750,24 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
             this_col_scale <- scale_fill_manual(name="eQTL Overlap",
                                                 values=c(eqtl_color, "No overlap"=bg_color))
         } else if(this_s=="erna") {
-            this_col_scale <- scale_fill_manual(name="eRNA Enh Overlap",
+            this_col_scale <- scale_fill_manual(name="FANTOM5 Enh Overlap",
                                                 values=c(erna_color, "No overlap"=bg_color))
         } else if(this_s=="hmm") {
-            this_col_scale <- scale_fill_manual(name="HMM Enh Overlap",
+            this_col_scale <- scale_fill_manual(name="Roadmap Enh Overlap",
                                                 values=c(merge_hmm_color, "No overlap"=bg_color))
         } else if(this_s=="eqtl_erna") {
-            this_col_scale <- scale_fill_manual(name="eQTL+eRNA Enh Overlap",
+            this_col_scale <- scale_fill_manual(name="eQTL+FANTOM5 Enh Overlap",
                                                 values=c(eqtl_erna_color, "No overlap"=bg_color))
         } else if(this_s=="eqtl_hmm") {
-            this_col_scale <- scale_fill_manual(name="eQTL+HMM Enh Overlap",
+            this_col_scale <- scale_fill_manual(name="eQTL+Roadmap Enh Overlap",
                                                 values=c(eqtl_merged_hmm_color,
                                                     "No overlap"=bg_color))
         } else if(this_s=="erna_hmm") {
-            this_col_scale <- scale_fill_manual(name="eRNA Enh+HMM Enh Overlap",
+            this_col_scale <- scale_fill_manual(name="FANTOM5 Enh+Roadmap Enh Overlap",
                                                 values=c(erna_merged_hmm_color,
                                                     "No overlap"=bg_color))
         } else if(this_s=="eqtl_erna_hmm") {
-            this_col_scale <- scale_fill_manual(name="eQTL+eRNA Enh+HMM Enh Overlap",
+            this_col_scale <- scale_fill_manual(name="eQTL+FANTOM5 Enh+Roadmap Enh Overlap",
                                                 values=c(eqtl_erna_merged_hmm_color,
                                                     "No overlap"=bg_color))
         }
@@ -794,7 +799,7 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
     ## at least one tissue class
     snp_enhancer_support_counts <- ddply(snp_support_df_full, .(tag_name), function(x) {
         ## find all the hits that are supported by both data sources
-        support_vec <- x$merged_hmm_support=="eRNA Enh+HMM Enh" | x$merged_hmm_support=="eQTL+eRNA Enh+HMM Enh"
+        support_vec <- x$merged_hmm_support=="FANTOM5 Enh+Roadmap Enh" | x$merged_hmm_support=="eQTL+FANTOM5 Enh+Roadmap Enh"
         num_enh_hits <- length(unique(x$rsID[support_vec]))
         return(data.frame(num_enh_hits = num_enh_hits,
                           prop_enh_hits = num_enh_hits / length(unique(x$rsID)),

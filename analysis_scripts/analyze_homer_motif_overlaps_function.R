@@ -15,6 +15,17 @@ analyze_homer_motif_overlaps <- function(prefix, datadir, outdir, out_subtitle, 
                                 "_ld_cutoff_snps_within_", dist_thresh, "_motif_overlap_and_disruption.txt")
         ## read in this data
         motif_overlap_df <- read.table(motif_file, header=T, sep="\t", quote="", as.is=T)
+        if(nrow(motif_overlap_df)==0) {
+            ## still write out the table so that other stuff doesn't break
+            motif_overlap_df <- cbind(motif_overlap_df, tag_no_rsid=numeric(0))
+            ## write this table out
+            motif_outf <- paste0(outdir, 'tables/', prefix, '_', r2_thresh, '_ld_cutoff_snps_within_',
+                                 dist_thresh, '_homer_motif_overlaps.txt')
+            write.table(motif_overlap_df, motif_outf, quote=F, sep="\t", col.names=T, row.names=F)
+            cat("No HOMER motif overlaps found in this dataset!\n")
+            return("No HOMER motif overlaps found in this dataset!")
+        }
+        
         ## add annotation for the tag regions without tag rsIDs
         motif_overlap_df$tag_no_rsid <- gsub(":rs.*", "", motif_overlap_df$tag_name)
 

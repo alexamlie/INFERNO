@@ -11,6 +11,13 @@ analyze_factorbook_overlap <- function(prefix, datadir, outdir, out_subtitle, r2
                               "_ld_cutoff_snps_within_", dist_thresh, "_tfbs_overlaps.txt")
     factorbook_df <- read.table(factorbook_file, header=T, sep="\t", quote="", as.is=T)
 
+    if(nrow(factorbook_df)==0) {
+        cat("No FactorBook TFBS overlaps found in this dataset!\n")
+        ## write a table
+
+        return
+    } 
+
     unique_snp_overlap_df <- factorbook_df[!(duplicated(factorbook_df[,c("rsID", "tag_name", "tfbs_chr", "tfbs_start", "tfbs_end", "tf", "score", "cells")])),]
     uniq_tab_outf <- paste0(outdir, "/tables/", prefix, "_", r2_thresh,
                              "_ld_cutoff_snps_within_", dist_thresh, 
@@ -55,5 +62,7 @@ analyze_factorbook_overlap <- function(prefix, datadir, outdir, out_subtitle, r2
           theme(axis.text.x=element_text(angle=90, hjust=1, size=AXIS_TEXT_X_SIZE*0.3),
                 axis.text.y = element_text(size=AXIS_TEXT_Y_SIZE),
                 title=element_text(size=TITLE_SIZE), plot.title = element_text(hjust = 0.5)))
-    dev.off()        
+    dev.off()
+
+    
 }

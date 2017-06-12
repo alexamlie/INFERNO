@@ -16,6 +16,20 @@ analyze_eqtl_overlap <- function(prefix, datadir, outdir, out_subtitle, r2_thres
                                 "_ld_cutoff_snps_within_", dist_thresh, "_eqtl_overlaps.txt")
     eqtl_overlap_df <- read.table(eqtl_overlap_file, header=T, sep="\t", quote="", as.is=T)
 
+    if(nrow(eqtl_overlap_df)==0) {
+        ## spoof the file that the colocalization uses        
+        uniq_tab_small_outf <- paste0(outdir, 'tables/', prefix, "_", r2_thresh,
+                                      "_ld_cutoff_snps_within_", dist_thresh,
+                                      "_uniq_snp_eqtl_overlaps_no_tagsnp_info.txt")
+
+        spoof_uniq_snp_eqtl_df <- data.frame(chr=numeric(0), rsID=numeric(0), pos=numeric(0), ref=numeric(0), alt=numeric(0), MAF=numeric(0), tag_name=numeric(0), tissue=numeric(0), gene=numeric(0), beta=numeric(0), t_stat=numeric(0), se=numeric(0), p_value=numeric(0), nom_thresh=numeric(0), min_p=numeric(0), gene_emp_p=numeric(0), gene_q_value=numeric(0), beta_noNorm=numeric(0), minor_allele_samples=numeric(0), minor_allele_count=numeric(0), maf=numeric(0), has_best_p=numeric(0), is_chosen_snp=numeric(0), gene_name=numeric(0), gene_source=numeric(0), gene_chr=numeric(0), gene_start=numeric(0), gene_stop=numeric(0), orientation=numeric(0), gene_type=numeric(0), tss_distance=numeric(0), eqtl_class=numeric(0), tag_no_rsid=numeric(0))
+        
+        write.table(spoof_uniq_snp_eqtl_df, uniq_tab_small_outf, quote=F, sep="\t", col.names=T, row.names=F)
+
+        cat("No direct eQTL overlaps found in this dataset!\n")
+        return("No direct eQTL overlaps found in this dataset!")
+    } 
+
     ## read in the tissue categories
     gtex_category_df <- read.table(gtex_class_file, header=T, sep="\t", quote="", as.is=T)
     ## make it easier to match
@@ -509,7 +523,7 @@ analyze_eqtl_overlap <- function(prefix, datadir, outdir, out_subtitle, r2_thres
                 title=element_text(size=TITLE_SIZE), plot.title = element_text(hjust = 0.5)) + 
           plot_title("Distributions of numbers of tissues and tissue classes for eQTL SNPs in each tag region", r2_thresh, dist_thresh, out_subtitle, strwrap_width=70))
     dev.off()    
-    
+     
 }
 
 ## prefix <- param_ref[['outprefix']]

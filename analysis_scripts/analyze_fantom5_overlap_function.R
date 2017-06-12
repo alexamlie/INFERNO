@@ -38,7 +38,22 @@ analyze_fantom5_overlap <- function(prefix, datadir, outdir, out_subtitle, r2_th
             enh_summary_df <- read.table(enh_summary_file, header=T, sep="\t", quote="", as.is=T)
         }        
     }
-    
+
+    if(nrow(enh_overlap_df)==0) {
+        ## should still write a table so that the colocalization script doesn't break
+        ## need to add the extra columns
+        unique_enh_overlap_df <- data.frame(chr=numeric(0), rsID=numeric(0), pos=numeric(0), ref=numeric(0), alt=numeric(0), MAF=numeric(0), tag_name=numeric(0), enh_source=numeric(0), enh_chr=numeric(0), enh_start=numeric(0), enh_end=numeric(0), enh_class=numeric(0), tag_no_rsid=numeric(0), dist_to_mid=numeric(0), overlap_orig=numeric(0), tag_rsID=numeric(0), tag_pos=numeric(0), tag_MAF=numeric(0), R2=numeric(0), Dprime=numeric(0))
+
+        ## we just spoof the unique SNP overlap file
+        uniq_snp_overlap_outf <- paste0(outdir, 'tables/', prefix, "_", r2_thresh,
+                                        "_ld_cutoff_snps_within_", dist_thresh,
+                                        "_", enh_overlap_type, "_", enh_window, "bp_window",
+                                        "_uniq_fantom5_overlap_snps.txt")
+        write.table(unique_enh_overlap_df, uniq_snp_overlap_outf, quote=F, sep="\t", col.names=T, row.names=F)
+        cat("No FANTOM5 overlaps found for this dataset!\n")
+        return("No FANTOM5 overlaps found for this dataset!")
+    } 
+
     ## read in the tissue categories
     fantom5_category_df <- read.table(fantom5_class_file, header=T, sep="\t", quote="", as.is=T)
     ## add a column for easier matching
@@ -684,7 +699,7 @@ analyze_fantom5_overlap <- function(prefix, datadir, outdir, out_subtitle, r2_th
         dev.off()
         
     }
-
+    
 }
 
 ## prefix <- param_ref[['outprefix']]

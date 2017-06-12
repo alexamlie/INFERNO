@@ -57,20 +57,20 @@ if(tag_naming=="name") {
 }
 
 ## some color definitions for integrative functions
-## eRNA enhancers are red
-erna_color <- c("eRNA Enh"="#B3112E")
-## HMM enhancers are blue (there are three types, so I use 3 similar light blues)
-hmm_colors <- c("HMM Enh"="#6393F3", "HMM Genic Enh"="#2D70F3", "HMM Biv Enh"="#0353F1")
-merge_hmm_color <- c("HMM Enh"="#6393F3")
+## FANTOM5 enhancers are red
+erna_color <- c("FANTOM5 Enh"="#B3112E")
+## Roadmap enhancers are blue (there are three types, so I use 3 similar light blues)
+hmm_colors <- c("Roadmap Enh"="#6393F3", "Roadmap Genic Enh"="#2D70F3", "Roadmap Biv Enh"="#0353F1")
+merge_hmm_color <- c("Roadmap Enh"="#6393F3")
 ## eQTLs are yellow
 eqtl_color <- c("eQTL"="#BACC1C")
 
 ## also do combinations with merged enhancer states
-## eQTL + eRNA enhancer is orange
-eqtl_erna_color <- c("eQTL+eRNA Enh"="#D06900")
-erna_merged_hmm_color <- c("eRNA Enh+HMM Enh"="#660BAB")
-eqtl_merged_hmm_color <- c("eQTL+HMM Enh"="#88BDAD")
-eqtl_erna_merged_hmm_color <- c("eQTL+eRNA Enh+HMM Enh"="#12C702")
+## eQTL + FANTOM5 enhancer is orange
+eqtl_erna_color <- c("eQTL+FANTOM5 Enh"="#D06900")
+erna_merged_hmm_color <- c("FANTOM5 Enh+Roadmap Enh"="#660BAB")
+eqtl_merged_hmm_color <- c("eQTL+Roadmap Enh"="#88BDAD")
+eqtl_erna_merged_hmm_color <- c("eQTL+FANTOM5 Enh+Roadmap Enh"="#12C702")
 
 ## ---------------------------------------------------
 ## FUNCTIONS
@@ -79,24 +79,6 @@ eqtl_erna_merged_hmm_color <- c("eQTL+eRNA Enh+HMM Enh"="#12C702")
 `+.uneval` <- function(a,b) {
         `class<-`(modifyList(a,b), "uneval")
     }
-
-## here we define what kind of graphics output we want:
-## the height_ratio and width_ratio arguments say how we should shape the output
-## change the default type argument to change the type of figure generated
-## TODO: add parameter to force specific file type generation
-## make_graphic <- function(filename, width_ratio=1, height_ratio=1, type='png') {
-make_graphic <- function(filename, width_ratio=1, height_ratio=1, type='pdf') {
-    if(type=='pdf') {
-        pdf(file=paste0(filename, ".pdf"), width=10*width_ratio, height=10*height_ratio, pointsize=12, onefile=FALSE)
-    } else if(type=='png') {
-        ## use type='cairo' for when X11 doesn't work
-        png(filename=paste0(filename, ".png"), width=10*width_ratio, height=10*height_ratio, res=300, units='in', type='cairo')
-    } else if(type=="svg") {
-        svg(file=paste0(filename, ".svg"), width=10*width_ratio, height=10*height_ratio, pointsize=12, onefile=FALSE)
-    } else {
-        cat('filetype not supported\n')
-    }
-}
 
 ## labelling function for facets
 ## (probably don't even need this here)
@@ -207,18 +189,24 @@ ld_stats_df <- read.table(ld_stats_file, header=T, sep="\t", quote="", as.is=T)
 
 num_tags <- length(unique(ld_stats_df$tag_name))
 
-## arbitrary cutoff makes all figures twice as wide..should make this more adaptive
+## based on the number of regions, set up the graphics function
 if(num_tags > 30) {
-    make_graphic <- function(filename, width_ratio=1, height_ratio=1, type='png') {
-        ## make_graphic <- function(filename, width_ratio=1, height_ratio=1, type='pdf') {
-        if(type=='pdf') {
-            pdf(file=paste0(filename, ".pdf"), width=20*width_ratio, height=10*height_ratio, pointsize=12, onefile=FALSE)
-        } else if(type=='png') {
-            ## use type='cairo' for when X11 doesn't work
-            png(filename=paste0(filename, ".png"), width=20*width_ratio, height=10*height_ratio, res=300, units='in', type='cairo')
-        } else {
-            cat('filetype not supported\n')
-        }
+    default_gfx_width <- 20
+    default_gfx_height <- 20
+} else {
+    default_gfx_width <- 10
+    default_gfx_height <- 10
+}
+    
+## make_graphic <- function(filename, width_ratio=1, height_ratio=1, type='png') {
+make_graphic <- function(filename, width_ratio=1, height_ratio=1, type='pdf') {
+    if(type=='pdf') {
+        pdf(file=paste0(filename, ".pdf"), width=default_gfx_width*width_ratio, height=default_gfx_height*height_ratio, pointsize=12, onefile=FALSE)
+    } else if(type=='png') {
+        ## use type='cairo' for when X11 doesn't work
+        png(filename=paste0(filename, ".png"), width=default_gfx_width*width_ratio, height=default_gfx_height*height_ratio, res=300, units='in', type='cairo')
+    } else {
+        cat('filetype not supported\n')
     }
 }
 

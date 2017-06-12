@@ -188,7 +188,7 @@ else
 	
     EQTL_SNPS=`cut -f1-2 ${OUTDIR}/eqtl_snps_${PARAM_STRING}.txt | sort -u | wc -l | cut -d' ' -f1`
     EQTL_PROP=`echo "scale=8; ${EQTL_SNPS}/${UNIQ_SNPS}" | bc`
-    echo "Number of SNPs that are eQTLs: ${EQTL_SNPS} (${EQTL_PROP} of total)"
+    echo "Number of SNPs that are eQTLs by direct overlap: ${EQTL_SNPS} (${EQTL_PROP} of total)"
 
     ## number of SNPs with roadmap enhancer state
     if [[ ! -e "${OUTDIR}/roadmap_hmm_snps_${PARAM_STRING}.txt" && ${RM_FLAG} ]]; then
