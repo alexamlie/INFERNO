@@ -89,6 +89,7 @@ elif [[ $# == 15 ]]; then
     	${OUTDIR}/${OUTPREFIX}_pruning/
 
     ## now this can go through INFERNO
+    echo "Analyzing pruned variants"
     time python ./src/expand_and_annotate_snps.py --loglevel full --kg_pop ${KG_POP} \
     	--ld_threshold ${LD_THRESH} --ld_check_area ${LD_AREA} --gene_bed_file ${GENE_BED_FILE} \
     	--kgxref_file ${KGXREF_FILE} --unstranded_partition_dir ${UNSTRANDED_PARTITION_DIR} \
@@ -101,13 +102,15 @@ elif [[ $# == 15 ]]; then
     	${OUTDIR} ${OUTPREFIX}
 
     ## run the summarization script
+    echo "Summarizing annotation results"
     time ./analysis_scripts/count_annotation_overlaps.sh -l ${ENH_LOCUS_WINDOW} \
     	-f ${F5_CLASSES} -g ${GTEX_CLASSES} -r ${ROADMAP_CLASSES} \
     	${OUTDIR} ${LD_THRESH} ${LD_AREA} ${OUTPREFIX} ${OUTDIR}/summaries/
     
     ## next run the full analysis script
     module load R/3.2.3
-    ## need to get the parameter file from this most recent run
+    echo "Running R analysis scripts"
+    need to get the parameter file from this most recent run
     PARAMF=`ls -t ${OUTDIR}/parameters/*parameters* | head -1`
     ## skip subtitles
     time Rscript ./analysis_scripts/Rscript_run_full_analysis.R ./analysis_scripts/ ${PARAMF} "${OUTPREFIX}" TRUE
@@ -122,12 +125,21 @@ elif [[ $# == 15 ]]; then
     ## submit a job to run co-localization analysis
     bsub -M 40000 -J ${OUTPREFIX}_gtex_colocalization -o ${OUTDIR}/logs/gtex_coloc.o%J \
     	-e ${OUTDIR}/logs/gtex_coloc.e%J ./bsub_wrappers/gtex_coloc_bsub_wrapper.sh \
-	./src/gtex_gwas_colocalization_analysis.R ${OUTDIR}/gtex_gwas_colocalization_analysis/ \
-	"${PARAMF}" ${COLOC_H4_THRESH} ${COLOC_ABF_THRESH} ${TOP_SNPF} ${SUMMARY_FILE} \
-	${COLOC_GTEX_DIR} ${GTEX_SAMPLE_SIZEF} ${GTEX_CLASSES} ${GTEX_RSID_MATCH} \
-	${HG19_ENSEMBL_REF_FILE} \
-	"${RELEVANT_CLASSES}" ${RSID_COL} ${POS_COL} ${PVAL_COL} ${CHR_COL} \
-	${ALLELE1_COL} ${ALLELE2_COL} ${MAF_COL} ${CASE_PROP} ${SAMPLE_SIZE}    
+    	./src/gtex_gwas_colocalization_analysis.R ${OUTDIR}/gtex_gwas_colocalization_analysis/ \
+    	"${PARAMF}" ${COLOC_H4_THRESH} ${COLOC_ABF_THRESH} ${TOP_SNPF} ${SUMMARY_FILE} \
+    	${COLOC_GTEX_DIR} ${GTEX_SAMPLE_SIZEF} ${GTEX_CLASSES} ${GTEX_RSID_MATCH} \
+    	${HG19_ENSEMBL_REF_FILE} \
+    	"${RELEVANT_CLASSES}" ${RSID_COL} ${POS_COL} ${PVAL_COL} ${CHR_COL} \
+    	${ALLELE1_COL} ${ALLELE2_COL} ${MAF_COL} ${CASE_PROP} ${SAMPLE_SIZE}
+    
+    ## once that's done, do lncRNA correlation analysis
+    bsub -M 40000 -J ${OUTPREFIX}_lncRNA_correlation -o ${OUTDIR}/logs/gtex_lncRNA_corr.o%J \
+	-w "done(${OUTPREFIX}_gtex_colocalization)" -e \
+	${OUTDIR}/logs/gtex_lncRNA_corr.e%J ./bsub_wrappers/gtex_lncRNA_corr_bsub_wrapper.sh \
+    	./src/lncRNA_gtex_correlation.R ${OUTDIR}/gtex_lncRNA_correlation_analysis/ \
+	${OUTDIR}/gtex_gwas_colocalization_analysis/tables/${OUTPREFIX}_gtex_coloc_summaries.txt \
+	${GTEX_EXPR_DIR} ${SAMPLE_INFO_FILE} ${GENCODE_LNCRNA_FILE} ${F5_CLASSES} ${GTEX_CLASSES} \
+	${ROADMAP_CLASSES} ${COLOC_H4_THRESH} ${COR_THRESH}    
 else
     echo "This script has two usages: 4 arguments for direct INFERNO analysis, or 15 arguments for p-value expansion, LD pruning, and colocalization"
     echo "Usage: $0 <INFERNO-formatted top SNP file> <Config file> <Output directory> <Output file prefix>"

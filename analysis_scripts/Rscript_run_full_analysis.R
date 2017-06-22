@@ -297,6 +297,26 @@ if (check_param(param_ref, "homer_motif_bed_file")) {
                                  out_subtitle, r2_thresh, dist_thresh, pwm_calc)
 }
 
+## ncRNA analysis
+source("analyze_dashr_overlap_function.R")
+## just check for the main file
+if (check_param(param_ref, "dashr_locus_file")) {
+    cat("Analyzing DASHR ncRNA loci overlaps\n")
+    analyze_dashr_overlaps(param_ref[['outprefix']], param_ref[['outdir']],
+                           paste0(result_outdir, "/dashr_ncrna_loci_overlap/"),
+                           out_subtitle, r2_thresh, dist_thresh)
+}
+
+source("analyze_targetscan_miRNA_seed_overlap_function.R")
+## just check for the main file
+if (check_param(param_ref, "targetscan_dir")) {
+    cat("Analyzing TargetScan miRNA seed site overlaps\n")
+    analyze_targetscan_seed_overlaps(param_ref[['outprefix']], param_ref[['outdir']],
+                                     paste0(result_outdir, "/targetscan_miRNA_overlap/"),
+                                     out_subtitle, r2_thresh, dist_thresh)
+}
+
+
 ## functions for overlaps of combinations of data sources:
 source("analyze_fantom5_roadmap_enh_overlap_function.R")
 if (check_param(param_ref, 'fantom5_dir') & check_param(param_ref, "roadmap_chromhmm_dir")) {
