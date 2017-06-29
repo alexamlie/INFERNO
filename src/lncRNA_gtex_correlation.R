@@ -117,6 +117,8 @@ top_lncrna_hits <- merge(top_coloc_hits, gencode_lncrnas[,-9], by.x="eqtl_gene_i
 
 if(nrow(top_lncrna_hits)==0) {
     stop("No strongly colocalized lncRNA signals found!\n")
+} else {
+    cat(length(unique(top_lncrna_hits$eqtl_gene_name)), "unique lncRNAs found in data\n") 
 }
 
 ## save the expression vectors as a named list

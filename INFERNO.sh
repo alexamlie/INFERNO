@@ -16,7 +16,7 @@ if [ $# == 4 ]; then
     
     source ${CFG_FILE}
 
-    mkdir -p ${OUTDIR}/
+    mkdir -p ${OUTDIR}/logs/
     
     module load python/2.7.9
     module load bedtools2
@@ -45,8 +45,8 @@ if [ $# == 4 ]; then
     time Rscript ./analysis_scripts/Rscript_run_full_analysis.R ./analysis_scripts/ ${PARAMF} "${OUTPREFIX}" TRUE
     
     ## submit a job to run bootstrapping
-    bsub -M 40000 -J ${OUTPREFIX}_enh_bootstrapping -o ${OUTDIR}/logs/enh_bootstrapping.o%J \
-    	-e ${OUTDIR}/logs/enh_bootstrapping.e%J ./bsub_wrappers/enhancer_bootstrap_bsub_wrapper.sh \
+    bsub -M 40000 -J ${OUTPREFIX}_enh_bootstrapping -o ${OUTDIR}/logs/${OUTPREFIX}_enh_bootstrapping.o%J \
+    	-e ${OUTDIR}/logs/${OUTPREFIX}_enh_bootstrapping.e%J ./bsub_wrappers/enhancer_bootstrap_bsub_wrapper.sh \
     	./src/enhancer_only_sample_and_expand_matched_input_variants.R \
     	${NUM_SAMPLES} ${MAF_BIN_SIZE} ${DIST_ROUND} ${DIST_THRESHOLD} ${LD_PARTNER_THRESHOLD} \
     	${BG_SNP_INFOF} ${LD_SETS_DIR} ${REF_SUMMARY_DIR} "${PARAMF}"
@@ -70,7 +70,7 @@ elif [[ $# == 15 ]]; then
 
     source ${CFG_FILE}
 
-    mkdir -p ${OUTDIR}/
+    mkdir -p ${OUTDIR}/logs/
 
     module load python/2.7.9
     module load bedtools2
@@ -109,37 +109,40 @@ elif [[ $# == 15 ]]; then
     
     ## next run the full analysis script
     module load R/3.2.3
-    echo "Running R analysis scripts"
-    need to get the parameter file from this most recent run
+    # echo "Running R analysis scripts"
+    ## need to get the parameter file from this most recent run
     PARAMF=`ls -t ${OUTDIR}/parameters/*parameters* | head -1`
     ## skip subtitles
     time Rscript ./analysis_scripts/Rscript_run_full_analysis.R ./analysis_scripts/ ${PARAMF} "${OUTPREFIX}" TRUE
     
     ## submit a job to run bootstrapping
-    bsub -M 40000 -J ${OUTPREFIX}_enh_bootstrapping -o ${OUTDIR}/logs/enh_bootstrapping.o%J \
-    	-e ${OUTDIR}/logs/enh_bootstrapping.e%J ./bsub_wrappers/enhancer_bootstrap_bsub_wrapper.sh \
+    echo "Submitting bootstrapping job"
+    bsub -M 40000 -J ${OUTPREFIX}_enh_bootstrapping -o ${OUTDIR}/logs/${OUTPREFIX}_enh_bootstrapping.o%J \
+    	-e ${OUTDIR}/logs/${OUTPREFIX}_enh_bootstrapping.e%J ./bsub_wrappers/enhancer_bootstrap_bsub_wrapper.sh \
     	./src/enhancer_only_sample_and_expand_matched_input_variants.R \
     	${NUM_SAMPLES} ${MAF_BIN_SIZE} ${DIST_ROUND} ${DIST_THRESHOLD} ${LD_PARTNER_THRESHOLD} \
     	${BG_SNP_INFOF} ${LD_SETS_DIR} ${REF_SUMMARY_DIR} "${PARAMF}"
 
     ## submit a job to run co-localization analysis
-    bsub -M 40000 -J ${OUTPREFIX}_gtex_colocalization -o ${OUTDIR}/logs/gtex_coloc.o%J \
-    	-e ${OUTDIR}/logs/gtex_coloc.e%J ./bsub_wrappers/gtex_coloc_bsub_wrapper.sh \
+    echo "Submitting co-localization analysis job"
+    bsub -M 40000 -J ${OUTPREFIX}_gtex_colocalization -o ${OUTDIR}/logs/${OUTPREFIX}_gtex_coloc.o%J \
+    	-e ${OUTDIR}/logs/${OUTPREFIX}_gtex_coloc.e%J ./bsub_wrappers/gtex_coloc_bsub_wrapper.sh \
     	./src/gtex_gwas_colocalization_analysis.R ${OUTDIR}/gtex_gwas_colocalization_analysis/ \
-    	"${PARAMF}" ${COLOC_H4_THRESH} ${COLOC_ABF_THRESH} ${TOP_SNPF} ${SUMMARY_FILE} \
+    	"${PARAMF}" ${COLOC_H4_THRESH} ${COLOC_ABF_THRESH} \
+    	${OUTDIR}/${OUTPREFIX}_pruning/pruned_set_pipeline_input.txt ${SUMMARY_FILE} \
     	${COLOC_GTEX_DIR} ${GTEX_SAMPLE_SIZEF} ${GTEX_CLASSES} ${GTEX_RSID_MATCH} \
-    	${HG19_ENSEMBL_REF_FILE} \
-    	"${RELEVANT_CLASSES}" ${RSID_COL} ${POS_COL} ${PVAL_COL} ${CHR_COL} \
-    	${ALLELE1_COL} ${ALLELE2_COL} ${MAF_COL} ${CASE_PROP} ${SAMPLE_SIZE}
+    	${HG19_ENSEMBL_REF_FILE} "${RELEVANT_CLASSES}" ${RSID_COL} ${POS_COL} ${PVAL_COL} \
+    	${CHR_COL} ${ALLELE1_COL} ${ALLELE2_COL} ${MAF_COL} ${CASE_PROP} ${SAMPLE_SIZE}
     
     ## once that's done, do lncRNA correlation analysis
-    bsub -M 40000 -J ${OUTPREFIX}_lncRNA_correlation -o ${OUTDIR}/logs/gtex_lncRNA_corr.o%J \
-	-w "done(${OUTPREFIX}_gtex_colocalization)" -e \
-	${OUTDIR}/logs/gtex_lncRNA_corr.e%J ./bsub_wrappers/gtex_lncRNA_corr_bsub_wrapper.sh \
+    echo "Submitting lncRNA correlation analysis job"
+    bsub -M 40000 -J ${OUTPREFIX}_lncRNA_correlation -o ${OUTDIR}/logs/${OUTPREFIX}_gtex_lncRNA_corr.o%J \
+    	-w "done(${OUTPREFIX}_gtex_colocalization)" -e \
+    	${OUTDIR}/logs/${OUTPREFIX}_gtex_lncRNA_corr.e%J ./bsub_wrappers/gtex_lncRNA_corr_bsub_wrapper.sh \
     	./src/lncRNA_gtex_correlation.R ${OUTDIR}/gtex_lncRNA_correlation_analysis/ \
-	${OUTDIR}/gtex_gwas_colocalization_analysis/tables/${OUTPREFIX}_gtex_coloc_summaries.txt \
-	${GTEX_EXPR_DIR} ${SAMPLE_INFO_FILE} ${GENCODE_LNCRNA_FILE} ${F5_CLASSES} ${GTEX_CLASSES} \
-	${ROADMAP_CLASSES} ${COLOC_H4_THRESH} ${COR_THRESH}    
+    	${OUTDIR}/gtex_gwas_colocalization_analysis/tables/${OUTPREFIX}_gtex_coloc_summaries.txt \
+    	${GTEX_EXPR_DIR} ${SAMPLE_INFO_FILE} ${GENCODE_LNCRNA_FILE} ${F5_CLASSES} ${GTEX_CLASSES} \
+    	${ROADMAP_CLASSES} ${COLOC_H4_THRESH} ${COR_THRESH}    
 else
     echo "This script has two usages: 4 arguments for direct INFERNO analysis, or 15 arguments for p-value expansion, LD pruning, and colocalization"
     echo "Usage: $0 <INFERNO-formatted top SNP file> <Config file> <Output directory> <Output file prefix>"

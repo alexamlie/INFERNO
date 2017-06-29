@@ -119,6 +119,7 @@ snp_info$rsID <- ifelse(snp_info$rsID==".", paste0(snp_info$chr, "-", snp_info$p
 ## for the LD expansion, we need to calculate offsets for each chromosome for indexing purposes
 chr_offsets <- match(unique(snp_info$chr), snp_info$chr)
 names(chr_offsets) <- unique(snp_info$chr)
+}
 
 ## input SNP file: notice that this uses the sorted input list, not the LD expanded!
 input_snp_f <- paste0(param_ref[['outdir']], '/ld_expansion/', param_ref[['outprefix']],
@@ -257,7 +258,7 @@ write.table(sample_mat, paste0(output_dir, "/samples/input_sample_mat.txt"), quo
             row.names=F, col.names=F)
 ## also write the regions
 write(sample_regions, paste0(output_dir, "/samples/input_sample_regions.txt"), sep="\n")
-## to read this sample matrix back in, uncomment these:
+## ## to read this sample matrix back in, uncomment these:
 ## sample_mat <- as.matrix(read.table(paste0(output_dir, "/samples/input_sample_mat.txt"),
 ##                                    header=F, sep="\t", quote="", as.is=T))
 ## sample_regions <- read.table(paste0(output_dir, "/samples/input_sample_regions.txt"),
@@ -490,7 +491,7 @@ input_idx <- 1
 
 for(this_chr in mixedsort(unique(c(sample_chr_mat)))) {
     cat("Performing LD expansion on", this_chr, "\n")
-    ## read in the precomputed LD information for this chromosome
+    ## get the file with the precomputed LD information for this chromosome
     this_chr_ld_file <- paste0(ld_sets_dir, this_chr, "_LD_sets_", r2_thresh, "_threshold.txt")
     if (!file.exists(this_chr_ld_file)) {
         stop(paste0("Error: LD sets were not precomputed for supplied R^2 threshold:", r2_thresh, "Run the compute_ld_sets.py script to generate these files"))
@@ -711,6 +712,7 @@ dev.off()
 ## -----------------------------------------------------------------------------
 ## 7. Compute annotation overlap p-values
 ## -----------------------------------------------------------------------------
+{
 annot_start <- proc.time()
 
 ## read in all the different tissue classes
@@ -812,17 +814,31 @@ manual_input_region_annot_arr <- array(data=0, dim=c(nrow(input_region_annot_arr
                                                    ncol(input_region_annot_arr), num_regions),
                                        dimnames=dimnames(input_region_annot_arr))
 
+## we only want to use the unique expanded variants to avoid double counting, so define a
+## vector to use for this since we use it to index the blocks and regions too
+uniq_input_snps <- !duplicated(expanded_input_idxs)
+uniq_input_snp_and_regions <- !duplicated(cbind(expanded_input_idxs, expanded_input_regions))
+
 ## use the sample indices to directly index the overlap matrices and convert to numeric by
 ## multiplying them by 1
-input_enh_tiss_overlaps <- enh_overlap_mat[expanded_input_idxs,] * 1
-input_hmm_tiss_overlaps <- hmm_overlap_mat[expanded_input_idxs,] * 1
+input_enh_tiss_overlaps <- enh_overlap_mat[expanded_input_idxs[uniq_input_snps],] * 1
+input_hmm_tiss_overlaps <- hmm_overlap_mat[expanded_input_idxs[uniq_input_snps],] * 1
 ## also get the combination overlaps
 input_enh_hmm_tiss_overlaps <- (input_enh_tiss_overlaps & input_hmm_tiss_overlaps) * 1
 ## now, collapse these counts by LD block!!
 ## multiple hits in a single LD block only count once (per tag region)
-input_ld_collapsed_enh_counts <- aggregate(input_enh_tiss_overlaps, by=list(expanded_input_blocks, expanded_input_regions), function(x) {ifelse(sum(x) > 0, 1, 0)})
-input_ld_collapsed_hmm_counts <- aggregate(input_hmm_tiss_overlaps, by=list(expanded_input_blocks, expanded_input_regions), function(x) {ifelse(sum(x) > 0, 1, 0)})
-input_ld_collapsed_enh_hmm_counts <- aggregate(input_enh_hmm_tiss_overlaps, by=list(expanded_input_blocks, expanded_input_regions), function(x) {ifelse(sum(x) > 0, 1, 0)})
+input_ld_collapsed_enh_counts <- aggregate(input_enh_tiss_overlaps,
+                                           by=list(expanded_input_blocks[uniq_input_snps],
+                                               expanded_input_regions[uniq_input_snps]),
+                                           function(x) {ifelse(sum(x) > 0, 1, 0)})
+input_ld_collapsed_hmm_counts <- aggregate(input_hmm_tiss_overlaps,
+                                           by=list(expanded_input_blocks[uniq_input_snps],
+                                               expanded_input_regions[uniq_input_snps]),
+                                           function(x) {ifelse(sum(x) > 0, 1, 0)})
+input_ld_collapsed_enh_hmm_counts <- aggregate(input_enh_hmm_tiss_overlaps,
+                                               by=list(expanded_input_blocks[uniq_input_snps],
+                                                   expanded_input_regions[uniq_input_snps]),
+                                               function(x) {ifelse(sum(x) > 0, 1, 0)})
 
 ## for convenience, create matrices that don't have the grouping column
 input_enh_counts <- subset(input_ld_collapsed_enh_counts, select=-c(Group.1, Group.2))
@@ -835,10 +851,36 @@ manual_input_annot_mat[,"roadmap_hmm_enh"] <- colSums(input_hmm_counts)
 manual_input_annot_mat[,"locus_enh+roadmap_hmm_enh"] <- colSums(input_enh_hmm_counts)
 
 ## we also need to split the manually expanded input by tag regions
-## to get the right regions, just use the second grouping variable
-manual_input_region_annot_arr[,"locus_enh",] <- t(rowsum(input_enh_counts, input_ld_collapsed_enh_counts$Group.2))
-manual_input_region_annot_arr[,"roadmap_hmm_enh",] <- t(rowsum(input_hmm_counts, input_ld_collapsed_hmm_counts$Group.2))
-manual_input_region_annot_arr[,"locus_enh+roadmap_hmm_enh",] <- t(rowsum(input_enh_hmm_counts, input_ld_collapsed_enh_hmm_counts$Group.2))
+## need to recalculate the annotation overlaps because now we allow the same SNP to count towards multiple regions
+input_region_enh_tiss_overlaps <- enh_overlap_mat[expanded_input_idxs[uniq_input_snp_and_regions],] * 1
+input_region_hmm_tiss_overlaps <- hmm_overlap_mat[expanded_input_idxs[uniq_input_snp_and_regions],] * 1
+## also get the combination overlaps
+input_region_enh_hmm_tiss_overlaps <- (input_region_enh_tiss_overlaps & input_region_hmm_tiss_overlaps) * 1
+
+## now, collapse these counts by LD block!!
+## multiple hits in a single LD block only count once (per tag region)
+input_region_ld_collapsed_enh_counts <- aggregate(input_region_enh_tiss_overlaps,
+                                                  by=list(expanded_input_blocks[uniq_input_snp_and_regions],
+                                                      expanded_input_regions[uniq_input_snp_and_regions]),
+                                                  function(x) {ifelse(sum(x) > 0, 1, 0)})
+input_region_ld_collapsed_hmm_counts <- aggregate(input_region_hmm_tiss_overlaps,
+                                                  by=list(expanded_input_blocks[uniq_input_snp_and_regions],
+                                                      expanded_input_regions[uniq_input_snp_and_regions]),
+                                                  function(x) {ifelse(sum(x) > 0, 1, 0)})
+input_region_ld_collapsed_enh_hmm_counts <- aggregate(input_region_enh_hmm_tiss_overlaps,
+                                                      by=list(expanded_input_blocks[uniq_input_snp_and_regions],
+                                                          expanded_input_regions[uniq_input_snp_and_regions]),
+                                                      function(x) {ifelse(sum(x) > 0, 1, 0)})
+
+## for convenience, create matrices that don't have the grouping column
+input_region_enh_counts <- subset(input_region_ld_collapsed_enh_counts, select=-c(Group.1, Group.2))
+input_region_hmm_counts <- subset(input_region_ld_collapsed_hmm_counts, select=-c(Group.1, Group.2))
+input_region_enh_hmm_counts <- subset(input_region_ld_collapsed_enh_hmm_counts, select=-c(Group.1, Group.2))
+
+## to get the right regions, just use the second grouping variable of the region specific data
+manual_input_region_annot_arr[,"locus_enh",] <- t(rowsum(input_region_enh_counts, input_region_ld_collapsed_enh_counts$Group.2))
+manual_input_region_annot_arr[,"roadmap_hmm_enh",] <- t(rowsum(input_region_hmm_counts, input_region_ld_collapsed_hmm_counts$Group.2))
+manual_input_region_annot_arr[,"locus_enh+roadmap_hmm_enh",] <- t(rowsum(input_region_enh_hmm_counts, input_region_ld_collapsed_enh_hmm_counts$Group.2))
 
 for(s in seq(num_samples)) {
     ## pull out the sampled snps
@@ -855,11 +897,16 @@ for(s in seq(num_samples)) {
     this_region_annot_arr <- array(data=0, dim=c(nrow(input_region_annot_arr),
                                               ncol(input_region_annot_arr), num_regions),
                                     dimnames=dimnames(input_region_annot_arr))
+
+    ## same as for the input, we only want to use unique variants
+    uniq_sample_snps <- !duplicated(this_samp)
+    ## we also want to get unique ones per region for the split region counts
+    uniq_sample_snp_and_regions <- !duplicated(cbind(this_samp, this_regions))
     
     ## use the sample indices to directly index the overlap matrices and convert to numeric by
     ## multiplying them by 1
-    enh_tiss_overlaps <- enh_overlap_mat[this_samp,] * 1
-    hmm_tiss_overlaps <- hmm_overlap_mat[this_samp,] * 1
+    enh_tiss_overlaps <- enh_overlap_mat[this_samp[uniq_sample_snps],] * 1
+    hmm_tiss_overlaps <- hmm_overlap_mat[this_samp[uniq_sample_snps],] * 1
     ## also get the combination overlaps
     enh_hmm_tiss_overlaps <- (enh_tiss_overlaps & hmm_tiss_overlaps) * 1
 
@@ -869,9 +916,18 @@ for(s in seq(num_samples)) {
     this_annot_mat[,"locus_enh+roadmap_hmm_enh"] <- colSums(enh_hmm_tiss_overlaps)
 
     ## we also need to split this by tag regions
-    this_region_annot_arr[,"locus_enh",] <- t(rowsum(enh_tiss_overlaps, this_regions))
-    this_region_annot_arr[,"roadmap_hmm_enh",] <- t(rowsum(hmm_tiss_overlaps, this_regions))
-    this_region_annot_arr[,"locus_enh+roadmap_hmm_enh",] <- t(rowsum(enh_hmm_tiss_overlaps, this_regions))
+    ## because we have a different set of unique SNPs by region, recompute overlaps
+    enh_region_tiss_overlaps <- enh_overlap_mat[this_samp[uniq_sample_snp_and_regions],] * 1
+    hmm_region_tiss_overlaps <- hmm_overlap_mat[this_samp[uniq_sample_snp_and_regions],] * 1
+    ## also get the combination overlaps
+    enh_hmm_region_tiss_overlaps <- (enh_region_tiss_overlaps & hmm_region_tiss_overlaps) * 1
+    
+    this_region_annot_arr[,"locus_enh",] <- t(rowsum(enh_region_tiss_overlaps,
+                                                     this_regions[uniq_sample_snp_and_regions]))
+    this_region_annot_arr[,"roadmap_hmm_enh",] <- t(rowsum(hmm_region_tiss_overlaps,
+                                                           this_regions[uniq_sample_snp_and_regions]))
+    this_region_annot_arr[,"locus_enh+roadmap_hmm_enh",] <- t(rowsum(enh_hmm_region_tiss_overlaps,
+                                                                     this_regions[uniq_sample_snp_and_regions]))
     
     ## now compare to the input matrix and increment the counts: which annotation-tissue class
     ## combinations are observed the same or more times in this sample as compared to the
@@ -899,10 +955,19 @@ for(s in seq(num_samples)) {
                                                   ncol(input_region_annot_arr), num_regions),
                                                 dimnames=dimnames(input_region_annot_arr))
     
-    ## multiple hits in a single LD block only count once (per region)
-    this_ld_collapsed_enh_counts <- aggregate(enh_tiss_overlaps, by=list(this_blocks, this_regions), function(x) {ifelse(sum(x) > 0, 1, 0)})
-    this_ld_collapsed_hmm_counts <- aggregate(hmm_tiss_overlaps, by=list(this_blocks, this_regions), function(x) {ifelse(sum(x) > 0, 1, 0)})
-    this_ld_collapsed_enh_hmm_counts <- aggregate(enh_hmm_tiss_overlaps, by=list(this_blocks, this_regions), function(x) {ifelse(sum(x) > 0, 1, 0)})
+    ## multiple hits in a single LD block only count once (per region), and only unique ones
+    this_ld_collapsed_enh_counts <- aggregate(enh_tiss_overlaps,
+                                              by=list(this_blocks[uniq_sample_snps],
+                                                  this_regions[uniq_sample_snps]),
+                                              function(x) {ifelse(sum(x) > 0, 1, 0)})
+    this_ld_collapsed_hmm_counts <- aggregate(hmm_tiss_overlaps,
+                                              by=list(this_blocks[uniq_sample_snps],
+                                                  this_regions[uniq_sample_snps]),
+                                              function(x) {ifelse(sum(x) > 0, 1, 0)})
+    this_ld_collapsed_enh_hmm_counts <- aggregate(enh_hmm_tiss_overlaps,
+                                                  by=list(this_blocks[uniq_sample_snps],
+                                                      this_regions[uniq_sample_snps]),
+                                                  function(x) {ifelse(sum(x) > 0, 1, 0)})
 
     ## for convenience, create matrices that don't have the grouping column
     this_enh_counts <- subset(this_ld_collapsed_enh_counts, select=-c(Group.1, Group.2))
@@ -914,10 +979,28 @@ for(s in seq(num_samples)) {
     this_ld_collapsed_annot_mat[,"roadmap_hmm_enh"] <- colSums(this_hmm_counts)
     this_ld_collapsed_annot_mat[,"locus_enh+roadmap_hmm_enh"] <- colSums(this_enh_hmm_counts)
 
-    ## to get the right regions, just use the secondary grouping variable
-    this_ld_collapsed_region_annot_arr[,"locus_enh",] <- t(rowsum(this_enh_counts, this_ld_collapsed_enh_counts$Group.2))
-    this_ld_collapsed_region_annot_arr[,"roadmap_hmm_enh",] <- t(rowsum(this_hmm_counts, this_ld_collapsed_enh_counts$Group.2))
-    this_ld_collapsed_region_annot_arr[,"locus_enh+roadmap_hmm_enh",] <- t(rowsum(this_enh_hmm_counts, this_ld_collapsed_enh_counts$Group.2))
+    ## do the same thing for the split tag regions
+    this_region_ld_collapsed_enh_counts <- aggregate(enh_region_tiss_overlaps,
+                                              by=list(this_blocks[uniq_sample_snp_and_regions],
+                                                  this_regions[uniq_sample_snp_and_regions]),
+                                              function(x) {ifelse(sum(x) > 0, 1, 0)})
+    this_region_ld_collapsed_hmm_counts <- aggregate(hmm_region_tiss_overlaps,
+                                              by=list(this_blocks[uniq_sample_snp_and_regions],
+                                                  this_regions[uniq_sample_snp_and_regions]),
+                                              function(x) {ifelse(sum(x) > 0, 1, 0)})
+    this_region_ld_collapsed_enh_hmm_counts <- aggregate(enh_hmm_region_tiss_overlaps,
+                                                  by=list(this_blocks[uniq_sample_snp_and_regions],
+                                                      this_regions[uniq_sample_snp_and_regions]),
+                                                  function(x) {ifelse(sum(x) > 0, 1, 0)})
+
+    ## for convenience, create matrices that don't have the grouping column
+    this_region_enh_counts <- subset(this_region_ld_collapsed_enh_counts, select=-c(Group.1, Group.2))
+    this_region_hmm_counts <- subset(this_region_ld_collapsed_hmm_counts, select=-c(Group.1, Group.2))
+    this_region_enh_hmm_counts <- subset(this_region_ld_collapsed_enh_hmm_counts, select=-c(Group.1, Group.2))
+    
+    this_ld_collapsed_region_annot_arr[,"locus_enh",] <- t(rowsum(this_region_enh_counts, this_region_ld_collapsed_enh_counts$Group.2))
+    this_ld_collapsed_region_annot_arr[,"roadmap_hmm_enh",] <- t(rowsum(this_region_hmm_counts, this_region_ld_collapsed_enh_counts$Group.2))
+    this_ld_collapsed_region_annot_arr[,"locus_enh+roadmap_hmm_enh",] <- t(rowsum(this_region_enh_hmm_counts, this_region_ld_collapsed_enh_counts$Group.2))
 
     ## now compare this to the input LD collapsed matrix
     high_collapsed_count_idx <- which(this_ld_collapsed_annot_mat >= manual_input_annot_mat)
@@ -927,8 +1010,7 @@ for(s in seq(num_samples)) {
     ## same procedure for the tag region split analysis
     collapsed_region_count_idx <- which(this_ld_collapsed_region_annot_arr >= manual_input_region_annot_arr)
     collapsed_bootstrap_region_count_arr[collapsed_region_count_idx] <-
-        collapsed_bootstrap_region_count_arr[collapsed_region_count_idx]+1
-    
+        collapsed_bootstrap_region_count_arr[collapsed_region_count_idx]+1    
 }
 cat("Bootstrap counting for p-value calculation took:\n")
 cat((proc.time() - start_time)[['elapsed']], 'seconds\n')
@@ -1674,4 +1756,4 @@ for(this_tag in unique(collapsed_split_pval_df$tag_region)) {
 }
 
 cat("Entire enhancer bootstrapping analysis took:\n")
-cat((proc.time() - full_analysis_start_time)[["elapsed"]], '\n')
+cat((proc.time() - full_analysis_start_time)[["elapsed"]], 'seconds\n')

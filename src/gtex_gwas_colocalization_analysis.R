@@ -61,11 +61,11 @@ if (length(args)==21) {
     ## set up the INFERNO directory for enhancer, motif, and direct eQTL overlaps
     inferno_param_f <- args[2]
     ## define the P(H_4) threshold for finding the strongest hits
-    coloc_h4_thresh <- args[3]
+    coloc_h4_thresh <- as.numeric(args[3])
     ## also get the probability threshold for ABF expansion
-    coloc_abf_thresh <- args[4]    
-    ## get the top GWAS SNPs (usually the file that would be given to INFERNO, before expansion
-    ## and pruning)
+    coloc_abf_thresh <- as.numeric(args[4])
+    ## get the top GWAS SNPs (this is the file after LD pruning, to make sure the number of tag
+    ## regions are consistent across analysis scripts)
     top_snpf <- args[5]
     ## the file containing summary statistics
     gwas_summary_file <- args[6]
