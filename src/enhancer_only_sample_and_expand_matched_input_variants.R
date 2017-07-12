@@ -254,10 +254,12 @@ for(i in seq(nrow(input_freq_table))) {
 }
 
 ## write out a file with the sampled rsID indices
-write.table(sample_mat, paste0(output_dir, "/samples/input_sample_mat.txt"), quote=F, sep="\t",
+write.table(sample_mat, paste0(output_dir, "/samples/", param_ref[['outprefix']],
+                               "_input_sample_mat.txt"), quote=F, sep="\t",
             row.names=F, col.names=F)
 ## also write the regions
-write(sample_regions, paste0(output_dir, "/samples/input_sample_regions.txt"), sep="\n")
+write(sample_regions, paste0(output_dir, "/samples/", param_ref[['outprefix']],
+                             "_input_sample_regions.txt"), sep="\n")
 ## ## to read this sample matrix back in, uncomment these:
 ## sample_mat <- as.matrix(read.table(paste0(output_dir, "/samples/input_sample_mat.txt"),
 ##                                    header=F, sep="\t", quote="", as.is=T))
@@ -612,18 +614,24 @@ expanded_input_idxs <- match(expanded_input_snps, snp_info$rsID)
 rm(expanded_input_snps)
 
 ## write out the files of the full expanded SNP sets and their tag regions
-write.table(expanded_snp_idx_mat, paste0(output_dir, "/samples/expanded_sample_mat.txt"), quote=F,
+write.table(expanded_snp_idx_mat, paste0(output_dir, "/samples/", param_ref[['outprefix']],
+                                         "_expanded_sample_mat.txt"), quote=F,
             sep="\t", row.names=F, col.names=F)
-write.table(expanded_snp_regions, paste0(output_dir, "/samples/expanded_sample_regions.txt"), quote=F,
+write.table(expanded_snp_regions, paste0(output_dir, "/samples/", param_ref[['outprefix']],
+                                         "_expanded_sample_regions.txt"), quote=F,
             sep="\t", row.names=F, col.names=F)
-write.table(expanded_snp_blocks, paste0(output_dir, "/samples/expanded_sample_blocks.txt"), quote=F,
+write.table(expanded_snp_blocks, paste0(output_dir, "/samples/", param_ref[['outprefix']],
+                                        "_expanded_sample_blocks.txt"), quote=F,
             sep="\t", row.names=F, col.names=F)
 ## same for the input SNP info
-write.table(expanded_input_idxs, paste0(output_dir, "/samples/expanded_input_idxs.txt"), quote=F,
+write.table(expanded_input_idxs, paste0(output_dir, "/samples/", param_ref[['outprefix']],
+                                        "_expanded_input_idxs.txt"), quote=F,
             sep="\t", row.names=F, col.names=F)
-write.table(expanded_input_regions, paste0(output_dir, "/samples/expanded_input_regions.txt"), quote=F,
+write.table(expanded_input_regions, paste0(output_dir, "/samples/", param_ref[['outprefix']],
+                                           "_expanded_input_regions.txt"), quote=F,
             sep="\t", row.names=F, col.names=F)
-write.table(expanded_input_blocks, paste0(output_dir, "/samples/expanded_input_blocks.txt"), quote=F,
+write.table(expanded_input_blocks, paste0(output_dir, "/samples/", param_ref[['outprefix']],
+                                          "_expanded_input_blocks.txt"), quote=F,
             sep="\t", row.names=F, col.names=F)
 
 ## ## to read them back in, uncomment this:
@@ -818,6 +826,8 @@ manual_input_region_annot_arr <- array(data=0, dim=c(nrow(input_region_annot_arr
 ## vector to use for this since we use it to index the blocks and regions too
 uniq_input_snps <- !duplicated(expanded_input_idxs)
 uniq_input_snp_and_regions <- !duplicated(cbind(expanded_input_idxs, expanded_input_regions))
+cat(sum(uniq_input_snps), "unique expanded input variants out of", length(uniq_input_snps), 'total\n')
+cat(sum(uniq_input_snp_and_regions), "unique expanded input variant-region pairs out of", length(uniq_input_snp_and_regions), 'total\n')
 
 ## use the sample indices to directly index the overlap matrices and convert to numeric by
 ## multiplying them by 1
@@ -901,7 +911,7 @@ for(s in seq(num_samples)) {
     ## same as for the input, we only want to use unique variants
     uniq_sample_snps <- !duplicated(this_samp)
     ## we also want to get unique ones per region for the split region counts
-    uniq_sample_snp_and_regions <- !duplicated(cbind(this_samp, this_regions))
+    uniq_sample_snp_and_regions <- !duplicated(cbind(this_samp, this_regions))    
     
     ## use the sample indices to directly index the overlap matrices and convert to numeric by
     ## multiplying them by 1
@@ -1109,7 +1119,7 @@ collapsed_split_bh_adj_pvals <- aperm(aaply(collapsed_split_empirical_pvals, 3,
     return(corr_mat)
 }), perm=c(2, 3, 1))
 
-cat(sum(collapsed_split_bh_adj_pvals < 0.05), " adjusted tests were significant for split tag region analysis\n")
+cat(sum(collapsed_split_bh_adj_pvals < 0.05), "adjusted tests were significant for LD collapsed split tag region analysis\n")
 
 ## do this split by region
 for(i in seq(dim(collapsed_split_bh_adj_pvals)[3])) {
@@ -1131,9 +1141,9 @@ pval_df$annotation <- factor(pval_df$annotation, ordered=T,
 pval_df$tissue_class <- factor(pval_df$tissue_class, ordered=T,
                                levels=sort(unique(pval_df$tissue_class), dec=T))
 
-write.table(pval_df, paste0(output_dir, '/tables/all_region_bootstrap_results.txt'), quote=F, sep="\t", row.names=F, col.names=T)
+write.table(pval_df, paste0(output_dir, '/tables/', param_ref[['outprefix']], '_all_region_bootstrap_results.txt'), quote=F, sep="\t", row.names=F, col.names=T)
 ## ## to read in these results:
-## pval_df <- read.table(paste0(output_dir, '/tables/all_region_bootstrap_results.txt'), header=T, sep="\t", quote="", as.is=T)
+## pval_df <- read.table(paste0(output_dir, '/tables/', param_ref[['outprefix']], '_all_region_bootstrap_results.txt'), header=T, sep="\t", quote="", as.is=T)
 ## pval_df$annotation <- factor(pval_df$annotation, ordered=T,
 ##                              levels=c("GTEx eQTL", "FANTOM5 Enhancer", "Roadmap HMM Enhancer",
 ##                                  "FANTOM5 Enh+GTEx eQTL", "GTEx eQTL+Roadmap HMM Enh", "FANTOM5 Enh+Roadmap HMM Enh", "FANTOM5 Enh+GTEx eQTL+Roadmap HMM Enh"))
@@ -1302,9 +1312,9 @@ split_pval_df$annotation <- factor(split_pval_df$annotation, ordered=T,
 split_pval_df$tissue_class <- factor(split_pval_df$tissue_class, ordered=T,
                                levels=sort(unique(split_pval_df$tissue_class), dec=T))
 
-write.table(split_pval_df, paste0(output_dir, '/tables/split_region_bootstrap_results.txt'), quote=F, sep="\t", row.names=F, col.names=T)
+write.table(split_pval_df, paste0(output_dir, '/tables/', param_ref[['outprefix']], '_split_region_bootstrap_results.txt'), quote=F, sep="\t", row.names=F, col.names=T)
 ## to read in this data
-## split_pval_df <- read.table(paste0(output_dir, '/tables/split_region_bootstrap_results.txt'), header=T, sep="\t", quote="", as.is=T)
+## split_pval_df <- read.table(paste0(output_dir, '/tables/', param_ref[['outprefix']], '_split_region_bootstrap_results.txt'), header=T, sep="\t", quote="", as.is=T)
 ## split_pval_df$annotation <- factor(split_pval_df$annotation, ordered=T,
 ##                              levels=c("GTEx eQTL", "FANTOM5 Enhancer", "Roadmap HMM Enhancer",
 ##                                  "FANTOM5 Enh+GTEx eQTL", "GTEx eQTL+Roadmap HMM Enh", "FANTOM5 Enh+Roadmap HMM Enh", "FANTOM5 Enh+GTEx eQTL+Roadmap HMM Enh"))
@@ -1478,9 +1488,9 @@ collapsed_pval_df$annotation <- factor(collapsed_pval_df$annotation, ordered=T,
 collapsed_pval_df$tissue_class <- factor(collapsed_pval_df$tissue_class, ordered=T,
                                levels=sort(unique(collapsed_pval_df$tissue_class), dec=T))
 
-write.table(collapsed_pval_df, paste0(output_dir, '/tables/all_region_collapsed_bootstrap_results.txt'), quote=F, sep="\t", row.names=F, col.names=T)
+write.table(collapsed_pval_df, paste0(output_dir, '/tables/', param_ref[['outprefix']], '_all_region_collapsed_bootstrap_results.txt'), quote=F, sep="\t", row.names=F, col.names=T)
 ## ## to read in these results:
-## collapsed_pval_df <- read.table(paste0(output_dir, '/tables/all_region_collapsed_bootstrap_results.txt'), header=T, sep="\t", quote="", as.is=T)
+## collapsed_pval_df <- read.table(paste0(output_dir, '/tables/', param_ref[['outprefix']], '_all_region_collapsed_bootstrap_results.txt'), header=T, sep="\t", quote="", as.is=T)
 ## collapsed_pval_df$annotation <- factor(collapsed_pval_df$annotation, ordered=T,
 ##                              levels=c("GTEx eQTL", "FANTOM5 Enhancer", "Roadmap HMM Enhancer",
 ##                                  "FANTOM5 Enh+GTEx eQTL", "GTEx eQTL+Roadmap HMM Enh", "FANTOM5 Enh+Roadmap HMM Enh", "FANTOM5 Enh+GTEx eQTL+Roadmap HMM Enh"))
@@ -1653,9 +1663,9 @@ collapsed_split_pval_df$annotation <- factor(collapsed_split_pval_df$annotation,
 collapsed_split_pval_df$tissue_class <- factor(collapsed_split_pval_df$tissue_class, ordered=T,
                                levels=sort(unique(collapsed_split_pval_df$tissue_class), dec=T))
 
-write.table(collapsed_split_pval_df, paste0(output_dir, '/tables/split_region_collapsed_bootstrap_results.txt'), quote=F, sep="\t", row.names=F, col.names=T)
+write.table(collapsed_split_pval_df, paste0(output_dir, '/tables/', param_ref[['outprefix']], '_split_region_collapsed_bootstrap_results.txt'), quote=F, sep="\t", row.names=F, col.names=T)
 ## ## to read in this data
-## collapsed_split_pval_df <- read.table(paste0(output_dir, '/tables/split_region_collapsed_bootstrap_results.txt'), header=T, sep="\t", quote="", as.is=T)
+## collapsed_split_pval_df <- read.table(paste0(output_dir, '/tables/', param_ref[['outprefix']], '_split_region_collapsed_bootstrap_results.txt'), header=T, sep="\t", quote="", as.is=T)
 ## collapsed_split_pval_df$annotation <- factor(collapsed_split_pval_df$annotation, ordered=T,
 ##                              levels=c("GTEx eQTL", "FANTOM5 Enhancer", "Roadmap HMM Enhancer",
 ##                                  "FANTOM5 Enh+GTEx eQTL", "GTEx eQTL+Roadmap HMM Enh", "FANTOM5 Enh+Roadmap HMM Enh", "FANTOM5 Enh+GTEx eQTL+Roadmap HMM Enh"))

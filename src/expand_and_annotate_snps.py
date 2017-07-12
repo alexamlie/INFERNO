@@ -3213,7 +3213,7 @@ def targetscan_overlap(outdir, outprefix, ld_snp_file, ld_threshold, ld_check_ar
     return outf
        
 if __name__=="__main__":
-    parser = argparse.ArgumentParser(description="INFERNO step 1: Expand tag SNPs into LD block sets and annotate with regulatory information. Note that all annotation files MUST be sorted lexicographically i.e. using sort -k1,1V -k2,2n.")
+    parser = argparse.ArgumentParser(description="Expand tag SNPs into LD block sets and annotate with regulatory information. Note that all annotation files MUST be sorted lexicographically i.e. using sort -k1,1V -k2,2n.")
     parser.add_argument("--kg_pop", default="EUR", help="The population from 1000 genomes to use")
     parser.add_argument("--skip_ld_expansion", action='store_true', help="If you don't want to do any LD expansion, give this flag to just do the functional overlaps of your input variants.")
     parser.add_argument("--loglevel", type=str.lower, choices=['full', 'print', 'save', 'quiet'], default="full", help="The amount of logging you want. Options: 'full' to print all messages and write to log file, 'print' to print only, 'save' to save output and only print high-level messages, and 'quiet' to skip all output")
