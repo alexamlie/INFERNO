@@ -16,7 +16,7 @@ if [ $# == 10 ]; then
     REF_SUMMARY_DIR=$9
     PARAMF=${10}
     
-    module load R/3.2.3
+#    module load R/3.2.3
 
     Rscript "${BS_SCRIPT}" ${NUM_SAMPLES} ${MAF_BIN_SIZE} ${DIST_ROUND} \
     	${DIST_THRESHOLD} ${LD_PARTNER_THRESHOLD} ${BG_SNP_INFOF} ${LD_SETS_DIR} \

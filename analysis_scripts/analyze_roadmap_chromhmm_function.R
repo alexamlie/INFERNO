@@ -33,8 +33,8 @@ analyze_roadmap_chromHMM <- function(prefix, datadir, outdir, out_subtitle, r2_t
     eid_orig_cols <- gsub("_state", "", colnames(uniq_snp_state_df)[eid_state_col_idx])
     ## now grab the real names
     eid_name_cols <- roadmap_category_df$Standardized.Epigenome.name[match(eid_orig_cols, roadmap_category_df$EID)]
-    ## replace the IDs with the real names
-    colnames(uniq_snp_state_df)[eid_state_col_idx] <- eid_name_cols
+    ## append the real names to the IDs
+    colnames(uniq_snp_state_df)[eid_state_col_idx] <- paste0(eid_orig_cols, "_", eid_name_cols)
     
     ## write this table out
     uniq_tab_outf <- paste0(outdir, 'tables/', prefix, "_", r2_thresh,
@@ -62,7 +62,8 @@ analyze_roadmap_chromHMM <- function(prefix, datadir, outdir, out_subtitle, r2_t
     melt_uniq_state_df$state <- as.character(melt_uniq_state_df$state)
 
     ## add a tissue class column to this data structure
-    melt_uniq_state_df$class <- roadmap_category_df$Class[match(melt_uniq_state_df$tissue, roadmap_category_df$Standardized.Epigenome.name)]
+    ## CHANGED 07/18/17 (need to match on EID)
+    melt_uniq_state_df$class <- roadmap_category_df$Class[match(gsub("_.*", "", melt_uniq_state_df$tissue), roadmap_category_df$EID)]
     
     ## now grab the enhancer states:
     roadmap_enhancer_snps <- melt_uniq_state_df[melt_uniq_state_df$state %in% c("6_EnhG", "7_Enh", "12_EnhBiv"),]

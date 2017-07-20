@@ -12,9 +12,6 @@ library(reshape2)
 library(plyr)
 sessionInfo()
 
-## for locuszoom analysis, set the path to the binary:
-locuszoom <- "/appl/locuszoom-1.3/bin/locuszoom"
-
 ## -----------------------------------------------------------------------------
 ## 0. Table of Contents
 ## -----------------------------------------------------------------------------
@@ -93,9 +90,49 @@ if (length(args)==21) {
     maf_col <- as.numeric(args[19])
     case_prop <- as.numeric(args[20])
     sample_size <- as.numeric(args[21])
+} else if (length(args)==22) {
+    ## the main output directory
+    outdir <- args[1]
+    ## set up the INFERNO directory for enhancer, motif, and direct eQTL overlaps
+    inferno_param_f <- args[2]
+    ## define the P(H_4) threshold for finding the strongest hits
+    coloc_h4_thresh <- as.numeric(args[3])
+    ## also get the probability threshold for ABF expansion
+    coloc_abf_thresh <- as.numeric(args[4])
+    ## get the top GWAS SNPs (this is the file after LD pruning, to make sure the number of tag
+    ## regions are consistent across analysis scripts)
+    top_snpf <- args[5]
+    ## the file containing summary statistics
+    gwas_summary_file <- args[6]
+    ## the GTEx directory containing the full eQTL statistics for each tissue
+    ## this MUST be sorted by position and split into individual files per chromosome
+    ## (gtex_download_and_sort_full_v6p_data.sh)
+    gtex_dir <- args[7]
+    ## sample sizes file for GTEx (csv)
+    gtex_sample_sizef <- args[8]
+    ## the GTEx tissue class file for INFERNO
+    gtex_class_file <- args[9]
+    ## define the file that is used to match GTEx IDs with rsIDs
+    gtex_rsid_match <- args[10]
+    ## reference for gene names
+    hg19_ensembl_ref_file <- args[11]
+    ## define the relevant tissue classes. must be a list with no spaces e.g. "("Blood","Brain")"
+    ## i try to make this flexible to different types of quotes
+    relevant_classes <- strsplit(gsub("\'|\"", "", args[12]), ",")[[1]]
+    rsid_col <- as.numeric(args[13])
+    pos_col <- as.numeric(args[14])
+    pval_col <- as.numeric(args[15])
+    chr_col <- as.numeric(args[16])
+    allele1_col <- as.numeric(args[17])
+    allele2_col <- as.numeric(args[18])
+    maf_col <- as.numeric(args[19])
+    case_prop <- as.numeric(args[20])
+    sample_size <- as.numeric(args[21])
+    ## for locuszoom analysis, set the path to the binary:
+    locuszoom <- args[22]
 } else {
     ## TODO: fill in and make sure to mention that GTEx files MUST be sorted
-    stop("Usage:\n")    
+    stop("Requires 21 or 22 arguments")    
 }
 
 dir.create(paste0(outdir, "/plots/"), F, T)
@@ -158,10 +195,10 @@ gtex_category_df$coloc_match <- gsub("_Analysis.snpgenes", "", gtex_category_df$
 ## finally, read in the reference to get gene names
 ensembl_xref <- read.table(hg19_ensembl_ref_file, header=T, sep="\t", quote="", comment.char="", as.is=T, col.names=c("tx_id", "gene_id", "gene_name"))
 
-## read in the header of the summary stats file so that i know the column names for locuszoom
-summary_f_header <- strsplit(readLines(gwas_summary_file, n=1), "\t")[[1]]
-rsid_colname <- summary_f_header[rsid_col]
-pval_colname <- summary_f_header[pval_col]
+## ## read in the header of the summary stats file so that i know the column names for locuszoom
+## summary_f_header <- strsplit(readLines(gwas_summary_file, n=1), "\t")[[1]]
+## rsid_colname <- summary_f_header[rsid_col]
+## pval_colname <- summary_f_header[pval_col]
 
 ## -----------------------------------------------------------------------------
 ## 3. Run COLOC analysis across all top GWAS loci and GTEx data
@@ -372,8 +409,9 @@ for(this_chr in unique(top_snps$chr)) {
                             file=paste0(this_tiss_outdir, gene_name, "_", this_gene_id, "_full_results.txt"),
                             quote=F, sep="\t", col.names=T, row.names=F)
 
-                ## if this comparison meets the threshold, make locuszoom plots:
-                if (this_pval_coloc_results[['summary']]['PP.H4.abf'] >= coloc_h4_thresh) {
+                ## if this comparison meets the threshold and we have a path to locuszoom, make
+                ## locuszoom plots:
+                if (this_pval_coloc_results[['summary']]['PP.H4.abf'] >= coloc_h4_thresh & exists("locuszoom")) {
                     ## annotate the GTEx data with the matching rsIDs
                     this_eqtl_data.parsed$dbsnp135_rsid <- this_chr_gtex_rsid_match$RS_ID_dbSNP135_original_VCF[match(this_eqtl_data.parsed$variant_id, this_chr_gtex_rsid_match$VariantID)]
                     ## now write out that info
@@ -387,8 +425,8 @@ for(this_chr in unique(top_snps$chr)) {
 
                     ## do the GWAS analysis, only if we didn't already (this only needs to be run once, even with different GTEx genes and tissues)
                     if(!file.exists(paste0(this_tag_lz_out, gsub("/", "_", this_tag, fixed=T), "_region_gwas_locuszoom_", this_tag_data$rsID, ".pdf"))) {
-                        colnames(this_region_gwas_snps.parsed)[rsid_col] <- rsid_colname
-                        colnames(this_region_gwas_snps.parsed)[pval_col] <- pval_colname
+                        colnames(this_region_gwas_snps.parsed)[rsid_col] <- "MarkerName"
+                        colnames(this_region_gwas_snps.parsed)[pval_col] <- "P-value"
                         write.table(this_region_gwas_snps.parsed[,c(rsid_col, pval_col)],
                                     paste0(this_tiss_outdir, gene_name, "_", this_gene_id, "_gwas_pvals.txt"),
                                     quote=F, sep="\t", col.names=T, row.names=F)
@@ -396,8 +434,9 @@ for(this_chr in unique(top_snps$chr)) {
                         ## make an GWAS locuszoom plot around the tag SNP
                         system2(locuszoom, paste("--metal",
                                                  paste0(this_tiss_outdir, gene_name, "_", this_gene_id, "_gwas_pvals.txt"),
-                                                 "--markercol", rsid_colname, "--pvalcol",
-                                                 pval_colname, "--refsnp",
+                                                 ## "--markercol", rsid_col, "--pvalcol",
+                                                 ## pval_col, 
+                                                 "--refsnp",
                                                  this_tag_data$rsID, "--flank 500kb --pop EUR --build hg19 --source 1000G_Nov2010 --plotonly --prefix",
                                                  paste0(this_tag_lz_out, gsub("/", "_", this_tag, fixed=T), "_region_gwas_locuszoom"),
                                                  "--no-date legend='right'"))

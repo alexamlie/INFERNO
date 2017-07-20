@@ -17,7 +17,7 @@ if [ $# == 11 ]; then
     COLOC_H4_THRESH=${10} 
     COR_THRESH=${11}
 
-    module load R/3.2.3
+#    module load R/3.2.3
 
     Rscript "${CORR_SCRIPT}" ${OUTDIR} ${COLOC_RESULT_FILE} ${GTEX_EXPR_DIR} ${SAMPLE_INFO_FILE} \
 	${GENCODE_LNCRNA_FILE} ${FANTOM5_CLASS_FILE} ${GTEX_CLASS_FILE} ${ROADMAP_CLASS_FILE} \

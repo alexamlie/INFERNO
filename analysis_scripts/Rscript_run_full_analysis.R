@@ -162,6 +162,7 @@ if(check_param(param_ref, "skip_ld_expansion")) {
     dist_thresh <- param_ref[['ld_check_area']]
 }
 
+## TODO: take these as arguments
 fantom5_class_file <- '/home/alexaml/data/FANTOM5/Enhancers/fantom5_classes.txt'
 gtex_class_file <- '/home/alexaml/data/GTEx/gtex_classes.txt'
 roadmap_class_file <- '/home/alexaml/data/roadmap/roadmap_classes.txt'

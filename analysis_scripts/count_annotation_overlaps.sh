@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# set -x
+
 ## count_annotation_overlaps.sh
 ## alex amlie-wolf 05/04/2016
 ## part of the analysis pipeline, generates tables of SNPs and counts for each annotation,
@@ -193,12 +195,12 @@ else
     ## number of SNPs with roadmap enhancer state
     if [[ ! -e "${OUTDIR}/roadmap_hmm_snps_${PARAM_STRING}.txt" && ${RM_FLAG} ]]; then
 	tail -n +2 ${DATADIR}/roadmap_chromhmm_states/${PREFIX}_${LD_THRESH}_ld_cutoff_snps_within_${DIST_THRESH}_roadmap_chromHMM_states.txt | \
-	    awk -F$'\t' 'BEGIN{OFS=FS; j=1}
-			 NR==FNR {sub("E0*", "", $3); c[$3]=$1; id_map[j]=$3; j+=1; next}
-			 {for(i=13; i <= NF; i++)
-			   {if($i=="6_EnhG" || $i=="7_Enh" || $i=="12_EnhBiv")
-			     printf "%s\t%s\t%s\t%s\tE%03d\t%s\n", $1, $2, $3, $10, id_map[(i-12)], c[id_map[(i-12)]]}}' \
-		<(tail -n +2 ${ROADMAP_CLASSES}) - > ${OUTDIR}/roadmap_hmm_snps_${PARAM_STRING}.txt
+		    awk -F$'\t' 'BEGIN{OFS=FS; j=1}
+		    	 NR==FNR {sub("E0*", "", $3); c[$3]=$1; id_map[j]=$3; j+=1; next}
+		    	 {for(i=13; i <= NF; i++)
+		    	   {if($i=="6_EnhG" || $i=="7_Enh" || $i=="12_EnhBiv")
+		    	     printf "%s\t%s\t%s\t%s\tE%03d\t%s\n", $1, $2, $3, $10, id_map[(i-12)], c[id_map[(i-12)]]}}' \
+				 <(tail -n +2 ${ROADMAP_CLASSES} | sort -t$'\t' -k3,3V) - > ${OUTDIR}/roadmap_hmm_snps_${PARAM_STRING}.txt
     fi
     ## count the number of unique roadmap enhancer SNPs in each tissue category
     cut -f2,6 ${OUTDIR}/roadmap_hmm_snps_${PARAM_STRING}.txt | sort -u | cut -f2 | sort | \

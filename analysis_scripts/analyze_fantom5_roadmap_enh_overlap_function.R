@@ -85,9 +85,9 @@ analyze_fantom5_roadmap_enh_overlap <- function(prefix, datadir, outdir, out_sub
     eid_orig_cols <- gsub("_state", "", colnames(uniq_roadmap_snp_state_df)[eid_state_col_idx])
     ## now grab the real names
     eid_name_cols <- roadmap_category_df$Standardized.Epigenome.name[match(eid_orig_cols, roadmap_category_df$EID)]
-    ## replace the IDs with the real names
-    colnames(uniq_roadmap_snp_state_df)[eid_state_col_idx] <- eid_name_cols
-
+    ## append the real names to the IDs
+    colnames(uniq_roadmap_snp_state_df)[eid_state_col_idx] <- paste0(eid_orig_cols, "_", eid_name_cols)
+    
     ## also save a vector for the non-tag SNP-related columns
     roadmap_notag_snp_cols <- !(colnames(uniq_roadmap_snp_state_df) %in% tagsnp_cols)
 
@@ -102,7 +102,7 @@ analyze_fantom5_roadmap_enh_overlap <- function(prefix, datadir, outdir, out_sub
     melt_roadmap_df$state <- as.character(melt_roadmap_df$state)
 
     ## add a tissue class column to this data structure
-    melt_roadmap_df$class <- roadmap_category_df$Class[match(melt_roadmap_df$tissue, roadmap_category_df$Standardized.Epigenome.name)]
+    melt_roadmap_df$class <- roadmap_category_df$Class[match(gsub("_.*", "", melt_roadmap_df$tissue), roadmap_category_df$EID)]
 
     ## now grab the enhancer states:
     roadmap_enhancer_snps <- melt_roadmap_df[melt_roadmap_df$state %in% c("6_EnhG", "7_Enh", "12_EnhBiv"),]
