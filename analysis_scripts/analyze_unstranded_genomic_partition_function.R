@@ -33,7 +33,7 @@ analyze_unstranded_genomic_partition <- function(prefix, datadir, outdir, out_su
     
     ## Visualize genomic partition
     make_graphic(paste0(outdir, 'plots/', prefix, '_stacked_partition_props_',
-                        r2_thresh, "_ld_", dist_thresh, "_dist"))                    
+                        r2_thresh, "_ld_", dist_thresh, "_dist"))  
     print(ggplot(partition_df, aes(x="", y=proportion, fill=type)) +
           scale_fill_brewer(palette="Paired", name="Genomic Partition") +
           xlab("") + ylab("Genomic Partition Proportions") +
