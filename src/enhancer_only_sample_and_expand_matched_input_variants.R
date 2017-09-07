@@ -1313,7 +1313,7 @@ split_pval_df$tissue_class <- factor(split_pval_df$tissue_class, ordered=T,
                                levels=sort(unique(split_pval_df$tissue_class), dec=T))
 
 write.table(split_pval_df, paste0(output_dir, '/tables/', param_ref[['outprefix']], '_split_region_bootstrap_results.txt'), quote=F, sep="\t", row.names=F, col.names=T)
-## to read in this data
+## ## to read in this data
 ## split_pval_df <- read.table(paste0(output_dir, '/tables/', param_ref[['outprefix']], '_split_region_bootstrap_results.txt'), header=T, sep="\t", quote="", as.is=T)
 ## split_pval_df$annotation <- factor(split_pval_df$annotation, ordered=T,
 ##                              levels=c("GTEx eQTL", "FANTOM5 Enhancer", "Roadmap HMM Enhancer",
@@ -1323,7 +1323,8 @@ write.table(split_pval_df, paste0(output_dir, '/tables/', param_ref[['outprefix'
 
 dir.create(paste0(output_dir, '/plots/split_tag_regions/'), F, T)
 for(this_tag in unique(split_pval_df$tag_region)) {
-    tag_out <- gsub("/", "_", strsplit(this_tag, ":")[[1]][1])
+#    tag_out <- gsub("/", "_", strsplit(this_tag, ":")[[1]][1])
+    tag_out <- gsub("/", "_", this_tag)
     dir.create(paste0(output_dir, "/plots/split_tag_regions/", tag_out), F, T)
 
     ## define the breaks
@@ -1674,8 +1675,8 @@ write.table(collapsed_split_pval_df, paste0(output_dir, '/tables/', param_ref[['
 
 dir.create(paste0(output_dir, '/plots/ld_collapsed_split_tag_regions/'), F, T)
 for(this_tag in unique(collapsed_split_pval_df$tag_region)) {
-    ## TODO: fix this!
-    tag_out <- gsub("/", "_", strsplit(this_tag, ":")[[1]][1])
+#    tag_out <- gsub("/", "_", strsplit(this_tag, ":")[[1]][1])
+    tag_out <- gsub("/", "_", this_tag)
     dir.create(paste0(output_dir, "/plots/ld_collapsed_split_tag_regions/", tag_out), F, T)
 
     ## define the breaks
