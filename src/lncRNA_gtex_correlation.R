@@ -391,6 +391,8 @@ cat(nrow(all_lncrna_targets), "total genes met the", cor_thresh, "correlation th
 
 ## now write the full target file
 write.table(all_lncrna_targets, paste0(outdir, '/tables/all_lncRNA_targets_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=T)
+## also write all the target genes, for pathway analysis
+write.table(sort(unique(all_lncrna_targets$target_gene)), paste0(outdir, '/tables/all_lncRNA_genes_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=F)
 ## save an Rdata file of the list of correlation DFs
 save(lncrna_correlation_dfs, file=paste0(outdir, '/full_correlation_tables/full_lncRNA_correlation_df_list.Rdata'))
 ## ## to read the target file back in

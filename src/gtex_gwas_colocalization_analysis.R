@@ -169,7 +169,9 @@ if(length(unique(top_snps$region)) > 30) {
     default_gfx_width <- 10
     default_gfx_height <- 10
 }
-    
+## also define a text size multiplier based on these defaults
+text_mult <- default_gfx_width / 15
+
 ## make_graphic <- function(filename, width_ratio=1, height_ratio=1, type='png') {
 make_graphic <- function(filename, width_ratio=1, height_ratio=1, type='pdf') {
     if(type=='pdf') {
@@ -716,6 +718,9 @@ dev.off()
 ## use the colocalization threshold parameter
 top_coloc_hits <- all_summary_data[all_summary_data$PP.H4.abf >= coloc_h4_thresh,]
 nrow(top_coloc_hits)
+
+## write out the unique genes for pathway analysis
+write.table(sort(unique(top_coloc_hits$eqtl_gene_name)), paste0(outdir, '/tables/', outprefix, '_gtex_coloc_all_top_genes.', coloc_h4_thresh, '_thresh.txt'), quote=F, sep="\t", row.names=F, col.names=F)
 
 cat(nrow(unique(top_coloc_hits[,c("tissue", "gtex_tissue_class", "eqtl_gene_name", "eqtl_gene_id")])), "unique tissue-target gene comparisons with P(H_4) >=", coloc_h4_thresh, "\n")
 
@@ -1889,6 +1894,8 @@ if(check_param(param_ref, "homer_motif_pwm_file") & check_param(param_ref, "home
     ## now analyze the enrichment patterns
     melted_motif_and_abf_summary <- melt(motif_and_abf_summary_df, id.vars=c("tag_region", "motif", "ABF"), measure.vars=c("enh_non_overlap_hits", "enh_tiss_non_match", "enh_irrelevant_tiss_match", "enh_relevant_tiss_match"), value.name="count")
 
+    melted_motif_and_abf_summary$motif <- factor(melted_motif_and_abf_summary$motif, levels=c("TFBS overlap", "No TFBS overlap"), ordered=T)
+    
     ## make the master barplot
     make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_coloc_ABF_and_motif_summary_barplot_', coloc_abf_thresh, '_prob_thresh'), width_ratio=1.75, height_ratio=1.5)
     print(ggplot(melted_motif_and_abf_summary, aes(x=tag_region, y=count, fill=variable)) +
@@ -1899,11 +1906,14 @@ if(check_param(param_ref, "homer_motif_pwm_file") & check_param(param_ref, "home
     ggtitle(paste("Enhancer overlap analysis of GTEx-colocalized SNPs\n expanded to", coloc_abf_thresh, "probability")) + 
     geom_bar(stat="identity", position="stack") +
     guides(fill=guide_legend(ncol=2, title="")) +
-    facet_wrap(~ motif + ABF, scales="free") + 
-    theme(legend.position="bottom", axis.text.x=element_text(angle=60, hjust=1, size=20),
-          axis.text.y = element_text(size=20), strip.text=element_text(size=25),
-          title=element_text(size=35), legend.text=element_text(size=25), 
-          plot.title=element_text(hjust=0.5)))
+    facet_wrap(~ motif + ABF, scales="free", nrow=2, ncol=2) + 
+    theme(legend.position="bottom",
+          axis.text.x=element_text(angle=60, hjust=1, size=20*text_mult),
+          axis.text.y = element_text(size=20*text_mult),
+          strip.text=element_text(size=25*text_mult),
+          title=element_text(size=35*text_mult),
+          legend.text=element_text(size=25*text_mult),
+          plot.title=element_text(hjust=0.5)))          
     dev.off()        
 
     ## no title
@@ -1915,13 +1925,36 @@ if(check_param(param_ref, "homer_motif_pwm_file") & check_param(param_ref, "home
     xlab("Tag region") + ylab("Number of variants") + theme_bw() +
     geom_bar(stat="identity", position="stack") +
     guides(fill=guide_legend(ncol=2, title="")) +
-    facet_wrap(~ motif + ABF, scales="free") + 
-    theme(legend.position="bottom", axis.text.x=element_text(angle=60, hjust=1, size=20),
-          axis.text.y = element_text(size=20), strip.text=element_text(size=25),
-          title=element_text(size=35), legend.text=element_text(size=25), 
-          plot.title=element_text(hjust=0.5)))
+    facet_wrap(~ motif + ABF, scales="free", nrow=2, ncol=2) + 
+    theme(legend.position="bottom",
+          axis.text.x=element_text(angle=60, hjust=1, size=20*text_mult),
+          axis.text.y = element_text(size=20*text_mult),
+          strip.text=element_text(size=25*text_mult),
+          title=element_text(size=35*text_mult),
+          legend.text=element_text(size=25*text_mult)))
     dev.off()        
-    
+
+    ## now make barplots that only include the tag regions with hits
+    nonzero_motif_and_abf_summary <- melted_motif_and_abf_summary[melted_motif_and_abf_summary$count > 0,]
+    ## only make it if we have any hits
+    if(nrow(nonzero_motif_and_abf_summary) > 0) {
+        make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_coloc_ABF_and_motif_nonzero_summary_barplot_', coloc_abf_thresh, '_prob_thresh_no_title'), width_ratio=1.75, height_ratio=1.5)
+        print(ggplot(nonzero_motif_and_abf_summary, aes(x=tag_region, y=count, fill=variable)) +
+              scale_fill_manual(
+                  labels=c("enh_relevant_tiss_match"=paste("Enhancer overlaps in", paste0(relevant_classes, collapse=", ")), "enh_irrelevant_tiss_match"="Enhancer overlaps in irrelevant tissue classes", "enh_tiss_non_match"="Enhancer overlaps without consistent tissue class", "enh_non_overlap_hits"="Colocalization hits without enhancer overlap"),
+                  values=c("enh_relevant_tiss_match"="cyan3", "enh_irrelevant_tiss_match"="darkblue", "enh_tiss_non_match"="darkred", "enh_non_overlap_hits"="gray20")) + 
+              xlab("Tag region") + ylab("Number of variants") + theme_bw() +
+              geom_bar(stat="identity", position="stack") +
+              guides(fill=guide_legend(ncol=2, title="")) +
+              facet_wrap(~ motif + ABF, scales="free", nrow=2, ncol=2) + 
+              theme(legend.position="bottom",
+                    axis.text.x=element_text(angle=60, hjust=1, size=20*text_mult),
+                    axis.text.y = element_text(size=20*text_mult),
+                    strip.text=element_text(size=25*text_mult),
+                    title=element_text(size=35*text_mult),
+                    legend.text=element_text(size=25*text_mult)))
+        dev.off()                
+    }    
 } else {
     cat("This analysis requires HOMER PWM disruption calculations\n")
 }

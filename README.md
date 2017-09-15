@@ -1,0 +1,1 @@
+For pathway analysis, use 'genesymbol' in WebGestalt. 
