@@ -715,24 +715,13 @@ def compute_closest_genes(outdir, outprefix, ld_snp_file, ld_threshold, ld_check
     snp_bedtools_outf = bedout_prefix+"_bedtools_output.txt"
     with open(snp_bedtools_outf, 'wb') as bedtools_out:
         ## TODO: add bedtools version output
-
         ## convert the bin dir to a string so that if it's NoneType, you don't get an error
         bed_call = subprocess.Popen([code_dir+"/bedtools_wrapper_script.sh", str(bedtools_bin_dir),
                          "closest", "-a", ld_snp_bed, "-b", gene_bed_file,
-                         "-t", "all", "-d"], stdout=subprocess.PIPE)
-        ## split the name column (keep the full region name, only split the rsIDs)
-        ## this command replaces the first two ":"s (for the rsID and the tag rsID) with tabs
-        name_split = subprocess.Popen(["sed", "-e", "s/:/\t/; s/:/\t/"], stdin=bed_call.stdout, stdout=subprocess.PIPE)
-        ## sort the same way as the LD SNPs (on the split data)
-        ## TODO: MAKE THIS GENERIC
-        sort_call = subprocess.Popen(["sort", "-k1,1V", "-k2,2n", "-k4,4", "-k6,6", "-k5,5"], stdin=name_split.stdout, stdout=subprocess.PIPE)
-        ## now put the columns back together:
-        ## first put the columns together
-        awk_call = subprocess.Popen("awk -F $'\t' 'BEGIN {OFS=FS} {$4=$4\":\"$5\":\"$6; print $0}'", stdin=sort_call.stdout, stdout=subprocess.PIPE, shell=True)
-        ## then remove the extra columns
-        subprocess.call(["cut", "-f5,6", "--complement"], stdin=awk_call.stdout, stdout=bedtools_out)
-        bed_call.wait()
-
+                         "-t", "all", "-d"], stdout=bedtools_out)
+    ## use the wrapper script to parse it
+    parse_call = subprocess.Popen([code_dir+"/parse_closest_gene_output.sh", snp_bedtools_outf])
+    
     ## if we have cross-reference, read that into a dict
     if kgxref_file:
         with open(kgxref_file, 'rb') as xref:
@@ -1320,7 +1309,6 @@ def calculate_genomic_partition(outdir, outprefix, ld_snp_file, ld_threshold, ld
     
     return partition_outprefix+"_entrywise_partition.txt"
 
-# partition_dir = '/home/alexaml/data/refgenomes/hg19/unstranded_partitions/utr_annotations/final_files'
 def calculate_unstranded_genomic_partition(outdir, outprefix, ld_snp_file, ld_threshold, ld_check_area, partition_dir, logging_function):
     """
     determines what kind of genomic element each SNP falls in
@@ -3045,9 +3033,6 @@ if __name__=="__main__":
                 print "Computing FANTOM5 overlap using window around FANTOM5 transcription locus."
             logging_function("Computing FANTOM5 overlap using window around FANTOM5 transcription locus.")
             enh_locus_overlap_outf = compute_fantom5_locus_overlap(pargs.outdir, pargs.outprefix, ld_snp_file, pargs.ld_threshold, pargs.ld_check_area, pargs.fantom5_dir, pargs.enhancer_locus_window, pargs.skip_enh_summary, logging_function)
-            #enh_locus_overlap_outf = compute_fantom5_locus_overlap_dframes(pargs.outdir, pargs.outprefix, ld_snp_file, pargs.ld_threshold, pargs.ld_check_area, pargs.fantom5_dir, pargs.enhancer_locus_window, pargs.skip_enh_summary, logging_function)
-            #enh_locus_overlap_outf = compute_fantom5_locus_overlap_hash(pargs.outdir, pargs.outprefix, ld_snp_file, pargs.ld_threshold, pargs.ld_check_area, pargs.fantom5_dir, pargs.enhancer_locus_window, pargs.skip_enh_summary, logging_function)
-
 
         if not pargs.skip_closest_enh:
             if pargs.loglevel=="save":

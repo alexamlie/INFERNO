@@ -60,7 +60,7 @@ if __name__=="__main__":
     annotation_arg_list = []
     for cfg_var in config_vars:
         if cfg_var.lower() in annot_arg_options:
-            annotation_arg_list = annotation_arg_list + ["--"+cfg_var.lower(), config_vars[cfg_var]] 
+            annotation_arg_list = annotation_arg_list + ["--"+cfg_var.lower(), config_vars[cfg_var]]
        
     try:
         os.makedirs(pargs.outdir+"/logs/")        
@@ -97,8 +97,7 @@ if __name__=="__main__":
         ## run the R analysis script
         print "Running R analysis script"
         start_time = time.time()
-        ## TODO: add class file arguments
-        subprocess.call(["Rscript", "./analysis_scripts/Rscript_run_full_analysis.R", "./analysis_scripts", param_file, pargs.outprefix, "TRUE"])
+        subprocess.call(["Rscript", "./analysis_scripts/Rscript_run_full_analysis.R", "./analysis_scripts", param_file, pargs.outprefix, "TRUE", config_vars["F5_CLASSES"], config_vars["GTEX_CLASSES"], config_vars["ROADMAP_CLASSES"]])
         print "R analysis took %.2f seconds" % (time.time()-start_time)
         
         ## finally submit a job to run bootstrapping, if we want to

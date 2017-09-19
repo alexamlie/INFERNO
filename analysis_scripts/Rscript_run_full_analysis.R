@@ -114,12 +114,15 @@ distance_breaks <- function(limit_vec) {
 ## 2. Read in parameter file
 ## -----------------------------------------------------------------------------
 args <- commandArgs(trailingOnly=TRUE)
-if (length(args)==3) {
+if (length(args)==6) {
     script_dir <- args[1]
     parameter_file <- args[2]
     out_subtitle <- args[3]
     SKIP_SUBTITLES <- FALSE
-} else if (length(args==4)) {
+    fantom5_class_file <- args[4]
+    gtex_class_file <- args[5]
+    roadmap_class_file <- args[6]
+} else if (length(args==7)) {
     script_dir <- args[1]
     parameter_file <- args[2]
     out_subtitle <- args[3]
@@ -127,8 +130,11 @@ if (length(args)==3) {
     if(is.na(SKIP_SUBTITLES)) {
         stop("Error: SKIP_SUBTITLES must be a logical argument!")
     }
+    fantom5_class_file <- args[5]
+    gtex_class_file <- args[6]
+    roadmap_class_file <- args[7]
 } else {
-    cat("Usage: Rscript Rscript_run_full_analysis.R script_directory parameter_file out_subtitle <SKIP_SUBTITLES>\n")
+    cat("Usage: Rscript Rscript_run_full_analysis.R script_directory parameter_file out_subtitle <SKIP_SUBTITLES> fantom5_class_file gtex_class_file roadmap_class_file\n")
     cat("Example command: Rscript Rscript_run_full_analysis.R ./ ~/INFERNO_output/parameters/08_26_2016_16:39:10_parameters.txt \"My experiment\" TRUE\n")
     stop("Cannot parse command line arguments")
 }
@@ -161,11 +167,6 @@ if(check_param(param_ref, "skip_ld_expansion")) {
     r2_thresh <- param_ref[['ld_threshold']]
     dist_thresh <- param_ref[['ld_check_area']]
 }
-
-## TODO: take these as arguments
-fantom5_class_file <- '/home/alexaml/data/FANTOM5/Enhancers/fantom5_classes.txt'
-gtex_class_file <- '/home/alexaml/data/GTEx/gtex_classes.txt'
-roadmap_class_file <- '/home/alexaml/data/roadmap/roadmap_classes.txt'
 
 fantom5_category_df <- read.table(fantom5_class_file, header=T, sep="\t", quote="", as.is=T, comment.char="")
 gtex_category_df <- read.table(gtex_class_file, header=T, sep="\t", quote="", as.is=T, comment.char="")
