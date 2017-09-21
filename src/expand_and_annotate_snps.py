@@ -2555,7 +2555,7 @@ def homer_motif_overlap(outdir, outprefix, ld_snp_file, ld_threshold, ld_check_a
             all_cur_motif_seqs = []
             cur_seq = motif_seqs.readline().strip().split("\t")
         else:
-            motif_out.write("\t".join(snp_header_data+["motif_chr", "motif_start", "motif_end", "tf_name", "log_odds_score", "strand", "relative_snp_pos"])+'\n')            
+            motif_out.write("\t".join(snp_header_data+["motif_chr", "motif_start", "motif_end", "tf_name", "log_odds_score", "strand", "relative_snp_pos"])+'\n')
         
         ## store all the current motifs (because they may overlap)
         all_cur_motifs = []
