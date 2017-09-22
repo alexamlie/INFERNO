@@ -118,7 +118,9 @@ top_lncrna_hits <- merge(top_coloc_hits, gencode_lncrnas[,-9], by.x="eqtl_gene_i
 if(nrow(top_lncrna_hits)==0) {
     stop("No strongly colocalized lncRNA signals found!\n")
 } else {
-    cat(length(unique(top_lncrna_hits$eqtl_gene_name)), "unique lncRNAs found in data\n") 
+    cat(length(unique(top_lncrna_hits$eqtl_gene_name)), "unique lncRNAs across",
+        length(unique(top_lncrna_hits$tissue)), "unique GTEx tissues and",
+        length(unique(top_lncrna_hits$gtex_tissue_class)), "tissue classes found in data\n")
 }
 
 ## save the expression vectors as a named list
@@ -221,28 +223,28 @@ cat("Computing all expression correlations took", (proc.time() - corr_start)[['e
 ## -----------------------------------------------------------------------------
 ## now loop through all the lncRNAs and do individual analysis on them
 ## for convenience, make a data frame storing the correlated genes and which lncRNA they came from
-all_lncrna_targets <- data.frame()
+all_lncrna_targets <- data.frame(stringsAsFactors = FALSE)
 
 for(lncrna in names(lncrna_correlation_dfs)) {
     cat("Analyzing", lncrna, "correlation patterns\n")    
     
-    ## add mean correlation values
-    lncrna_correlation_dfs[[lncrna]]$mean_cor <- rowMeans(lncrna_correlation_dfs[[lncrna]][,c("pearson_cor", "spearman_cor")])
-    lncrna_correlation_dfs[[lncrna]]$mean_partial_cor <- rowMeans(lncrna_correlation_dfs[[lncrna]][,c("pearson_partial_cor", "spearman_partial_cor")])
-    ## sort by that
-    lncrna_correlation_dfs[[lncrna]] <- lncrna_correlation_dfs[[lncrna]][order(abs(lncrna_correlation_dfs[[lncrna]]$mean_cor), decreasing=T),]
+    ## ## add mean correlation values
+    ## lncrna_correlation_dfs[[lncrna]]$mean_cor <- rowMeans(lncrna_correlation_dfs[[lncrna]][,c("pearson_cor", "spearman_cor")])
+    ## lncrna_correlation_dfs[[lncrna]]$mean_partial_cor <- rowMeans(lncrna_correlation_dfs[[lncrna]][,c("pearson_partial_cor", "spearman_partial_cor")])
+    ## ## sort by that
+    ## lncrna_correlation_dfs[[lncrna]] <- lncrna_correlation_dfs[[lncrna]][order(abs(lncrna_correlation_dfs[[lncrna]]$mean_cor), decreasing=T),]
 
-    ## correct the p-values
-    lncrna_correlation_dfs[[lncrna]]$pearson_padj <- p.adjust(lncrna_correlation_dfs[[lncrna]]$pearson_pval, method="bonferroni")
-    lncrna_correlation_dfs[[lncrna]]$spearman_padj <- p.adjust(lncrna_correlation_dfs[[lncrna]]$spearman_pval, method="bonferroni")
+    ## ## correct the p-values
+    ## lncrna_correlation_dfs[[lncrna]]$pearson_padj <- p.adjust(lncrna_correlation_dfs[[lncrna]]$pearson_pval, method="bonferroni")
+    ## lncrna_correlation_dfs[[lncrna]]$spearman_padj <- p.adjust(lncrna_correlation_dfs[[lncrna]]$spearman_pval, method="bonferroni")
 
-    ## write out the table with full correlations, for posterity
-    write.table(lncrna_correlation_dfs[[lncrna]], 
-                paste0(outdir, '/full_correlation_tables/', lncrna, '_correlations.txt'),
-                quote=F, sep="\t", row.names=F, col.names=T)
+    ## ## write out the table with full correlations, for posterity
+    ## write.table(lncrna_correlation_dfs[[lncrna]], 
+    ##             paste0(outdir, '/full_correlation_tables/', lncrna, '_correlations.txt'),
+    ##             quote=F, sep="\t", row.names=F, col.names=T)
 
-    ## now get rid of the entry for the lncRNA itself
-    lncrna_correlation_dfs[[lncrna]] <- lncrna_correlation_dfs[[lncrna]][lncrna_correlation_dfs[[lncrna]]$gene!=lncrna,]   
+    ## ## now get rid of the entry for the lncRNA itself
+    ## lncrna_correlation_dfs[[lncrna]] <- lncrna_correlation_dfs[[lncrna]][lncrna_correlation_dfs[[lncrna]]$gene!=lncrna,]   
     
     ## also write out all the genes meeting a 0.5 correlation threshold
     corr_thresh_vec <- abs(lncrna_correlation_dfs[[lncrna]]$pearson_cor) > cor_thresh & abs(lncrna_correlation_dfs[[lncrna]]$spearman_cor) > cor_thresh
@@ -254,10 +256,14 @@ for(lncrna in names(lncrna_correlation_dfs)) {
                     quote=F, sep="\t", row.names=F, col.names=T)
 
         ## save this to the master data frame with only the main correlation numbers
+        ## also save the tissues
         all_lncrna_targets <- rbind(all_lncrna_targets,
-                                    cbind(lncRNA = lncrna,
-                                    target_gene = lncrna_correlation_dfs[[lncrna]]$gene[corr_thresh_vec],
-                                    lncrna_correlation_dfs[[lncrna]][corr_thresh_vec, c("pearson_cor", "spearman_cor")]))
+                                    data.frame(
+                                        lncRNA = lncrna,
+                                        tissues = paste0(unique(top_lncrna_hits$tissue[top_lncrna_hits$eqtl_gene_name==lncrna]), collapse=";"),
+                                        classes = paste0(unique(top_lncrna_hits$gtex_tissue_class[top_lncrna_hits$eqtl_gene_name==lncrna]), collapse=";"),
+                                        target_gene = lncrna_correlation_dfs[[lncrna]]$gene[corr_thresh_vec],
+                                        lncrna_correlation_dfs[[lncrna]][corr_thresh_vec, c("pearson_cor", "spearman_cor")], stringsAsFactors = F))
     }
 
     lncrna_out <- gsub("/", "_", lncrna, fixed=T)
@@ -384,17 +390,29 @@ for(lncrna in names(lncrna_correlation_dfs)) {
           theme(legend.position="none", axis.text.x = element_text(size=25, angle=45, hjust=1),
                 axis.text.y = element_text(size=25), title=element_text(size=20),
                 plot.title = element_text(hjust = 0.5)))
-    dev.off()
-    
+    dev.off()    
 }
-cat(nrow(all_lncrna_targets), "total genes met the", cor_thresh, "correlation threshold, representing", length(unique(all_lncrna_targets$target_gene)), "unique genes and", length(unique(all_lncrna_targets$lncRNA)), "unique lncRNAs\n")
+
+cat(nrow(all_lncrna_targets), "total genes met the", cor_thresh, "correlation threshold, representing", length(unique(all_lncrna_targets$target_gene)), "unique genes and", length(unique(all_lncrna_targets$lncRNA)), "unique lncRNAs across", length(unique(unlist(strsplit(as.character(all_lncrna_targets$tissues), ";")))), "GTEx tissues and", length(unique(unlist(strsplit(as.character(all_lncrna_targets$classes), ";")))), "tissue classes\n")
 
 ## now write the full target file
 write.table(all_lncrna_targets, paste0(outdir, '/tables/all_lncRNA_targets_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=T)
-## also write all the target genes, for pathway analysis
+## also write all the target genes together, for pathway analysis
 write.table(sort(unique(all_lncrna_targets$target_gene)), paste0(outdir, '/tables/all_lncRNA_genes_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=F)
 ## save an Rdata file of the list of correlation DFs
 save(lncrna_correlation_dfs, file=paste0(outdir, '/full_correlation_tables/full_lncRNA_correlation_df_list.Rdata'))
+
+## now write out tissue-specific lists of target genes
+dir.create(paste0(outdir, '/tables/tissue_specific_gene_lists/'), F, T)
+for(gtex_tissue in unique(unlist(strsplit(as.character(all_lncrna_targets$tissues), ";")))) {
+    write.table(sort(unique(all_lncrna_targets$target_gene[grep(gtex_tissue, all_lncrna_targets$tissues)])), paste0(outdir, '/tables/tissue_specific_gene_lists/', gtex_tissue, '_lncRNA_genes_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=F)
+}
+
+dir.create(paste0(outdir, '/tables/class_specific_gene_lists/'), F, T)
+for(gtex_class in unique(unlist(strsplit(as.character(all_lncrna_targets$classes), ";")))) {
+    write.table(sort(unique(all_lncrna_targets$target_gene[grep(gtex_class, all_lncrna_targets$classes)])), paste0(outdir, '/tables/class_specific_gene_lists/', gtex_class, '_lncRNA_genes_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=F)
+}
+
 ## ## to read the target file back in
 ## all_lncrna_targets <- read.table(paste0(outdir, '/tables/all_lncRNA_targets_', cor_thresh, '_correlation_threshold.txt'), header=T, sep="\t", quote="", as.is=T)
 ## ## to read the correlations back in
@@ -523,11 +541,30 @@ print(ggplot(all_lncrna_targets, aes(x=lncRNA, y=spearman_cor, fill=lncRNA)) +
             plot.title=element_text(hjust=0.5)))
 dev.off()
 
+## make a boxplot with combined distributions
+melted_lncrna_targets <- melt(all_lncrna_targets, measure.vars=c("pearson_cor", "spearman_cor"), variable="cor_type")
+melted_lncrna_targets$lncRNA <- factor(melted_lncrna_targets$lncRNA, levels=sort(unique(as.character(melted_lncrna_targets$lncRNA))), ordered=T)
+
+make_graphic(paste0(outdir, '/plots/', outprefix, '_all_target_spearman_and_pearson_dist_per_lncRNA'), width_ratio = 2.0)
+print(ggplot(melted_lncrna_targets, aes(x=lncRNA, y=value, fill=cor_type)) +
+      geom_boxplot() + 
+      scale_fill_manual(values=c("#FF6C91", "#9F8CFF"), labels=c("Pearson", "Spearman"),
+                        name="Type of correlation") + 
+      ## ggtitle("Spearman and Pearson correlation distributions per lncRNA") + 
+      theme_bw() + xlab("lncRNA") +
+      ylab("Correlation values") + 
+      theme(legend.position="bottom", axis.text.x=element_text(angle=60, hjust=1, size=18),
+            axis.text.y = element_text(size=25), 
+            title=element_text(size=25),
+            legend.text=element_text(size=25),
+            plot.title=element_text(hjust=0.5)))
+dev.off()
+
 ## finally, make a big scatterplot of the correlations
 make_graphic(paste0(outdir, '/plots/', outprefix, '_all_target_correlation_scatterplot'),
              height_ratio = 1.5)
 print(ggplot(all_lncrna_targets, aes(x=pearson_cor, y=spearman_cor, fill=lncRNA)) +
-      geom_point(aes(color=lncRNA)) + scale_color_hue(h=c(0, 360)) + 
+      geom_point(aes(color=lncRNA), alpha=0.5, shape=5) + scale_color_hue(h=c(0, 360)) + 
       theme_bw() +
       ## geom_hline(yintercept=cor_thresh, linetype=3) +
       ## geom_vline(xintercept=cor_thresh, linetype=3) +
