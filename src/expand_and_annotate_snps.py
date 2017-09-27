@@ -1439,45 +1439,54 @@ def calculate_unstranded_genomic_partition(outdir, outprefix, ld_snp_file, ld_th
             while (len(cur_fp_exon) > 1
                    and cur_fp_exon[bed_idx['chr']]==entry_data[snp_idx['chr']]
                    and int(cur_fp_exon[bed_idx['start']]) <= entry_pos):
-                cur_fp_exons.append(cur_fp_exon)
+                if (int(cur_fp_exon[bed_idx['end']]) >= entry_pos):
+                    cur_fp_exons.append(cur_fp_exon)
                 cur_fp_exon = fp_exons.readline().strip().split('\t')                
             while (len(cur_fp_intron) > 1
                    and cur_fp_intron[bed_idx['chr']]==entry_data[snp_idx['chr']]
                    and int(cur_fp_intron[bed_idx['start']]) <= entry_pos):
-                cur_fp_introns.append(cur_fp_intron)
+                if (int(cur_fp_intron[bed_idx['end']]) >= entry_pos):
+                    cur_fp_introns.append(cur_fp_intron)
                 cur_fp_intron = fp_introns.readline().strip().split('\t')
             while (len(cur_tp_exon) > 1
                    and cur_tp_exon[bed_idx['chr']]==entry_data[snp_idx['chr']]
                    and int(cur_tp_exon[bed_idx['start']]) <= entry_pos):
-                cur_tp_exons.append(cur_tp_exon)
+                if (int(cur_tp_exon[bed_idx['end']]) >= entry_pos):
+                    cur_tp_exons.append(cur_tp_exon)                   
                 cur_tp_exon = tp_exons.readline().strip().split('\t')                
             while (len(cur_tp_intron) > 1
                    and cur_tp_intron[bed_idx['chr']]==entry_data[snp_idx['chr']]
                    and int(cur_tp_intron[bed_idx['start']]) <= entry_pos):
-                cur_tp_introns.append(cur_tp_intron)
+                if (int(cur_tp_intron[bed_idx['end']]) >= entry_pos):
+                    cur_tp_introns.append(cur_tp_intron)                   
                 cur_tp_intron = tp_introns.readline().strip().split('\t')
             while (len(cur_promoter) > 1
                    and cur_promoter[bed_idx['chr']]==entry_data[snp_idx['chr']]
                    and int(cur_promoter[bed_idx['start']]) <= entry_pos):
-                cur_promoters.append(cur_promoter)
+                if (int(cur_promoter[bed_idx['end']]) >= entry_pos):
+                    cur_promoters.append(cur_promoter)                   
                 cur_promoter = promoters.readline().strip().split('\t')                
             while (len(cur_exon) > 1
                    and cur_exon[bed_idx['chr']]==entry_data[snp_idx['chr']]
                    and int(cur_exon[bed_idx['start']]) <= entry_pos):
-                cur_exons.append(cur_exon)
+                if (int(cur_exon[bed_idx['end']]) >= entry_pos):
+                    cur_exons.append(cur_exon)
                 cur_exon = exons.readline().strip().split('\t')
             while (len(cur_intron) > 1
                    and cur_intron[bed_idx['chr']]==entry_data[snp_idx['chr']]
                    and int(cur_intron[bed_idx['start']]) <= entry_pos):
-                cur_introns.append(cur_intron)
+                if (int(cur_intron[bed_idx['end']]) >= entry_pos):
+                    cur_introns.append(cur_intron)
                 cur_intron = introns.readline().strip().split('\t')            
             while (len(cur_repeat) > 1
                    and cur_repeat[bed_idx['chr']]==entry_data[snp_idx['chr']]
                    and int(cur_repeat[bed_idx['start']]) <= entry_pos):
-                cur_repeats.append(cur_repeat)
+                if (int(cur_repeat[bed_idx['end']]) >= entry_pos):
+                    cur_repeats.append(cur_repeat)
                 cur_repeat = repeats.readline().strip().split('\t')
                                 
             ## remove entries that are before the current entry here:
+            ## shouldn't be necessary..
             for i in range(len(cur_fp_exons)-1, -1, -1):
                 if cur_fp_exons[i][bed_idx['chr']] != entry_data[snp_idx['chr']] or int(cur_fp_exons[i][bed_idx['end']]) <= entry_pos:
                     cur_fp_exons.pop(i)                    
@@ -1687,7 +1696,9 @@ def compute_fantom5_midpoint_overlap(outdir, outprefix, ld_snp_file, ld_threshol
                     this_mid = (cur_enh_start + cur_enh_end)/2
                     
                     if (this_mid - enhancer_window) <= entry_pos:
-                        enh_loci[k].append(cur_enh_locus[k])
+                        ## only save it if it overlaps
+                        if (this_mid + enhancer_window) >= entry_pos:
+                            enh_loci[k].append(cur_enh_locus[k])
                         cur_enh_locus[k] = enh_files[k].readline().strip().split("\t")
                     # if we're not overlapping anymore, stop the loop
                     else:
@@ -1845,7 +1856,9 @@ def compute_fantom5_locus_overlap(outdir, outprefix, ld_snp_file, ld_threshold, 
                     cur_enh_end = int(cur_enh_locus[k][bed_idx['end']])
                     
                     if (cur_enh_start - enhancer_window) <= entry_pos:
-                        enh_loci[k].append(cur_enh_locus[k])
+                        ## only save it if it might overlap
+                        if (cur_enh_start + enhancer_window) >= entry_pos:
+                            enh_loci[k].append(cur_enh_locus[k])
                         cur_enh_locus[k] = enh_files[k].readline().strip().split("\t")
                     # if we're not overlapping anymore, stop the loop
                     else:
@@ -2387,7 +2400,8 @@ def factorbook_overlap(outdir, outprefix, ld_snp_file, ld_threshold, ld_check_ar
             ## now add all possibly overlapping entries
             while (len(cur_tfbs)>1 and cur_tfbs[bed_idx['chr']]==entry_data[snp_idx['chr']]
                    and int(cur_tfbs[bed_idx['start']]) <= entry_pos):
-                cur_tf_sites.append(cur_tfbs)
+                if (int(cur_tfbs[bed_idx['end']]) >= entry_pos):
+                    cur_tf_sites.append(cur_tfbs)
                 cur_tfbs = tf_sites.readline().strip().split('\t')
 
             ## remove all too-early entries here
@@ -2580,15 +2594,18 @@ def homer_motif_overlap(outdir, outprefix, ld_snp_file, ld_threshold, ld_check_a
                     if motif_pwm_file:
                         cur_seq = motif_seqs.readline().strip().split("\t")
                         
-            ## now add all the possibly overlapping entries
+            ## now go through all the possibly overlapping entries
             while(len(cur_motif) > 1 and cur_motif[motif_bed_idx['motif_chr']]==snp_chr and int(cur_motif[motif_bed_idx['motif_start']])<=snp_pos):
-                all_cur_motifs.append(cur_motif)
+                ## only save the overlapping ones to save memory
+                if(int(cur_motif[motif_bed_idx['motif_end']]) >= snp_pos):
+                    all_cur_motifs.append(cur_motif)
+                    if motif_pwm_file:
+                        all_cur_motif_seqs.append(cur_seq)
                 cur_motif = motif_beds.readline().strip().split("\t")
                 if motif_pwm_file:
-                    all_cur_motif_seqs.append(cur_seq)
                     cur_seq = motif_seqs.readline().strip().split("\t")
 
-            ## remove the early entries
+            ## remove the early entries / ones from the wrong chromosome
             for i in range(len(all_cur_motifs)-1, -1, -1):
                 if(all_cur_motifs[i][motif_bed_idx['motif_chr']] != this_chr or
                    int(all_cur_motifs[i][motif_bed_idx['motif_end']]) < snp_pos):
@@ -2748,7 +2765,8 @@ def dashr_ncrna_overlap(outdir, outprefix, ld_snp_file, ld_threshold, ld_check_a
             ## now add all possibly overlapping entries
             while (len(cur_ncrna)>1 and cur_ncrna[bed_idx['chr']]==entry_data[snp_idx['chr']]
                    and int(cur_ncrna[bed_idx['start']]) <= entry_pos):
-                cur_ncrna_loci.append(cur_ncrna)
+                if (int(cur_ncrna[bed_idx['end']]) >= entry_pos):
+                    cur_ncrna_loci.append(cur_ncrna)
                 cur_ncrna = dashr_loci.readline().strip().split('\t')
 
             ## remove all too-early entries here
@@ -2867,13 +2885,14 @@ def targetscan_overlap(outdir, outprefix, ld_snp_file, ld_threshold, ld_check_ar
                     cur_target_end = int(cur_target[k][bed_idx['end']])
                     
                     if cur_target_start <= entry_pos:
-                        targetscan_loci[k].append(cur_target[k])
+                        if cur_target_end >= entry_pos:
+                            targetscan_loci[k].append(cur_target[k])
                         cur_target[k] = targetscan_files[k].readline().strip().split("\t")
                     # if we're not overlapping anymore, stop the loop
                     else:
                         break
                         
-                ## remove all enhancers from the wrong chromosome or that end before this starts
+                ## remove all loci from the wrong chromosome or that end before this starts
                 for i in range(len(targetscan_loci[k])-1, -1, -1):
                     if targetscan_loci[k][i][bed_idx['chr']] != this_chr:
                         targetscan_loci[k].pop(i)
