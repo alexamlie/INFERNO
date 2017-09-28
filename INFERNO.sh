@@ -12,4 +12,4 @@ module load R/3.2.3
 module load plink/1.90Beta
 
 ## just feed all the arguments to the python script
-python ./INFERNO.py $*
+python /home/alexamlie/code/INFERNO//INFERNO.py $*
