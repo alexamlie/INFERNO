@@ -67,6 +67,46 @@ analyze_homer_motif_overlaps <- function(prefix, datadir, outdir, out_subtitle, 
                     title=element_text(size=TITLE_SIZE), plot.title = element_text(hjust = 0.5)) +
               plot_title("Distributions of PWM changes for motif-overlapping variants", r2_thresh, dist_thresh, out_subtitle))
         dev.off()
+
+        ## make a barplot counting the number of hits per transcription factor
+        tf_hits <- ddply(motif_overlap_df, .(tf_name), function(x) {
+            return(data.frame(num_disrupted_motifs = sum(!duplicated(x[,c("motif_chr", "motif_start", "motif_end")]))))})
+
+        make_graphic(paste0(outdir, 'plots/', prefix, '_num_disrupted_motifs_by_tf_',
+                        r2_thresh, "_ld_", dist_thresh, "_dist"), width_ratio = 2.0, height_ratio=1.5)
+        print(ggplot(tf_hits, aes(x=tf_name, y=num_disrupted_motifs, fill=tf_name)) + 
+              xlab("Transcription factor") +
+              ylab("Number of disrupted binding sites") +
+              scale_fill_hue(h=c(0, 90)) + 
+              theme_bw() + geom_bar(position="dodge", stat="identity") +
+              scale_y_continuous(breaks=seq(0, round_any(max(tf_hits$num_disrupted_motifs), 10, ceiling), by=10)) + 
+              theme(legend.position="none",
+                    axis.text.x=element_text(angle=60, hjust=1, size=AXIS_TEXT_X_SIZE*0.75),
+                    axis.text.y = element_text(size=AXIS_TEXT_Y_SIZE),
+                    title=element_text(size=TITLE_SIZE), plot.title = element_text(hjust = 0.5)) +
+              plot_title("Number of disrupted HOMER motif sites per TF", r2_thresh, dist_thresh, out_subtitle, strwrap_width=70))
+        dev.off()        
+
+        ## make a heatmap showing hits by region and TF
+        tf_and_region_counts <- ddply(motif_overlap_df, .(tag_name, tf_name), function(x) {
+            return(data.frame(num_disrupted_motifs = sum(!duplicated(x[,c("motif_chr", "motif_start", "motif_end")]))))})
+
+        tf_and_region_counts$tag_no_rsid <- gsub(":rs.*", "", tf_and_region_counts$tag_name)
+        
+        make_graphic(paste0(outdir, 'plots/', prefix, '_tf_and_region_motif_heatmap_',
+                            r2_thresh, "_ld_", dist_thresh, "_dist"),
+                     height_ratio=2.0, width_ratio=3.0)
+        print(ggplot(tf_and_region_counts, aes_string(x="tf_name", y=TAG_VAR)) +
+              geom_tile(aes(fill=log10(num_disrupted_motifs)), colour="white") +
+              scale_fill_gradient(low="white", high="steelblue", na.value="white", guide="colorbar") +
+              ylab(TAG_LAB) + xlab("Transcription Factor") + theme_bw() + 
+              plot_title("Numbers of disrupted TF binding sites", r2_thresh, dist_thresh, out_subtitle, strwrap_width=70) +
+              theme(legend.position="bottom",
+                    axis.text.x=element_text(angle=90, hjust=1, size=AXIS_TEXT_X_SIZE*0.5),
+                    axis.text.y = element_text(size=AXIS_TEXT_Y_SIZE),
+                    legend.text = element_text(size=LEGEND_TEXT_SIZE),
+                    title=element_text(size=TITLE_SIZE), plot.title = element_text(hjust = 0.5)))
+        dev.off()
         
     } else {
         motif_file <- paste0(datadir, '/homer_motif_overlap/', prefix, "_", r2_thresh,
