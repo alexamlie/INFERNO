@@ -342,7 +342,7 @@ analyze_fantom5_roadmap_enh_overlap <- function(prefix, datadir, outdir, out_sub
           )
     dev.off()
 
-    make_graphic(paste0(outdir, 'plots/', prefix, '_roadmap_fantom5_gtex_tag_region_support_heatmap_',
+    make_graphic(paste0(outdir, 'plots/', prefix, '_roadmap_fantom5_tag_region_support_heatmap_',
                         r2_thresh, "_ld_", dist_thresh,
                         "_dist"), width_ratio = 3.0, height_ratio = 2.0)
     print(ggplot(melt_tag_region_support,
