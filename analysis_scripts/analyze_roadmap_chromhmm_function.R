@@ -102,7 +102,7 @@ analyze_roadmap_chromHMM <- function(prefix, datadir, outdir, out_subtitle, r2_t
     ordered_tissues <- unique(as.vector(melt_uniq_state_df$tissue[order(melt_uniq_state_df$class, melt_uniq_state_df$tissue)]))
     melt_uniq_state_df$tissue <- factor(melt_uniq_state_df$tissue, ordered=T,
                                         levels=ordered_tissues)
-    full_tiss_colors <- category_colors[roadmap_category_df$Class[match(ordered_tissues, roadmap_category_df$Standardized.Epigenome.name)]]
+    full_tiss_colors <- category_colors[roadmap_category_df$Class[match(gsub("E[0-9]...", "", ordered_tissues), roadmap_category_df$Standardized.Epigenome.name)]]
     
     ## we also want to color SNPs by their tag region, so start by sorting by tag region,
     ## position, and rsID
@@ -158,7 +158,8 @@ analyze_roadmap_chromHMM <- function(prefix, datadir, outdir, out_subtitle, r2_t
                             rgb(128,128,128,max=255), rgb(192,192,192,max=255), rgb(255,255,255,max=255))
 
     names(state_heatmap_cols) <- mixedsort(unique(melt_uniq_state_df$state))
-
+    melt_uniq_state_df$tissue <- as.character(melt_uniq_state_df$tissue)
+    
     ## TODO: more descriptive state names
     make_graphic(paste0(outdir, 'plots/', prefix, '_tissue_state_by_variant_heatmap_',
                         r2_thresh, "_ld_", dist_thresh, "_dist"), width_ratio = 3.5, height_ratio = 2.0, type="pdf")
