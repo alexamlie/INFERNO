@@ -228,23 +228,23 @@ all_lncrna_targets <- data.frame(stringsAsFactors = FALSE)
 for(lncrna in names(lncrna_correlation_dfs)) {
     cat("Analyzing", lncrna, "correlation patterns\n")    
     
-    ## ## add mean correlation values
-    ## lncrna_correlation_dfs[[lncrna]]$mean_cor <- rowMeans(lncrna_correlation_dfs[[lncrna]][,c("pearson_cor", "spearman_cor")])
-    ## lncrna_correlation_dfs[[lncrna]]$mean_partial_cor <- rowMeans(lncrna_correlation_dfs[[lncrna]][,c("pearson_partial_cor", "spearman_partial_cor")])
-    ## ## sort by that
-    ## lncrna_correlation_dfs[[lncrna]] <- lncrna_correlation_dfs[[lncrna]][order(abs(lncrna_correlation_dfs[[lncrna]]$mean_cor), decreasing=T),]
+    ## add mean correlation values
+    lncrna_correlation_dfs[[lncrna]]$mean_cor <- rowMeans(lncrna_correlation_dfs[[lncrna]][,c("pearson_cor", "spearman_cor")])
+    lncrna_correlation_dfs[[lncrna]]$mean_partial_cor <- rowMeans(lncrna_correlation_dfs[[lncrna]][,c("pearson_partial_cor", "spearman_partial_cor")])
+    ## sort by that
+    lncrna_correlation_dfs[[lncrna]] <- lncrna_correlation_dfs[[lncrna]][order(abs(lncrna_correlation_dfs[[lncrna]]$mean_cor), decreasing=T),]
 
-    ## ## correct the p-values
-    ## lncrna_correlation_dfs[[lncrna]]$pearson_padj <- p.adjust(lncrna_correlation_dfs[[lncrna]]$pearson_pval, method="bonferroni")
-    ## lncrna_correlation_dfs[[lncrna]]$spearman_padj <- p.adjust(lncrna_correlation_dfs[[lncrna]]$spearman_pval, method="bonferroni")
+    ## correct the p-values
+    lncrna_correlation_dfs[[lncrna]]$pearson_padj <- p.adjust(lncrna_correlation_dfs[[lncrna]]$pearson_pval, method="bonferroni")
+    lncrna_correlation_dfs[[lncrna]]$spearman_padj <- p.adjust(lncrna_correlation_dfs[[lncrna]]$spearman_pval, method="bonferroni")
 
-    ## ## write out the table with full correlations, for posterity
-    ## write.table(lncrna_correlation_dfs[[lncrna]], 
-    ##             paste0(outdir, '/full_correlation_tables/', lncrna, '_correlations.txt'),
-    ##             quote=F, sep="\t", row.names=F, col.names=T)
+    ## write out the table with full correlations, for posterity
+    write.table(lncrna_correlation_dfs[[lncrna]], 
+                paste0(outdir, '/full_correlation_tables/', lncrna, '_correlations.txt'),
+                quote=F, sep="\t", row.names=F, col.names=T)
 
-    ## ## now get rid of the entry for the lncRNA itself
-    ## lncrna_correlation_dfs[[lncrna]] <- lncrna_correlation_dfs[[lncrna]][lncrna_correlation_dfs[[lncrna]]$gene!=lncrna,]   
+    ## now get rid of the entry for the lncRNA itself
+    lncrna_correlation_dfs[[lncrna]] <- lncrna_correlation_dfs[[lncrna]][lncrna_correlation_dfs[[lncrna]]$gene!=lncrna,]   
     
     ## also write out all the genes meeting a 0.5 correlation threshold
     corr_thresh_vec <- abs(lncrna_correlation_dfs[[lncrna]]$pearson_cor) > cor_thresh & abs(lncrna_correlation_dfs[[lncrna]]$spearman_cor) > cor_thresh
@@ -565,6 +565,23 @@ make_graphic(paste0(outdir, '/plots/', outprefix, '_all_target_correlation_scatt
              height_ratio = 1.5)
 print(ggplot(all_lncrna_targets, aes(x=pearson_cor, y=spearman_cor, fill=lncRNA)) +
       geom_point(aes(color=lncRNA), alpha=0.5, shape=5) + scale_color_hue(h=c(0, 360)) + 
+      theme_bw() +
+      ## geom_hline(yintercept=cor_thresh, linetype=3) +
+      ## geom_vline(xintercept=cor_thresh, linetype=3) +
+      ## geom_hline(yintercept=-cor_thresh, linetype=3) +
+      ## geom_vline(xintercept=-cor_thresh, linetype=3) +
+      xlab("Pearson correlation") + ylab("Spearman correlation") +
+      ggtitle("Correlation values of top lncRNA - mRNA pairs") +
+      theme(legend.position="bottom", axis.text.x = element_text(size=20),
+            axis.text.y = element_text(size=20), title=element_text(size=20),
+            plot.title = element_text(hjust = 0.5), legend.text = element_text(size=15)))
+dev.off()
+
+## make this scatterplot without splitting by lncRNA
+make_graphic(paste0(outdir, '/plots/', outprefix, '_all_target_correlation_scatterplot_across_lncRNAs'), width_ratio = 2.0)
+print(ggplot(all_lncrna_targets, aes(x=pearson_cor, y=spearman_cor)) +
+      stat_binhex(bins=50) + 
+#      geom_point(aes(color=lncRNA), alpha=0.5, shape=5) + scale_color_hue(h=c(0, 360)) + 
       theme_bw() +
       ## geom_hline(yintercept=cor_thresh, linetype=3) +
       ## geom_vline(xintercept=cor_thresh, linetype=3) +
