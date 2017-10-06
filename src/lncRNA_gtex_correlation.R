@@ -578,7 +578,8 @@ print(ggplot(all_lncrna_targets, aes(x=pearson_cor, y=spearman_cor, fill=lncRNA)
 dev.off()
 
 ## make this scatterplot without splitting by lncRNA
-make_graphic(paste0(outdir, '/plots/', outprefix, '_all_target_correlation_scatterplot_across_lncRNAs'), width_ratio = 2.0)
+make_graphic(paste0(outdir, '/plots/', outprefix, '_all_target_correlation_scatterplot_across_lncRNAs')## , width_ratio = 2.0, height_ratio = 2.0
+             )
 print(ggplot(all_lncrna_targets, aes(x=pearson_cor, y=spearman_cor)) +
       stat_binhex(bins=50) + 
 #      geom_point(aes(color=lncRNA), alpha=0.5, shape=5) + scale_color_hue(h=c(0, 360)) + 
@@ -590,6 +591,7 @@ print(ggplot(all_lncrna_targets, aes(x=pearson_cor, y=spearman_cor)) +
       xlab("Pearson correlation") + ylab("Spearman correlation") +
       ggtitle("Correlation values of top lncRNA - mRNA pairs") +
       theme(legend.position="bottom", axis.text.x = element_text(size=20),
+            legend.key.width=unit(3,"cm"),
             axis.text.y = element_text(size=20), title=element_text(size=20),
             plot.title = element_text(hjust = 0.5), legend.text = element_text(size=15)))
 dev.off()
