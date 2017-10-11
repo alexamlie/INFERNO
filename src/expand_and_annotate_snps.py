@@ -1,3 +1,5 @@
+#!/usr/bin/python -u
+
 """
 expand_and_annotate_snps.py
 Alex Amlie-Wolf, started 11/10/2015

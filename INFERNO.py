@@ -1,3 +1,5 @@
+#!/usr/bin/python -u
+
 """
 INFERNO.py
 Alex Amlie-Wolf, 07/10/17
@@ -73,7 +75,7 @@ if __name__=="__main__":
         start_time = time.time()
         if not pargs.skip_ld_expansion:
             print "Running LD expansion and annotation"        
-            subprocess.call(["python", "./src/expand_and_annotate_snps.py", "--loglevel",
+            subprocess.call(["python -u", "./src/expand_and_annotate_snps.py", "--loglevel",
                             "full", "--kg_pop", config_vars["KG_POP"], "--ld_threshold",
                             config_vars["LD_THRESH"], "--ld_check_area", config_vars["LD_AREA"]] +
                             annotation_arg_list +
@@ -81,7 +83,7 @@ if __name__=="__main__":
             print "LD expansion and annotation took %.2f seconds" % (time.time()-start_time)
         else:
             print "Running direct annotation (no LD expansion)"
-            subprocess.call(["python", "./src/expand_and_annotate_snps.py", "--loglevel",
+            subprocess.call(["python -u", "./src/expand_and_annotate_snps.py", "--loglevel",
                             "full", "--skip_ld_expansion"] + 
                             annotation_arg_list +
                             [config_vars["KG_DIR"], pargs.top_snpf, pargs.outdir, pargs.outprefix])
@@ -123,7 +125,7 @@ if __name__=="__main__":
                 print "Directly LD-expanding and annotating top variant file"
                 ## just run the annnotation script directly
                 start_time = time.time()
-                subprocess.call(["python", "./src/expand_and_annotate_snps.py", "--loglevel",
+                subprocess.call(["python -u", "./src/expand_and_annotate_snps.py", "--loglevel",
                                 "full", "--kg_pop", config_vars["KG_POP"], "--ld_threshold",
                                 config_vars["LD_THRESH"], "--ld_check_area", config_vars["LD_AREA"]] +
                                 annotation_arg_list + 
@@ -133,7 +135,7 @@ if __name__=="__main__":
                 print "Directly LD-expanding and annotating top variant file"
                 ## just run the annnotation script directly
                 start_time = time.time()
-                subprocess.call(["python", "./src/expand_and_annotate_snps.py", "--loglevel",
+                subprocess.call(["python -u", "./src/expand_and_annotate_snps.py", "--loglevel",
                                 "full", "--skip_ld_expansion"] +
                                 annotation_arg_list + 
                                 [config_vars["KG_DIR"],pargs.top_snpf, pargs.outdir, pargs.outprefix])
@@ -146,24 +148,24 @@ if __name__=="__main__":
                 if pargs.beta_column and pargs.maf_column:
                     print "Performing p-value expansion with consistent effect directions"
                     start_time = time.time()
-                    subprocess.call(["python", "./data_preprocessing/pval_expand_tagsnp_set.py", "--sig_multiplier", str(pargs.sig_mult), "--dist_threshold", config_vars["LD_AREA"], "--rsid_col", str(pargs.rsid_column), "--pos_col", str(pargs.pos_column), "--pval_col", str(pargs.pval_column), "--chr_col", str(pargs.chr_column), "--beta_col", str(pargs.beta_column), "--maf_col", str(pargs.maf_column), pargs.top_snpf, pargs.summary_file, pargs.outdir+"/"+pargs.outprefix+"_pval_expanded_snps.txt"])
+                    subprocess.call(["python -u", "./data_preprocessing/pval_expand_tagsnp_set.py", "--sig_multiplier", str(pargs.sig_mult), "--dist_threshold", config_vars["LD_AREA"], "--rsid_col", str(pargs.rsid_column), "--pos_col", str(pargs.pos_column), "--pval_col", str(pargs.pval_column), "--chr_col", str(pargs.chr_column), "--beta_col", str(pargs.beta_column), "--maf_col", str(pargs.maf_column), pargs.top_snpf, pargs.summary_file, pargs.outdir+"/"+pargs.outprefix+"_pval_expanded_snps.txt"])
                     print "P-value expansion took %.2f seconds" % (time.time()-start_time)
                 else:
                     print "Performing p-value expansion with no consideration of effect direction"
                     start_time = time.time()
-                    subprocess.call(["python", "./data_preprocessing/pval_expand_tagsnp_set.py", "--sig_multiplier", str(pargs.sig_mult), "--dist_threshold", config_vars["LD_AREA"], "--rsid_col", str(pargs.rsid_column), "--pos_col", str(pargs.pos_column), "--pval_col", str(pargs.pval_column), "--chr_col", str(pargs.chr_column), pargs.top_snpf, pargs.summary_file, pargs.outdir+"/"+pargs.outprefix+"_pval_expanded_snps.txt"])
+                    subprocess.call(["python -u", "./data_preprocessing/pval_expand_tagsnp_set.py", "--sig_multiplier", str(pargs.sig_mult), "--dist_threshold", config_vars["LD_AREA"], "--rsid_col", str(pargs.rsid_column), "--pos_col", str(pargs.pos_column), "--pval_col", str(pargs.pval_column), "--chr_col", str(pargs.chr_column), pargs.top_snpf, pargs.summary_file, pargs.outdir+"/"+pargs.outprefix+"_pval_expanded_snps.txt"])
                     print "P-value expansion took %.2f seconds" % (time.time()-start_time)
                 
                 ## do LD pruning
                 print "Performing LD pruning of p-value expanded sets"
                 start_time = time.time()
-                subprocess.call(["python", "./data_preprocessing/ld_prune_snp_set.py", config_vars["LD_THRESH"], pargs.outdir+"/"+pargs.outprefix+"_pval_expanded_snps.txt", config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/", pargs.outdir+"/"+pargs.outprefix+"_pruning/"])
+                subprocess.call(["python -u", "./data_preprocessing/ld_prune_snp_set.py", config_vars["LD_THRESH"], pargs.outdir+"/"+pargs.outprefix+"_pval_expanded_snps.txt", config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/", pargs.outdir+"/"+pargs.outprefix+"_pruning/"])
                 print "LD pruning took %.2f seconds" % (time.time()-start_time)
                 
                 ## now annotate these
                 print "Running pruned variants through re-expansion and annotation"
                 start_time = time.time()
-                subprocess.call(["python", "./src/expand_and_annotate_snps.py", "--loglevel",
+                subprocess.call(["python -u", "./src/expand_and_annotate_snps.py", "--loglevel",
                                 "full", "--kg_pop", config_vars["KG_POP"], "--ld_threshold",
                                 config_vars["LD_THRESH"], "--ld_check_area", config_vars["LD_AREA"]] +
                                 annotation_arg_list + 
