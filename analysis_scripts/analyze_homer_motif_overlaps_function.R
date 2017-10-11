@@ -68,6 +68,24 @@ analyze_homer_motif_overlaps <- function(prefix, datadir, outdir, out_subtitle, 
               plot_title("Distributions of PWM changes for motif-overlapping variants", r2_thresh, dist_thresh, out_subtitle))
         dev.off()
 
+        ## also make a histogram of the delta PWM score distribution
+        n_bins <- length(ggplot2:::bin_breaks_width(range(motif_overlap_df$delta_pwm), width = 0.1)$breaks) - 1L
+        colfunc <- colorRampPalette(c("red", "blue"))        
+        
+        make_graphic(paste0(outdir, 'plots/', prefix, '_delta_pwm_histogram_',
+                        r2_thresh, "_ld_", dist_thresh, "_dist"))
+        print(ggplot(motif_overlap_df) +
+              xlab("Delta PWM score") +
+              theme_bw() +
+              geom_histogram(aes(x=delta_pwm), binwidth=0.1, fill=colfunc(n_bins)) +
+              scale_fill_gradient(high="blue", low="red") +
+              theme(legend.position="none",
+                    axis.text.x=element_text(angle=45, hjust=1, size=AXIS_TEXT_X_SIZE),
+                    axis.text.y = element_text(size=AXIS_TEXT_Y_SIZE),
+                    title=element_text(size=TITLE_SIZE), plot.title = element_text(hjust = 0.5)) +
+              plot_title("Distributions of PWM changes for motif-overlapping variants", r2_thresh, dist_thresh, out_subtitle))
+        dev.off()        
+
         ## make a barplot counting the number of hits per transcription factor
         tf_hits <- ddply(motif_overlap_df, .(tf_name), function(x) {
             return(data.frame(num_disrupted_motifs = sum(!duplicated(x[,c("motif_chr", "motif_start", "motif_end")]))))})
