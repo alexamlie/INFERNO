@@ -1,10 +1,4 @@
-#!/bin/bash
-
-## INFERNO.sh
-## Alex Amlie-Wolf
-## wrapper script for the main INFERNO python function so that you can run it in bsub
-
-#  Copyright (c) 2017 University of Pennsylvania
+#  Copyright (c) 2015 University of Pennsylvania
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a
 #  copy of this software and associated documentation files (the "Software"),
@@ -23,13 +17,3 @@
 #  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 #  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 #  DEALINGS IN THE SOFTWARE.
-
-## for now, hard-code and load the appropriate modules
-module load python/2.7.9
-module load bedtools2
-module load R/3.2.3
-module load plink/1.90Beta
-
-## just feed all the arguments to the python script
-## assume that we are in the same directory as the python script!
-python ./INFERNO.py $*
