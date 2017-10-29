@@ -29,6 +29,7 @@ $ ./update_config_file.sh
 
 Then, there are two ways to run the pipeline. The more general approach is to make sure that
 the following scripts are in your $PATH:
+
 * Python v2.7.9 or a higher version of Python 2.7
 * bedtools v2.25.0 or greater version of bedtools v2
 * R 3.2.3
@@ -110,6 +111,7 @@ $ python ./INFERNO.py --rsid_column 2 --pos_column 5 --pval_column 9 --chr_colum
 The other way to run the pipeline is based on your cluster submission system using the 'module'
 approach to loading the relevant packages and dependencies. In this case, make sure that the
 system contains the following modules:
+
 * python/2.7.9
 * bedtools2
 * R/3.2.3
