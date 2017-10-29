@@ -157,10 +157,13 @@ in the above example)
 
 * logs/, which contains the main annotation overlap log as well as any bsub output logs
 * P-value and LD expansion outputs:
+
 ** outprefix_pval_expanded_snps.txt: the full list of variants expanded by p-value, if this analysis is performed
 ** outprefix_pruning/: the results of the LD pruning analysis on the p-value expanded variant set
 ** ld_expansion/: the result of the LD expansion on either the LD pruned p-value expanded variants, or the input variants
+
 * From the main INFERNO annotation overlaps (note that not all of these folders will be generated if you are missing some annotation data or skip some steps):
+
 ** parameters/: this folder contains the parameter and specific command run for the annotation overlaps
 ** closest_gene/: contains the closest genes to each variant
 ** unstranded_genomic_partition/: contains the results of the genomic partition analysis (i.e. annotation of variants overlapping promoters, exons, etc)
@@ -173,8 +176,11 @@ in the above example)
 ** roadmap_chromhmm_states/: annotation of variants with Roadmap ChromHMM states across all tissues and cell types
 ** dashr_ncrna_loci_overlap/: contains overlaps with [DASHR](http://dashr2.lisanwanglab.org/) small noncoding RNA loci
 ** targetscan_miRNA_overlap/: contains overlaps with predicted miRNA binding sites from TargetScan
+
 * summaries/: this folder contains various summaries of annotation overlaps in each tissue class; these files are used for further analysis including enrichment sampling
+
 * analysis_results/: this folder contains all the results from the R analysis script which performs summarization and visualization. This contains the following subfolders, each of which is further split into plots/ and tables/ folders:
+
 ** ld_stats/: visualizations of the LD expansion statistics for this analysis
 ** unstranded_genomic_partition/: visualizations of the genomic partition results
 ** fantom5_overlap/: visualizations of various characteristics of the FANTOM5 enhancer overlap results
