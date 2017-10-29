@@ -20,7 +20,7 @@ if __name__=="__main__":
     parser.add_argument("--chr_column", type=int, help="The summary statistics column number containing the chromosomes")
     parser.add_argument("--allele1_column", type=int, help="The summary statistics column number containing allele 1, which should correspond to the major allele.")
     parser.add_argument("--allele2_column", type=int, help="The summary statistics column number containing allele 2, which should correspond to the minor allele.")
-    parser.add_argument("--maf_column", type=int, help="The summary statistics column number containing the minor allele frequency. Note that if this is ever >50% and a beta column is provided, the effect direction will be flipped to be defined relative to the minor allele.")
+    parser.add_argument("--maf_column", type=int, help="The summary statistics column number containing the minor allele frequency. Note that if this is ever greater than 0.5 and a beta column is provided, the effect direction will be flipped to be defined relative to the minor allele.")
     parser.add_argument("--beta_column", type=int, help="The summary statistics column number containing the beta estimate (used for p-value expansion with consistent directions)")        
     ## for p-value expansion and pruning
     parser.add_argument("--run_pval_expansion", action='store_true', help="If you want to do expansion by p-values when you have summary statistics, provide this flag. Otherwise, the top SNP file will be directly expanded.")
@@ -38,7 +38,7 @@ if __name__=="__main__":
     parser.add_argument("outdir", help="The directory to write all the results to.")
     parser.add_argument("outprefix", help="The desired prefix for all the output file names")
     
-    pargs = parser.parse_args()    
+    pargs = parser.parse_args()
 
     ## source the variables from the config file
     config_vars = {}
@@ -185,8 +185,7 @@ if __name__=="__main__":
         ## run the R analysis script
         print "Running R analysis script"
         start_time = time.time()
-        ## TODO: add class file arguments
-        subprocess.call(["Rscript", "./analysis_scripts/Rscript_run_full_analysis.R", "./analysis_scripts", param_file, pargs.outprefix, "TRUE"])
+        subprocess.call(["Rscript", "./analysis_scripts/Rscript_run_full_analysis.R", "./analysis_scripts", param_file, pargs.outprefix, "TRUE", config_vars["F5_CLASSES"], config_vars["GTEX_CLASSES"], config_vars["ROADMAP_CLASSES"]])
         print "R analysis took %.2f seconds" % (time.time()-start_time)
         
         ## submit a job to run bootstrapping

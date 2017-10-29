@@ -1,1 +1,154 @@
-For pathway analysis, use 'genesymbol' in WebGestalt. 
+#INFERNO
+## INFERring the molecular mechanisms of NOncoding genetic variants
+
+### Method description
+The majority of variants identified by genome-wide association studies (GWAS) reside in the
+noncoding genome, where they affect regulatory elements including transcriptional enhancers. We
+propose INFERNO (INFERring the molecular mechanisms of NOncoding genetic variants), a novel
+method which integrates hundreds of diverse functional genomics data sources with GWAS summary
+statistics to identify putatively causal noncoding variants underlying association
+signals. INFERNO comprehensively characterizes the relevant tissue contexts, target genes, and
+downstream biological processes affected by functional variants. 
+
+### Instructions for use
+To use INFERNO, pull the source code from [the bitbucket
+repository](https://bitbucket.org/alexamlie/INFERNO/). The full processed annotation datasets
+used for the tool are [available for
+download](http://tesla.pcbi.upenn.edu/~alexaml/INFERNO/full_INFERNO_annotations.tar.gz). There
+is also a [web server](http://inferno.lisanwanglab.org) that runs a subset of the INFERNO
+analyses. The full INFERNO pipeline currently assumes you are running it on an interactive node
+of a bsub-based cluster system. To extract the annotation data and set up the configuration
+file, run these steps:
+
+```bash
+## start from the directory containing full_INFERNO_annotations.tar.gz
+$ tar -xzvf full_INFERNO_annotations.tar.gz
+$ cd full_INFERNO_annotations/
+$ ./update_config_file.sh
+```
+
+Then, there are two ways to run the pipeline. The more general approach is to make sure that
+the following scripts are in your $PATH:
+* Python v2.7.9 or a higher version of Python 2.7
+* bedtools v2.25.0 or greater version of bedtools v2
+* R 3.2.3
+* plink v1.90b2i or greater
+
+With this approach, you can run the full INFERNO pipeline using the INFERNO.py script:
+
+```bash
+$ python INFERNO.py -h
+usage: INFERNO.py [-h] [--skip_ld_expansion] [--rsid_column RSID_COLUMN] [--pos_column POS_COLUMN] [--pval_column PVAL_COLUMN] [--chr_column CHR_COLUMN]
+                  [--allele1_column ALLELE1_COLUMN] [--allele2_column ALLELE2_COLUMN] [--maf_column MAF_COLUMN] [--beta_column BETA_COLUMN] [--run_pval_expansion]
+                  [--sig_mult SIG_MULT] [--case_prop CASE_PROP] [--sample_size SAMPLE_SIZE] [--summary_file SUMMARY_FILE] [--run_enhancer_sampling] [--run_gtex_coloc]
+                  [--run_lncrna_correlation]
+                  top_snpf cfg_file outdir outprefix
+
+Driver script for the INFERNO pipeline
+
+positional arguments:
+  top_snpf              The tab separated file of the tag SNPs you want to analyze. Should be formatted with four columns: chromosome, rsID, region naming information, and
+                        position (in that order). IMPORTANT: Note that SNPs without dbSNP rsIDs should use 'chr-pos' naming format, not 'chr:pos', which is incompatible with
+                        this pipeline!
+  cfg_file              The configuration file containing paths to all the required functional annotation files. Should be formatted as a bash configuration file i.e.
+                        VARIABLE=DEFINTIION on each line.
+  outdir                The directory to write all the results to.
+  outprefix             The desired prefix for all the output file names
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --skip_ld_expansion   Give this flag to skip any LD (and p-value-based) expansion and just run analysis directly on the provided list of input variants.
+  --rsid_column RSID_COLUMN
+                        The summary statistics column number containing the rsIDs
+  --pos_column POS_COLUMN
+                        The summary statistics column number containing the positions
+  --pval_column PVAL_COLUMN
+                        The summary statistics column number containing the p-values
+  --chr_column CHR_COLUMN
+                        The summary statistics column number containing the chromosomes
+  --allele1_column ALLELE1_COLUMN
+                        The summary statistics column number containing allele 1, which should correspond to the major allele.
+  --allele2_column ALLELE2_COLUMN
+                        The summary statistics column number containing allele 2, which should correspond to the minor allele.
+  --maf_column MAF_COLUMN
+                        The summary statistics column number containing the minor allele frequency. Note that if this is ever greater than 0.5 and a beta column is provided,
+                        the effect direction will be flipped to be defined relative to the minor allele.
+  --beta_column BETA_COLUMN
+                        The summary statistics column number containing the beta estimate (used for p-value expansion with consistent directions)
+  --run_pval_expansion  If you want to do expansion by p-values when you have summary statistics, provide this flag. Otherwise, the top SNP file will be directly expanded.
+  --sig_mult SIG_MULT   The multiplier range for significance of the p-value expanded variant set (e.g. a value of 10 means one order of magnitude)
+  --case_prop CASE_PROP
+                        The proportion of cases in the GWAS, for colocalization.
+  --sample_size SAMPLE_SIZE
+                        The total number of samples in the GWAS, for colocalization.
+  --summary_file SUMMARY_FILE
+                        The path to the full summary statistics file, required for p-value expansion, colocalization analysis, and lncRNA target analysis.
+  --run_enhancer_sampling
+                        If you want to run the enhancer bootstrapping analysis, provide this flag.
+  --run_gtex_coloc      If you want to run COLOC analysis of your summary statistics against GTEx eQTLs from 44 tissues (requires summary statistics)
+  --run_lncrna_correlation
+                        If you want to analyze expression correlation of any lncRNAs identified by COLOC analysis (--run_gtex_coloc flag) against all other RNAseq-based GTEx
+                        genes to find lncRNA targets.
+```
+
+For example, the full pipeline call for the schizophrenia analysis in the method manuscript
+would look like this using the parsed configuration file from the full annotation file, where
+the /path/to/XXX/ directories would be changed to wherever the files are on your server and XXX
+refers to the relevant path:
+
+```bash
+$ cd /path/to/INFERNO_code/
+$ python ./INFERNO.py --rsid_column 2 --pos_column 5 --pval_column 9 --chr_column 1 --allele1_column 3 \
+  --allele2_column 4 --maf_column 15 --sig_mult 10 --case_prop 0.2464882 --sample_size 150064 \
+  --summary_file /path/to/SCZ_data/scz2.snp.results.1kg_annotations.txt --run_pval_expansion \
+  --run_enhancer_sampling --run_gtex_coloc --run_lncrna_correlation \
+  /path/to/SCZ_data/SCZ2_128_top_variants_INFERNO_input.no_chrX.tsv \
+  /path/to/annotations/full_INFERNO_annotations/INFERNO_annotation_config.cfg \
+  /path/to/output_folder/ SCZ2_128_top_variants
+```
+
+The other way to run the pipeline is based on your cluster submission system using the 'module'
+approach to loading the relevant packages and dependencies. In this case, make sure that the
+system contains the following modules:
+* python/2.7.9
+* bedtools2
+* R/3.2.3
+* plink/1.90Beta
+
+Then, you can use the INFERNO.sh script to run the pipeline without requiring that the relevant
+dependencies are in your $PATH:
+
+```bash
+$ cd /path/to/INFERNO_code/
+$ ./INFERNO.sh --rsid_column 2 --pos_column 5 --pval_column 9 --chr_column 1 --allele1_column 3 \
+  --allele2_column 4 --maf_column 15 --sig_mult 10 --case_prop 0.2464882 --sample_size 150064 \
+  --summary_file /path/to/SCZ_data/scz2.snp.results.1kg_annotations.txt --run_pval_expansion \
+  --run_enhancer_sampling --run_gtex_coloc --run_lncrna_correlation \
+  /path/to/SCZ_data/SCZ2_128_top_variants_INFERNO_input.no_chrX.tsv \
+  /path/to/annotations/full_INFERNO_annotations/INFERNO_annotation_config.cfg \
+  /path/to/output_folder/ SCZ2_128_top_variants
+```
+
+If you wanted to submit the same job in bsub, it would look like this:
+
+```bash
+$ cd /path/to/INFERNO_code/
+$ bsub -J INFERNO_PGC_SCZ2_ld_pruned -o /path/to/output_folder/SCZ_analysis.o%J -e \
+  /path/to/output_folder/SCZ_analysis.e%J \
+  ./INFERNO.sh --rsid_column 2 --pos_column 5 --pval_column 9 --chr_column 1 --allele1_column 3 \
+  --allele2_column 4 --maf_column 15 --sig_mult 10 --case_prop 0.2464882 --sample_size 150064 \
+  --summary_file /path/to/SCZ_data/scz2.snp.results.1kg_annotations.txt --run_pval_expansion \
+  --run_enhancer_sampling --run_gtex_coloc --run_lncrna_correlation \
+  /path/to/SCZ_data/SCZ2_128_top_variants_INFERNO_input.no_chrX.tsv \
+  /path/to/annotations/full_INFERNO_annotations/INFERNO_annotation_config.cfg \
+  /path/to/output_folder/ SCZ2_128_top_variants
+```
+
+If you want to run INFERNO as a cluster job but your cluster system doesn't use modules, you
+can go into the INFERNO.sh script and comment out lines 28-31 and then submit the INFENRO.sh
+script to your cluster system. 
+
+### INFERNO output tables and figures
+
+### Other instructions
+To perform pathway analysis using WebGestalt on any list of target genes, use the 'genesymbol' option.

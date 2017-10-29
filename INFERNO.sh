@@ -24,7 +24,7 @@
 #  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 #  DEALINGS IN THE SOFTWARE.
 
-## for now, hard-code and load the appropriate modules
+## load modules, if the system uses them
 module load python/2.7.9
 module load bedtools2
 module load R/3.2.3

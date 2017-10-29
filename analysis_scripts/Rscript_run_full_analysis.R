@@ -122,7 +122,7 @@ if (length(args)==6) {
     fantom5_class_file <- args[4]
     gtex_class_file <- args[5]
     roadmap_class_file <- args[6]
-} else if (length(args==7)) {
+} else if (length(args)==7) {
     script_dir <- args[1]
     parameter_file <- args[2]
     out_subtitle <- args[3]
