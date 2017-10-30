@@ -211,9 +211,46 @@ in the above example):
       sampling analysis, including raw and corrected p-values for both the cross-tag-region
       analysis and the split tag region analyses as well as the LD-collapsed and non-collapsed
       analyses
-	
-### Other instructions:
-To perform pathway analysis using WebGestalt on any list of target genes, use the 'genesymbol'
-option.
+
+* gtex_gwas_colocalization_analysis/: this folder contains the results of the eQTL
+  co-localization analysis, if that step was run.
+    * plots/: this contains several diagnostic and summary plots for the analysis results. The
+      main summary plots for the co-localization analysis are
+      outprefix_ABF_and_motif_summary_barplot_0.5_prob_thresh.pdf and
+      outprefix_ABF_and_motif_nonzero_summary_barplot_0.5_prob_thresh_no_title.pdf, which
+      display summaries of the annotation overlaps compared with co-localization results across
+      tag regions and different variant prioritization approaches.
+        * locuszoom_plots/: if the LOCUSZOOM variable for the path to your locuszoom executable
+          is defined in the config file, the colocalization analysis script will use it to
+          generate locusZoom plots of the GWAS and GTEx eQTL signals at each strongly
+          co-localized locus
+    * tables/: the top level of this folder contains tables of various characteristics of the
+      co-localization results. These are all tab separated files and can be directly opened in
+      Excel for ease of data exploration. The main file containing annotation overlaps and
+      co-localization signals for all the ABF-expanded variants is
+      outprefix_gtex_coloc_enh_motif_eqtl_info.0.5_thresh_expanded.txt. **Note: Excel will
+      often complain if the file name is too long, and this happens quite often with these
+      files as they are deep in a nested folder hierarchy. To get around this, just copy the
+      full file and name it something like outprefix_COLOC_summary.txt, and then you should be
+      able to open it in Excel.**
+        * gtex_coloc/: this (very large) folder contains the full co-localization results
+          across tag regions (individual subfolders) and GTEx tissues. Typically you wouldn't
+          need to look at the specific files here because they are summarized by the analysis
+          script.
+
+* gtex_lncRNA_correlation_analysis/: if the correlation analysis to find lncRNA target genes was performed, this folder contains the results.
+    * full_correlation_tables/: this contains the full correlation results across all genes in
+      the genome for each lncRNA identified in the co-localization analysis. These are the raw
+      files and are summarized in a more easily digestible format in the other subfolders from
+      this analysis.
+    * plots/: this contains summary and diagnostic plots across all lncRNAs as well as
+      subfolders for each specific lncRNA containing correlation scatterplots
+    * tables/: this contains the lists of target genes identified by correlation threshold for
+      each specific lncRNA as well as across all lncRNAs
+      (all_lncRNA_genes_0.5_correlation_threshold.txt), as well as lists split by the GTEx
+      tissue of the original lncRNA signal (in tissue_specific_gene_lists) and split by the
+      tissue category of that original GTEx signal (class_specific_gene_lists). For all of
+      these gene lists, if you want to do pathway analysis using
+      [WebGestalt](http://webgestalt.org), use the 'genesymbol' option.
 
 ### Data sources and pre-processing steps:
