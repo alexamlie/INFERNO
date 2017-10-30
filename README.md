@@ -90,6 +90,7 @@ data](http://tesla.pcbi.upenn.edu/~alexaml/INFERNO/full_INFERNO_annotations.tar.
 130Gb compressed and expands to around 320Gb of annotation data.
 
 To run the pipeline, the following main programs are required:
+
 * Python v2.7.9 or a higher version of Python 2.7
 * bedtools v2.25.0 or greater version of bedtools v2
 * R 3.2.3
@@ -97,6 +98,7 @@ To run the pipeline, the following main programs are required:
 
 Additionally, the following packages are required:
 **For Python:**
+
 * argparse
 * subprocess
 * datetime
@@ -113,6 +115,7 @@ Additionally, the following packages are required:
 * math
 
 **For R:**
+
 * data.table
 * ggplot2
 * gplots
