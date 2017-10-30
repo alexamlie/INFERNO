@@ -254,3 +254,111 @@ in the above example):
       [WebGestalt](http://webgestalt.org), use the 'genesymbol' option.
 
 ### Data sources and pre-processing steps:
+#### 1,000 genomes data:
+Files downloaded from http://csg.sph.umich.edu/abecasis/mach/download/1000G.2012-03-14.html for
+1,000 Genomes data split into 4 populations. Then, several scripts, all available in the
+data_preprocessing/ folder of the INFERNO code, are used to process these datasets. All the
+steps past the sorting command are for the enhancer sampling analysis. For example, the EUR
+population analysis:
+
+```bash
+$ cd /path/to/EUR_data/
+$ tar -xzvf phase1_release_v3.20101123.snps_indels_svs.genotypes.refpanel.EUR.vcf.gz.tgz
+## sort the files
+$ mkdir sorted_files/
+$ for i in {1..22}; do \
+  echo "chr${i}"; \
+  zcat chr${i}.phase1_release_v3.20101123.snps_indels_svs.genotypes.refpanel.EUR.vcf.gz | grep "#" > sorted_files/chr${i}.phase1_release_v3.20101123.snps_indels_svs.genotypes.refpanel.EUR.vcf; \
+  zcat chr${i}.phase1_release_v3.20101123.snps_indels_svs.genotypes.refpanel.EUR.vcf.gz | grep -v "#" | sort -k2,2n >> sorted_files/chr${i}.phase1_release_v3.20101123.snps_indels_svs.genotypes.refpanel.EUR.vcf; \
+done
+## calculate minor allele frequencies
+$ cd /path/to/INFERNO_code/data_preprocessing/
+$ ./calculate_maf.sh /path/to/EUR_data/ chr /path/to/EUR_data/MAF_info
+## calculate distance to nearest TSS
+$ ./calculate_tss_distance.sh /path/to/EUR_data/ chr /path/to/hg19_ref/hg19_refseq_tss.bed /path/to/bedtools_bin/ /path/to/EUR_data/dist_to_tss/
+## calculate pairwise LD (assumes bsub-based cluster system)
+$ ./bsub_calculate_pairwise_ld.sh /path/to/EUR_data/ chr /path/to/EUR_data/pairwise_ld/
+## can also just run this sequentially, which will take a while:
+$ ./calculate_pairwise_ld.sh /path/to/EUR_data/ chr /path/to/EUR_data/pairwise_ld/
+## use these LD pairs to precompute LD blocks (in this case, using 0.7 as the R^2 threshold):
+$ python compute_ld_sets.py 0.7 /path/to/EUR_data/pairwise_ld/ /path/to/EUR_data/precomputed_ld_sets/
+## finally, summarize all of these quantities for each variant, for sampling purposes:
+$ python summarize_ld_maf_dist_results.py --ld_threshold 0.7 /path/to/EUR_data/pairwise_ld/ /path/to/EUR_data/MAF_info/ \
+  /path/to/EUR_data/dist_to_tss/ /path/to/EUR_data/snp_maf_tss_ld_summary/
+```
+
+#### Unstranded genomic partition:
+Tables of UCSC genes were downloaded from the UCSC Table Browser, and only chr1-22, X and Y are
+used in INFERNO. The 5’ UTR exons and introns, 3’ UTR exons and introns, and exons and introns
+were extracted from the knownGene annotation for each protein-coding gene, and all overlapping
+exons were merged together. Promoter annotations were defined as 1,000bp upstream of the first
+exon in the transcript, either coding or in the UTR.  Variants were then assigned to mutually
+exclusive genomic element annotations using the hierarchy: 5’ UTR exon > 5’ UTR intron > 3’ UTR
+exon > 3’ UTR intron > promoter > mRNA exon > mRNA intron > repeat. A variant not overlapping
+with any class of elements above was classified as intergenic.
+
+#### FANTOM5 enhancers:
+Facet-level enhancer expression BED files were
+[downloaded](http://enhancer.binf.ku.dk/presets/facet_expressed_enhancers.tgz) from
+http://enhancer.binf.ku.dk/presets/facet_expressed_enhancers.tgz, extracted, and sorted using
+the Unix sort tool with arguments ‘-k1,1V -k2,2n’. Specific commands are found in the file
+download_and_sort_FANTOM5_files.sh in the data_preprocessing/ directory.
+
+#### Roadmap ChromHMM:
+Roadmap 15-state ChromHMM BED files for the 5 core marks (H3K4me3, H3K4me1, H3K36me3, H3K27me3,
+H3K9me3) were
+[downloaded](http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/coreMarks/jointModel/final/all.mnemonics.bedFiles.tgz)
+from
+http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/coreMarks/jointModel/final/all.mnemonics.bedFiles.tgz,
+extracted, and sorted similarly to the FANTOM5 annotations; commands are available in the file
+roadmap_chromhmm_download_and_sort.sh.
+
+#### HOMER TFBSs:
+The set of HOMER TFBS annotations was
+[downloaded](http://homer.ucsd.edu/homer/data/motifs/homer.KnownMotifs.hg19.bed.gz) from
+http://homer.ucsd.edu/homer/data/motifs/homer.KnownMotifs.hg19.bed.gz and PWM annotations were
+[downloaded](http://homer.ucsd.edu/homer/custom.motifs) from
+http://homer.ucsd.edu/homer/custom.motifs. The BED file was extracted and sorted using the same
+approach as the FANTOM5 and Roadmap data, and the getfasta tool from the bedtools suite was
+used to generate sequences for each BED interval in order to calculate the ∆PWM score, using
+the hg19 fasta file downloaded from the UCSC table browser. The specific command used is
+available in HOMER_seq_generating_cmds.sh in the data_preprocessing/ folder.
+
+#### GTEx data:
+For direct eQTL overlap analysis, files were downloaded and sorted as follows:
+
+```bash
+$ cd /path/to/eQTL_dir/
+$ wget http://www.gtexportal.org/static/datasets/gtex_analysis_v6p/single_tissue_eqtl_data/GTEx_Analysis_V6p_eQTLs.tar.gz
+$ tar -xzvf GTEx_Analysis_V6p_eQTLs.tar.gz
+$ mkdir sorted
+$ for f in *.snpgenes; do \
+    FNAME=`basename $f`; \
+    echo "Sorting file ${FNAME}"; \
+    sort -k14,14n -k15,15n $f > sorted/$FNAME; \
+    rm $f; \
+done
+```
+
+For colocalization analysis, the set of all GTEx eQTL tests (not just significant ones) was
+[downloaded](http://www.gtexportal.org/static/datasets/gtex_analysis_v6p/single_tissue_eqtl_data/GTEx_Analysis_v6p_all-associations.tar)
+from
+http://www.gtexportal.org/static/datasets/gtex_analysis_v6p/single_tissue_eqtl_data/GTEx_Analysis_v6p_all-associations.tar,
+extracted, and sorted. Specific commands are available in the
+gtex_download_and_sort_full_v6p_data.sh in the data preprocessing/ folder.
+
+For the lncRNA correlation analysis, RNA-seq read per kilobase per million (RPKM) values across
+all 44 tissues were
+[downloaded](http://gtexportal.org/static/datasets/gtex_analysis_v6p/rna_seq_data/GTEx_Analysis_v6p_RNA-seq_RNA-SeQCv1.1.8_gene_rpkm.gct.gz)
+and extracted from
+http://gtexportal.org/static/datasets/gtex_analysis_v6p/rna_seq_data/GTEx_Analysis_v6p_RNA-seq_RNA-SeQCv1.1.8_gene_rpkm.gct.gz.
+
+To identify lncRNA eQTL targets, the GENCODE lncRNA annotations were
+[downloaded](ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_19/gencode.v19.long_noncoding_RNAs.gtf.gz)
+and extracted from
+ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_19/gencode.v19.long_noncoding_RNAs.gtf.gz.
+
+Finally, the sample sizes for each GTEx tissue were also
+[downloaded](http://www.gtexportal.org/home/tissueSummaryPage#sampleCountsPerTissue) as a csv
+from http://www.gtexportal.org/home/tissueSummaryPage#sampleCountsPerTissue.
+

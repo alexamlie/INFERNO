@@ -7,9 +7,9 @@
 if [ $# == 1 ]; then
     CWD=$(pwd)
     cd $1
-    # wget http://www.gtexportal.org/static/datasets/gtex_analysis_v6p/single_tissue_eqtl_data/GTEx_Analysis_v6p_all-associations.tar 
-    # tar -xvf GTEx_Analysis_v6p_all-associations.tar
-    # rm GTEx_Analysis_v6p_all-associations.tar
+    wget http://www.gtexportal.org/static/datasets/gtex_analysis_v6p/single_tissue_eqtl_data/GTEx_Analysis_v6p_all-associations.tar 
+    tar -xvf GTEx_Analysis_v6p_all-associations.tar
+    rm GTEx_Analysis_v6p_all-associations.tar
     cd GTEx_Analysis_v6p_all-associations/
     mkdir -p sorted/
 
