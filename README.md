@@ -97,6 +97,7 @@ To run the pipeline, the following main programs are required:
 * plink v1.90b2i or greater
 
 Additionally, the following packages are required:
+
 **For Python:**
 
 * argparse
