@@ -81,15 +81,87 @@ GENCODE_LNCRNA_FILE    | The file containing the GENCODE lncRNA annotations, use
 COR_THRESH	       | The absolute value threshold on Pearson and Spearman correlation to define strong lncRNA targets (Default = 0.5)
 
 
-Then, there are two ways to run the pipeline. The more general approach is to make sure that
-the following scripts are in your $PATH:
+#### Dependencies and requirements
+To run the full pipeline, around 40Gb of memory is required, as the enhancer sampling,
+co-localization, and lncRNA correlation analyses are computationally intensive and run in R,
+which loads objects into memory. A typical run for the full pipeline will generate around
+10-20Gb of result data. The [full annotation
+data](http://tesla.pcbi.upenn.edu/~alexaml/INFERNO/full_INFERNO_annotations.tar.gz) is around
+130Gb compressed and expands to around 320Gb of annotation data.
 
+To run the pipeline, the following main programs are required:
 * Python v2.7.9 or a higher version of Python 2.7
 * bedtools v2.25.0 or greater version of bedtools v2
 * R 3.2.3
 * plink v1.90b2i or greater
 
-With this approach, you can run the full INFERNO pipeline using the INFERNO.py script:
+Additionally, the following packages are required:
+**For Python:**
+* argparse
+* subprocess
+* datetime
+* os
+* time
+* sys
+* glob
+* gzip
+* re
+* subprocess
+* copy
+* commands
+* pickle
+* math
+
+**For R:**
+* data.table
+* ggplot2
+* gplots
+* gtools
+* plyr
+* psych
+* coloc
+* RColorBrewer
+* reshape2
+* scales
+
+Here is the output of a sessionInfo() call for R package versions used to develop the pipeline:
+
+```R
+> sessionInfo()
+R version 3.2.3 (2015-12-10)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: CentOS release 6.9 (Final)
+
+locale:
+ [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C               LC_TIME=en_US.UTF-8       
+ [4] LC_COLLATE=en_US.UTF-8     LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+ [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                  LC_ADDRESS=C              
+[10] LC_TELEPHONE=C             LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] psych_1.7.3.21     coloc_2.3-1        BMA_3.18.6         rrcov_1.4-3       
+ [5] inline_0.3.14      robustbase_0.92-7  leaps_3.0          survival_2.41-3   
+ [9] MASS_7.3-45        colorspace_1.3-2   gtools_3.5.0       RColorBrewer_1.1-2
+[13] gplots_3.0.1       reshape2_1.4.2     scales_0.4.1       plyr_1.8.4        
+[17] ggplot2_2.2.1      data.table_1.10.4 
+
+loaded via a namespace (and not attached):
+ [1] pcaPP_1.9-61       Rcpp_0.12.10       compiler_3.2.3     DEoptimR_1.0-8    
+ [5] bitops_1.0-6       tools_3.2.3        nlme_3.1-131       tibble_1.3.4      
+ [9] gtable_0.2.0       lattice_0.20-35    rlang_0.1.2        Matrix_1.2-11     
+[13] parallel_3.2.3     mvtnorm_1.0-6      stringr_1.2.0      cluster_2.0.6     
+[17] caTools_1.17.1     stats4_3.2.3       grid_3.2.3         foreign_0.8-67    
+[21] gdata_2.17.0       magrittr_1.5       splines_3.2.3      mnormt_1.5-5      
+[25] KernSmooth_2.23-15 stringi_1.1.5      lazyeval_0.2.0     munsell_0.4.3     
+```
+
+#### Running the tool
+Then, there are two ways to run the pipeline. The more general approach is to make sure that
+python, bedtools, R, and plink are in your path. With this approach, you can run the full
+INFERNO pipeline using the INFERNO.py script:
 
 ```bash
 $ python INFERNO.py -h
