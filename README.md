@@ -11,6 +11,7 @@ signals. INFERNO comprehensively characterizes the relevant tissue contexts, tar
 downstream biological processes affected by functional variants. 
 
 ### Instructions for use:
+#### Obtaining source code and annotations:
 To use INFERNO, pull the source code from [the bitbucket
 repository](https://bitbucket.org/alexamlie/INFERNO/). The full processed annotation datasets
 used for the tool are [available for
@@ -26,6 +27,40 @@ $ tar -xzvf full_INFERNO_annotations.tar.gz
 $ cd full_INFERNO_annotations/
 $ ./update_config_file.sh
 ```
+
+#### Options in configuration file:
+To use the INFERNO pipeline, some arguments are given to the command line tool (see below), and some are set up in the configuration file, mostly for setting up where various data files are:
+
+Config file variable | Value
+-------------------- | -----
+Parameters for annotation overlaps |
+-------------------- | -----	  
+KG_POP		     | Desired 1,000 genomes population to use (EUR, AMR, ASN, AFR), EUR by default
+LD_THRESH	     | Threshold for R^2 values of the LD expansion (Default = 0.7)
+LD_AREA		     | Distance around each tag variant to check (Default = 500000)
+KG_DIR		     | The folder containing the sorted 1,000 genomes vcf files
+GENE_BED_FILE	     | Bed file containing exons of protein-coding genes
+KGXREF_FILE	     | Reference file to match exon IDs to gene names
+UNSTRANDED_PARTITION_DIR	 | Directory containing parsed partition information
+FANTOM5_DIR			 | Directory containing sorted FANTOM5 facet-level enhancer bed files
+ENHANCER_LOCUS_WINDOW		 | Base-pair window around FANTOM5 enhancer loci to look for overlaps (Default = 1000)
+FANTOM5_CORRELATION_FILE	 | File containing the correlation-based TSS targets of FANTOM5 enhancers
+ROADMAP_CHROMHMM_DIR		 | Directory containing the sorted bed files of ChromHMM states across Roadmap samples
+BEDTOOLS_BIN_DIR		 | Specific path to bedtools, or can be left undefined if you have bedtools in your path
+GTEX_DIR			 | Directory containing the sorted files of significant eQTL signals (for direct overlap)
+FACTORBOOK_FILE			 | If desired, the file containing the FactorBook TFBS annotations
+HOMER_MOTIF_BED_FILE		 | The bed file containing the positions of HOMER-identified TFBSs
+HOMER_MOTIF_PWM_FILE		 | The custom.motifs file containing the PWMs for each TF analyzed by HOMER
+HOMER_MOTIF_SEQ_FILE		 | The processed file containing the sequences of each HOMER TFBS, for delta PWM calculation
+DASHR_LOCUS_FILE		 | The path to the BED file containing DASHR small noncoding RNA loci
+TARGETSCAN_DIR			 | The path to the directory containing TargetScan miRNA binding site predictions
+F5_CLASSES			 | The text file containing the FANTOM5 tissue class assignments
+GTEX_CLASSES			 | The text file containing the GTEx tissue class assignments
+ROADMAP_CLASSES			 | The text file containing the Roadmap tissue class assignments
+Parameters for enhancer enrichment analysis |
+-------------------- | -----	  
+NUM_SAMPLES	     | The number of 
+
 
 Then, there are two ways to run the pipeline. The more general approach is to make sure that
 the following scripts are in your $PATH:
