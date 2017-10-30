@@ -157,37 +157,37 @@ in the above example):
 
 * logs/, which contains the main annotation overlap log as well as any bsub output logs
 * P-value and LD expansion outputs:
-** outprefix_pval_expanded_snps.txt: the full list of variants expanded by p-value, if this analysis is performed
-** outprefix_pruning/: the results of the LD pruning analysis on the p-value expanded variant set
-** ld_expansion/: the result of the LD expansion on either the LD pruned p-value expanded variants, or the input variants
+  ** outprefix_pval_expanded_snps.txt: the full list of variants expanded by p-value, if this analysis is performed
+  ** outprefix_pruning/: the results of the LD pruning analysis on the p-value expanded variant set
+  ** ld_expansion/: the result of the LD expansion on either the LD pruned p-value expanded variants, or the input variants
 
 * From the main INFERNO annotation overlaps (note that not all of these folders will be generated if you are missing some annotation data or skip some steps):
-** parameters/: this folder contains the parameter and specific command run for the annotation overlaps
-** closest_gene/: contains the closest genes to each variant
-** unstranded_genomic_partition/: contains the results of the genomic partition analysis (i.e. annotation of variants overlapping promoters, exons, etc)
-** fantom5_overlap/: variant overlap results with FANTOM5 enhancers
-** closest_fantom5_enh/: contains the closest FANTOM5 enhancers to each variant
-** correlation_enh_targets/: contains the correlation-based target genes of FANTOM5 enhancers with overlapping genetic variants
-** gtex_eqtl_overlap/: the results of the direct eQTL overlap analysis (**NOTE: do not use these results if you have summary statistics and can perform co-localization analysis**)
-** factorbook_overlap/: overlap with FactorBook TFBSs (these are essentially a subset of the HOMER TFBS annotations)
-** homer_motif_overlap/: overlap with the more comprehensive set of HOMER motifs, including PWM calculations
-** roadmap_chromhmm_states/: annotation of variants with Roadmap ChromHMM states across all tissues and cell types
-** dashr_ncrna_loci_overlap/: contains overlaps with [DASHR](http://dashr2.lisanwanglab.org/) small noncoding RNA loci
-** targetscan_miRNA_overlap/: contains overlaps with predicted miRNA binding sites from TargetScan
+  ** parameters/: this folder contains the parameter and specific command run for the annotation overlaps
+  ** closest_gene/: contains the closest genes to each variant
+  ** unstranded_genomic_partition/: contains the results of the genomic partition analysis (i.e. annotation of variants overlapping promoters, exons, etc)
+  ** fantom5_overlap/: variant overlap results with FANTOM5 enhancers
+  ** closest_fantom5_enh/: contains the closest FANTOM5 enhancers to each variant
+  ** correlation_enh_targets/: contains the correlation-based target genes of FANTOM5 enhancers with overlapping genetic variants
+  ** gtex_eqtl_overlap/: the results of the direct eQTL overlap analysis (**NOTE: do not use these results if you have summary statistics and can perform co-localization analysis**)
+  ** factorbook_overlap/: overlap with FactorBook TFBSs (these are essentially a subset of the HOMER TFBS annotations)
+  ** homer_motif_overlap/: overlap with the more comprehensive set of HOMER motifs, including PWM calculations
+  ** roadmap_chromhmm_states/: annotation of variants with Roadmap ChromHMM states across all tissues and cell types
+  ** dashr_ncrna_loci_overlap/: contains overlaps with [DASHR](http://dashr2.lisanwanglab.org/) small noncoding RNA loci
+  ** targetscan_miRNA_overlap/: contains overlaps with predicted miRNA binding sites from TargetScan
 
 * summaries/: this folder contains various summaries of annotation overlaps in each tissue class; these files are used for further analysis including enrichment sampling
 
 * analysis_results/: this folder contains all the results from the R analysis script which performs summarization and visualization. This contains the following subfolders, each of which is further split into plots/ and tables/ folders:
-** ld_stats/: visualizations of the LD expansion statistics for this analysis
-** unstranded_genomic_partition/: visualizations of the genomic partition results
-** fantom5_overlap/: visualizations of various characteristics of the FANTOM5 enhancer overlap results
-** closest_fantom5_enhs/: analysis of closest FANTOM5 enhancers
-** gtex_eqtl_overlap/: results from direct eQTL overlap with GTEx data. Again, **do not use these results if you perform co-localization analysis**
-** factorbook_overlap/: analysis of FactorBook TFBS overlaps
-** homer_motif_overlap/: visualizations and analysis of HOMER TFBS results
-** targetscan_miRNA_overlap/: analysis of miRNA binding site overlaps from TargetScan
-** fantom5_roadmap_overlap/: integrative analysis of FANTOM5 and Roadmap enhancer overlaps
-** fantom5_eqtl_chromHMM_overlap/: integrative analysis of FANTOM5 and Roadmap enhancer overlaps with direct GTEx eQTL overlaps
+  ** ld_stats/: visualizations of the LD expansion statistics for this analysis
+  ** unstranded_genomic_partition/: visualizations of the genomic partition results
+  ** fantom5_overlap/: visualizations of various characteristics of the FANTOM5 enhancer overlap results
+  ** closest_fantom5_enhs/: analysis of closest FANTOM5 enhancers
+  ** gtex_eqtl_overlap/: results from direct eQTL overlap with GTEx data. Again, **do not use these results if you perform co-localization analysis**
+  ** factorbook_overlap/: analysis of FactorBook TFBS overlaps
+  ** homer_motif_overlap/: visualizations and analysis of HOMER TFBS results
+  ** targetscan_miRNA_overlap/: analysis of miRNA binding site overlaps from TargetScan
+  ** fantom5_roadmap_overlap/: integrative analysis of FANTOM5 and Roadmap enhancer overlaps
+  ** fantom5_eqtl_chromHMM_overlap/: integrative analysis of FANTOM5 and Roadmap enhancer overlaps with direct GTEx eQTL overlaps
 
 ### Other instructions:
 To perform pathway analysis using WebGestalt on any list of target genes, use the 'genesymbol'
