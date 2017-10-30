@@ -157,7 +157,6 @@ in the above example):
 
 * Item 1
 * Item 2
-  * Item 2a
     * Item 2b
 
 * logs/, which contains the main annotation overlap log as well as any bsub output logs
