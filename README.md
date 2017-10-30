@@ -33,8 +33,7 @@ To use the INFERNO pipeline, some arguments are given to the command line tool (
 
 Config file variable | Value
 -------------------- | -----
-Parameters for annotation overlaps |
--------------------- | -----	  
+**Parameters for annotation overlaps** |
 KG_POP		     | Desired 1,000 genomes population to use (EUR, AMR, ASN, AFR), EUR by default
 LD_THRESH	     | Threshold for R^2 values of the LD expansion (Default = 0.7)
 LD_AREA		     | Distance around each tag variant to check (Default = 500000)
@@ -57,9 +56,29 @@ TARGETSCAN_DIR			 | The path to the directory containing TargetScan miRNA bindin
 F5_CLASSES			 | The text file containing the FANTOM5 tissue class assignments
 GTEX_CLASSES			 | The text file containing the GTEx tissue class assignments
 ROADMAP_CLASSES			 | The text file containing the Roadmap tissue class assignments
-Parameters for enhancer enrichment analysis |
--------------------- | -----	  
-NUM_SAMPLES	     | The number of 
+**Parameters for enhancer enrichment analysis** |
+NUM_SAMPLES	     | The number of control variant sets to sample (Default = 10,000)
+MAF_BIN_SIZE	     | The size of the bins to group variants by minor allele frequency (Default = 0.01)
+DIST_ROUND	     | The rounding constant / bin size for distance to the nearest TSS (Default = 1000)
+DIST_THRESHOLD	     | An upper threshold on the distance to the nearest TSS, after which all variants are grouped together as 'high' (Default = "Inf" -> no limit)
+LD_PARTNER_THRESHOLD	     | An upper threshold on the number of LD partners, after which all variants are grouped together as 'high' (Default = "Inf" -> no limit)
+BG_SNP_INFOF		     | The file containing the sampling characteristics for all variants (see below for generation)
+LD_SETS_DIR		     | The directory containing the precomputed sets of LD blocks for all variants
+REF_SUMMARY_DIR		     | The directory containing the summary files of annotation overlaps for all 1,000 genomes variants
+**Parameters for co-localization analysis** |
+COLOC_H4_THRESH	 | The threshold on P(H_4) to define a strong colocalization signal (Default = 0.5)
+COLOC_ABF_THRESH | The threshold on the amount of cumulative ABF density that should be accounted for by expansion (Default = 0.5)
+LOCUSZOOM_PATH	 | If desired, the direct path to the locusZoom executable to generate GWAS and eQTL locusZoom plots for strong colocalization signals
+COLOC_GTEX_DIR 	 | The directory containing the full GTEx dataset (not just the significant eQTLs, but all associations)
+GTEX_SAMPLE_SIZEF  | The csv containing the GTEx sample sizes for each eQTL dataset, for COLOC
+GTEX_RSID_MATCH	   | The file that is used to cross-reference GTEx IDs with rsIDs
+HG19_ENSEMBL_REF_FILE	 | The file that is used to cross-reference Ensembl gene IDs with gene names
+RELEVANT_CLASSES	 | The set of tissue categories that you especially care about, if any. There must be no spaces in this, or the script breaks! (Default = "'Blood','Brain','Connective Tissue'"). Follow the formatting of the default argument to make sure it gets parsed correctly
+**Parameters for lncRNA correlation analysis** |
+GTEX_EXPR_DIR	 | The directory containing the parsed RNAseq data (see below)
+SAMPLE_INFO_FILE | The file containing the GTEx sample attributes to match IDs with tissues
+GENCODE_LNCRNA_FILE    | The file containing the GENCODE lncRNA annotations, used to detect lncRNA eQTL targets
+COR_THRESH	       | The absolute value threshold on Pearson and Spearman correlation to define strong lncRNA targets (Default = 0.5)
 
 
 Then, there are two ways to run the pipeline. The more general approach is to make sure that
@@ -322,6 +341,28 @@ $ python summarize_ld_maf_dist_results.py --ld_threshold 0.7 /path/to/EUR_data/p
   /path/to/EUR_data/dist_to_tss/ /path/to/EUR_data/snp_maf_tss_ld_summary/
 ```
 
+Then, to generate annotation overlaps and summaries for all of these variants, all variants from 1,000 genomes were run through the pipeline:
+
+```bash
+$ cd /path/to/INFERNO/src/
+$ python expand_and_annotate_snps.py --loglevel save --kg_pop EUR --skip_ld_expansion --unstranded_partition_dir \
+   ~/data/refgenomes/hg19/unstranded_partitions/utr_annotations/final_files/ \
+   --fantom5_dir ~/data/FANTOM5/Enhancers/facet_expressed_enhancers/sorted/ --enhancer_locus_window 1000 --skip_closest_enh --skip_enh_summary --fantom5_correlation_file \
+   ~/data/FANTOM5/Enhancers/enhancer_tss_associations.bed --gtex_dir ~/data/GTEx/single_cell_sig_eqtls_v6/sorted/ --factorbook_file \
+   ~/data/factorbook/wgEncodeRegTfbsClusteredWithCellsV3.sorted.bed \
+   --roadmap_chromhmm_dir ~/data/roadmap/chromHMM/sorted/ --homer_motif_bed_file ~/data/HOMER_motifs/homer.sorted.KnownMotifs.hg19.bed --homer_motif_pwm_file \
+   ~/data/HOMER_motifs/custom.motifs \
+   --homer_motif_seq_file ~/data/HOMER_motifs/homer.sorted.KnownMotifs.hg19.sequence.txt ~/data/1000_genomes/phase1_release_v3/EUR/sorted_files/ \
+   ~/data/enhancer_snp_pipeline/input_data/no_indels_1kg_EUR_phase1_v3_snps.txt ~/data/enhancer_snp_pipeline/output/all_1kg_EUR_phase1_v3_snps_11_14_16/ all_1kg_EUR
+$ cd ../analysis_scripts/
+$ time ./large_scale_count_annotation_overlaps.sh -l 1000 -f ~/data/FANTOM5/Enhancers/fantom5_classes.txt -g ~/data/GTEx/gtex_classes.txt -r ~/data/roadmap/roadmap_classes.txt \
+  ~/data/enhancer_snp_pipeline/output/all_1kg_EUR_phase1_v3_snps_11_14_16/ 1.0 0 all_1kg_EUR ~/data/enhancer_snp_pipeline/output/all_1kg_EUR_phase1_v3_snps_11_14_16/summaries/
+$ cd ~/data/enhancer_snp_pipeline/output/all_1kg_EUR_phase1_v3_snps_11_14_16/summaries/
+$ time cut -f1-3,6 enh_locus_snps_1.0_ld_0_dist.txt | sort -u > uniq_class_enh_locus_snps.txt; \
+  time cut -f1-3,6 eqtl_snps_1.0_ld_0_dist.txt | sort -u > uniq_class_eqtl_snps.txt; \
+  time cut -f1-3,6 roadmap_hmm_snps_1.0_ld_0_dist.txt | sort -u > uniq_class_roadmap_hmm_snps.txt
+```
+
 #### Unstranded genomic partition:
 Tables of UCSC genes were downloaded from the UCSC Table Browser, and only chr1-22, X and Y are
 used in INFERNO. The 5’ UTR exons and introns, 3’ UTR exons and introns, and exons and introns
@@ -385,8 +426,16 @@ gtex_download_and_sort_full_v6p_data.sh in the data preprocessing/ folder.
 For the lncRNA correlation analysis, RNA-seq read per kilobase per million (RPKM) values across
 all 44 tissues were
 [downloaded](http://gtexportal.org/static/datasets/gtex_analysis_v6p/rna_seq_data/GTEx_Analysis_v6p_RNA-seq_RNA-SeQCv1.1.8_gene_rpkm.gct.gz)
-and extracted from
+from
 http://gtexportal.org/static/datasets/gtex_analysis_v6p/rna_seq_data/GTEx_Analysis_v6p_RNA-seq_RNA-SeQCv1.1.8_gene_rpkm.gct.gz.
+
+Then, a few pre-processing scripts were used to parse these for use in the correlation script:
+
+```bash
+$ cd /path/to/INFERNO/data_preprocessing/
+$ python find_ensembl_genes_by_chr.py /path/to/hg19_reference/ensembl_hg19_genes.txt /path/to/RNAseq_output_dir/
+$ ./all_chr_gtex_expression_filter.sh /path/to/RNAseq_output_dir/ /path/to/GTEx_Analysis_v6_RNA-seq_RNA-SeQCv1.1.8_gene_rpkm.gct.gz
+```
 
 To identify lncRNA eQTL targets, the GENCODE lncRNA annotations were
 [downloaded](ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_19/gencode.v19.long_noncoding_RNAs.gtf.gz)
