@@ -192,6 +192,21 @@ in the above example):
     * fantom5_roadmap_overlap/: integrative analysis of FANTOM5 and Roadmap enhancer overlaps
     * fantom5_eqtl_chromHMM_overlap/: integrative analysis of FANTOM5 and Roadmap enhancer overlaps with direct GTEx eQTL overlaps
 
+* background_enh_sampling_match_and_expand/: this folder contains the results of the enhancer sampling analysis
+    * plots/: contains many visualizations of the sampling results. One important
+      characteristic is that the plots with '\_collapsed\_' in the name refer to the sampling
+      analysis where multiple overlapping variants in one LD block only contribute one overlap
+      count, and file names without it refer to the analysis where multiple variants always are
+      counted individually, even if they are in the same LD block. The main visualization used
+      for this analysis is
+      outprefix_collapsed_annotation_by_tissue_bh_pval_heatmap_with_text.pdf, which contains
+      the collapsed analysis with multiple testing corrected p-values. **INFERNO will report
+      raw enrichment p-values, but these should not be used for measuring significance without
+      multiple testing correction!**
+        * input_sampling/: this contains diagnostic plots for the sampling against the input variants
+	* ld_collapsed_split_tag_regions/: this folder contains plots for the sampling enrichment analysis using collapsed LD blocks for individual tag regions, with subfolders for each specific region
+	* split_tag_regions/: this folder contains plots for the sampling analysis without collapsing by LD blocks for individual tag regions
+    
 ### Other instructions:
 To perform pathway analysis using WebGestalt on any list of target genes, use the 'genesymbol'
 option.
