@@ -155,6 +155,11 @@ After the pipeline runs, several folders and files containing output tables and 
 generated, where outprefix is the last argument to the INFERNO script ("SCZ2_128_top_variants"
 in the above example):
 
+* Item 1
+* Item 2
+  * Item 2a
+    * Item 2b
+
 * logs/, which contains the main annotation overlap log as well as any bsub output logs
 * P-value and LD expansion outputs:
   * outprefix_pval_expanded_snps.txt: the full list of variants expanded by p-value, if this analysis is performed
