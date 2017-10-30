@@ -155,9 +155,6 @@ After the pipeline runs, several folders and files containing output tables and 
 generated, where outprefix is the last argument to the INFERNO script ("SCZ2_128_top_variants"
 in the above example):
 
-* Item 1
-* Item 2
-
 * logs/, which contains the main annotation overlap log as well as any bsub output logs
 * P-value and LD expansion outputs:
     * outprefix_pval_expanded_snps.txt: the full list of variants expanded by p-value, if this analysis is performed
@@ -206,7 +203,15 @@ in the above example):
         * input_sampling/: this contains diagnostic plots for the sampling against the input variants
 	* ld_collapsed_split_tag_regions/: this folder contains plots for the sampling enrichment analysis using collapsed LD blocks for individual tag regions, with subfolders for each specific region
 	* split_tag_regions/: this folder contains plots for the sampling analysis without collapsing by LD blocks for individual tag regions
-    
+    * samples/: this (very large) folder contains tables of the specific variants sampled
+      against the input as well as expanded variants, and also contains files describing the
+      specific LD blocks and tag regions for each sampled variant. These files are mostly just
+      index tables for the R script to use and are not very informative to directly look at
+    * tables/: this contains easy to parse tables of the outputs of the various steps of the
+      sampling analysis, including raw and corrected p-values for both the cross-tag-region
+      analysis and the split tag region analyses as well as the LD-collapsed and non-collapsed
+      analyses
+	
 ### Other instructions:
 To perform pathway analysis using WebGestalt on any list of target genes, use the 'genesymbol'
 option.
