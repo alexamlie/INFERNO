@@ -14,8 +14,7 @@ analyze_factorbook_overlap <- function(prefix, datadir, outdir, out_subtitle, r2
     if(nrow(factorbook_df)==0) {
         cat("No FactorBook TFBS overlaps found in this dataset!\n")
         ## write a table
-
-        return
+        return("No FactorBook TFBS overlaps found in this dataset!")
     } 
 
     unique_snp_overlap_df <- factorbook_df[!(duplicated(factorbook_df[,c("rsID", "tag_name", "tfbs_chr", "tfbs_start", "tfbs_end", "tf", "score", "cells")])),]
