@@ -78,7 +78,7 @@ else
     
     ## count the total number of SNPs
     UNIQ_SNPS=`tail -n +2 ${DATADIR}/ld_expansion/${PREFIX}_${LD_THRESH}_ld_cutoff_snps_within_${DIST_THRESH}.txt | cut -f2 | sort -u | wc -l`
-    echo "${UNIQ_SNPS} unique SNPs found by LD expansion"
+    echo "${UNIQ_SNPS} unique SNPs found by LD expansion" | tee ${OUTDIR}/${PREFIX}_annotation_overlap_summary.txt
 
     ## count the number in each tag region (don't need to refer to the tag region because they
     ## will all be in this file)
@@ -120,7 +120,7 @@ else
 	    
 	ENH_SNPS=`cut -f1-2 ${OUTDIR}/enh_mid_snps_${PARAM_STRING}.txt | sort -u | wc -l | cut -d' ' -f1`
 	ENH_PROP=`echo "scale=8; ${ENH_SNPS} / ${UNIQ_SNPS}" | bc`
-	echo "Number of SNPs overlapping enhancer by midpoint: ${ENH_SNPS} (${ENH_PROP} of total)"
+	echo "Number of SNPs overlapping enhancer by midpoint: ${ENH_SNPS} (${ENH_PROP} of total)" | tee ${OUTDIR}/${PREFIX}_annotation_overlap_summary.txt
     fi
 
     if [[ ! -z "${LOCUS_WINDOW}" && ${F5_FLAG} ]]; then
@@ -155,7 +155,7 @@ else
 	    
 	ENH_SNPS=`cut -f1-2 ${OUTDIR}/enh_locus_snps_${PARAM_STRING}.txt | sort -u | wc -l | cut -d' ' -f1`
 	ENH_PROP=`echo "scale=8; ${ENH_SNPS} / ${UNIQ_SNPS}" | bc`
-	echo "Number of SNPs overlapping extended enhancer locus: ${ENH_SNPS} (${ENH_PROP} of total)"
+	echo "Number of SNPs overlapping extended enhancer locus: ${ENH_SNPS} (${ENH_PROP} of total)" | tee ${OUTDIR}/${PREFIX}_annotation_overlap_summary.txt
     fi
 
     ## number of SNPs with eQTL overlap:
@@ -190,7 +190,7 @@ else
 	
     EQTL_SNPS=`cut -f1-2 ${OUTDIR}/eqtl_snps_${PARAM_STRING}.txt | sort -u | wc -l | cut -d' ' -f1`
     EQTL_PROP=`echo "scale=8; ${EQTL_SNPS}/${UNIQ_SNPS}" | bc`
-    echo "Number of SNPs that are eQTLs by direct overlap: ${EQTL_SNPS} (${EQTL_PROP} of total)"
+    echo "Number of SNPs that are eQTLs by direct overlap: ${EQTL_SNPS} (${EQTL_PROP} of total)" | tee ${OUTDIR}/${PREFIX}_annotation_overlap_summary.txt
 
     ## number of SNPs with roadmap enhancer state
     if [[ ! -e "${OUTDIR}/roadmap_hmm_snps_${PARAM_STRING}.txt" && ${RM_FLAG} ]]; then
@@ -225,7 +225,7 @@ else
 	
     HMM_SNPS=`cut -f1-2 ${OUTDIR}/roadmap_hmm_snps_${PARAM_STRING}.txt | sort -u | wc -l | cut -d' ' -f1`
     HMM_PROP=`echo "scale=8; ${HMM_SNPS}/${UNIQ_SNPS}" | bc`
-    echo "Number of SNPs that overlap a roadmap chromHMM enhancer state: ${HMM_SNPS} (${HMM_PROP} of total)"
+    echo "Number of SNPs that overlap a roadmap chromHMM enhancer state: ${HMM_SNPS} (${HMM_PROP} of total)" | tee ${OUTDIR}/${PREFIX}_annotation_overlap_summary.txt
 
     ## number of SNPs with factorbook overlap:
     ## currently, no further analysis is done of these SNPs..
@@ -235,7 +235,7 @@ else
 	fi
 	TFBS_SNPS=`wc -l ${OUTDIR}/factorbook_tfbs_snps_${PARAM_STRING}.txt | cut -d' ' -f1`
 	TFBS_PROP=`echo "scale=8; ${TFBS_SNPS} / ${UNIQ_SNPS}" | bc`
-	echo "Number of SNPs overlapping FactorBook TFBSs: ${TFBS_SNPS} (${TFBS_PROP} of total)"
+	echo "Number of SNPs overlapping FactorBook TFBSs: ${TFBS_SNPS} (${TFBS_PROP} of total)" | tee ${OUTDIR}/${PREFIX}_annotation_overlap_summary.txt
     fi
     
     ## number of SNPs with HOMER overlap
@@ -247,7 +247,7 @@ else
 	fi
 	TFBS_SNPS=`wc -l ${OUTDIR}/homer_tfbs_snps_${PARAM_STRING}.txt | cut -d' ' -f1`
 	TFBS_PROP=`echo "scale=8; ${TFBS_SNPS} / ${UNIQ_SNPS}" | bc`
-	echo "Number of SNPs overlapping HOMER-predicted TFBSs: ${TFBS_SNPS} (${TFBS_PROP} of total)"
+	echo "Number of SNPs overlapping HOMER-predicted TFBSs: ${TFBS_SNPS} (${TFBS_PROP} of total)" | tee ${OUTDIR}/${PREFIX}_annotation_overlap_summary.txt
     ## if not, try the overlap file
     elif [ -e "${DATADIR}/homer_motif_overlap/${PREFIX}_${LD_THRESH}_ld_cutoff_snps_within_${DIST_THRESH}_motif_overlap.txt" ]; then
 	if [ ! -e "${OUTDIR}/homer_tfbs_snps_${PARAM_STRING}.txt" ]; then
@@ -256,7 +256,7 @@ else
 	fi
 	TFBS_SNPS=`wc -l ${OUTDIR}/homer_tfbs_snps_${PARAM_STRING}.txt | cut -d' ' -f1`
 	TFBS_PROP=`echo "scale=8; ${TFBS_SNPS} / ${UNIQ_SNPS}" | bc`
-	echo "Number of SNPs overlapping HOMER-predicted TFBSs: ${TFBS_SNPS} (${TFBS_PROP} of total)"
+	echo "Number of SNPs overlapping HOMER-predicted TFBSs: ${TFBS_SNPS} (${TFBS_PROP} of total)" | tee ${OUTDIR}/${PREFIX}_annotation_overlap_summary.txt
     fi
     
     ## now look at combination overlap counts by category
@@ -478,9 +478,3 @@ else
     tail -n +2 ${OUTDIR}/tag_region_annotation_counts_${PARAM_STRING}.txt | sort -t$'\t' -k1,1 -k2,2 >> ${OUTDIR}/tag_region_annot_counts_sorted.txt
     mv ${OUTDIR}/tag_region_annot_counts_sorted.txt ${OUTDIR}/tag_region_annotation_counts_${PARAM_STRING}.txt    
 fi
-
-
-
-
-
-

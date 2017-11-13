@@ -32,6 +32,7 @@ if __name__=="__main__":
     parser.add_argument("--run_enhancer_sampling", action='store_true', help="If you want to run the enhancer bootstrapping analysis, provide this flag.")
     parser.add_argument("--run_gtex_coloc", action="store_true", help="If you want to run COLOC analysis of your summary statistics against GTEx eQTLs from 44 tissues (requires summary statistics)")
     parser.add_argument("--run_lncrna_correlation", action="store_true", help="If you want to analyze expression correlation of any lncRNAs identified by COLOC analysis (--run_gtex_coloc flag) against all other RNAseq-based GTEx genes to find lncRNA targets.")
+    parser.add_argument("--cluster_system", default="bsub", choices=['bsub', 'shell'], help="If running enhancer sampling, GTEx co-localization, and/or lncRNA correlation, this flag describes how those computationally intensive jobs will be run. The bsub option submits them as separate bsub jobs, while the shell option just runs them sequentially from the same shell as the other INFERNO.py analyses")
     ## required arguments 
     parser.add_argument("top_snpf", help="The tab separated file of the tag SNPs you want to analyze. Should be formatted with four columns: chromosome, rsID, region naming information, and position (in that order). IMPORTANT: Note that SNPs without dbSNP rsIDs should use 'chr-pos' naming format, not 'chr:pos', which is incompatible with this pipeline!")
     parser.add_argument("cfg_file", help="The configuration file containing paths to all the required functional annotation files. Should be formatted as a bash configuration file i.e. VARIABLE=DEFINTIION on each line.")
@@ -106,15 +107,24 @@ if __name__=="__main__":
         if pargs.run_enhancer_sampling:
             ## TODO: check that the config file has the right variables
             print "Submitting job for enhancer bootstrapping analysis"
-            subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+"_enh_bootstrapping", "-o",
-                            pargs.outdir+"/logs/"+pargs.outprefix+"_enh_bootstrapping.o%J", "-e",
-                            pargs.outdir+"/logs/"+pargs.outprefix+"_enh_bootstrapping.e%J",
-                            "./bsub_wrappers/enhancer_bootstrap_bsub_wrapper.sh",
-                            "./src/enhancer_only_sample_and_expand_matched_input_variants.R",
-                            config_vars["NUM_SAMPLES"], config_vars["MAF_BIN_SIZE"],
-                            config_vars["DIST_ROUND"], config_vars["DIST_THRESHOLD"],
-                            config_vars["LD_PARTNER_THRESHOLD"], config_vars["BG_SNP_INFOF"],
-                            config_vars["LD_SETS_DIR"], config_vars["REF_SUMMARY_DIR"], param_file])
+            if pargs.cluster_system=="bsub":
+                subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+"_enh_bootstrapping", "-o",
+                                    pargs.outdir+"/logs/"+pargs.outprefix+"_enh_bootstrapping.o%J", "-e",
+                                    pargs.outdir+"/logs/"+pargs.outprefix+"_enh_bootstrapping.e%J",
+                                    "./bsub_wrappers/enhancer_bootstrap_bsub_wrapper.sh",
+                                    "./src/enhancer_only_sample_and_expand_matched_input_variants.R",
+                                    config_vars["NUM_SAMPLES"], config_vars["MAF_BIN_SIZE"],
+                                    config_vars["DIST_ROUND"], config_vars["DIST_THRESHOLD"],
+                                    config_vars["LD_PARTNER_THRESHOLD"], config_vars["BG_SNP_INFOF"],
+                                    config_vars["LD_SETS_DIR"], config_vars["REF_SUMMARY_DIR"], param_file])
+            else:
+                subprocess.call(["./bsub_wrappers/enhancer_bootstrap_bsub_wrapper.sh",
+                                    "./src/enhancer_only_sample_and_expand_matched_input_variants.R",
+                                    config_vars["NUM_SAMPLES"], config_vars["MAF_BIN_SIZE"],
+                                    config_vars["DIST_ROUND"], config_vars["DIST_THRESHOLD"],
+                                    config_vars["LD_PARTNER_THRESHOLD"], config_vars["BG_SNP_INFOF"],
+                                    config_vars["LD_SETS_DIR"], config_vars["REF_SUMMARY_DIR"], param_file])
+                
     ## only run summary stats-based analyses if there is a summary file
     else:
         print "Running analysis using summary statistics file."
@@ -192,15 +202,23 @@ if __name__=="__main__":
         if pargs.run_enhancer_sampling:
             ## TODO: check config
             print "Submitting job for enhancer bootstrapping analysis"
-            subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+"_enh_bootstrapping", "-o",
-                             pargs.outdir+"/logs/"+pargs.outprefix+"_enh_bootstrapping.o%J", "-e",
-                             pargs.outdir+"/logs/"+pargs.outprefix+"_enh_bootstrapping.e%J",
-                             "./bsub_wrappers/enhancer_bootstrap_bsub_wrapper.sh",
-                             "./src/enhancer_only_sample_and_expand_matched_input_variants.R",
-                             config_vars["NUM_SAMPLES"], config_vars["MAF_BIN_SIZE"],
-                             config_vars["DIST_ROUND"], config_vars["DIST_THRESHOLD"],
-                             config_vars["LD_PARTNER_THRESHOLD"], config_vars["BG_SNP_INFOF"],
-                             config_vars["LD_SETS_DIR"], config_vars["REF_SUMMARY_DIR"], param_file])
+            if pargs.cluster_system=="bsub":
+                subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+"_enh_bootstrapping", "-o",
+                                    pargs.outdir+"/logs/"+pargs.outprefix+"_enh_bootstrapping.o%J", "-e",
+                                    pargs.outdir+"/logs/"+pargs.outprefix+"_enh_bootstrapping.e%J",
+                                    "./bsub_wrappers/enhancer_bootstrap_bsub_wrapper.sh",
+                                    "./src/enhancer_only_sample_and_expand_matched_input_variants.R",
+                                    config_vars["NUM_SAMPLES"], config_vars["MAF_BIN_SIZE"],
+                                    config_vars["DIST_ROUND"], config_vars["DIST_THRESHOLD"],
+                                    config_vars["LD_PARTNER_THRESHOLD"], config_vars["BG_SNP_INFOF"],
+                                    config_vars["LD_SETS_DIR"], config_vars["REF_SUMMARY_DIR"], param_file])
+            else:
+                subprocess.call(["./bsub_wrappers/enhancer_bootstrap_bsub_wrapper.sh",
+                                    "./src/enhancer_only_sample_and_expand_matched_input_variants.R",
+                                    config_vars["NUM_SAMPLES"], config_vars["MAF_BIN_SIZE"],
+                                    config_vars["DIST_ROUND"], config_vars["DIST_THRESHOLD"],
+                                    config_vars["LD_PARTNER_THRESHOLD"], config_vars["BG_SNP_INFOF"],
+                                    config_vars["LD_SETS_DIR"], config_vars["REF_SUMMARY_DIR"], param_file])
         
         ## submit a job for colocalization analysis
         ## first check that all the required arguments are present
@@ -214,7 +232,8 @@ if __name__=="__main__":
                 coloc_input_f = pargs.top_snpf
 
             if "LOCUSZOOM_PATH" in config_vars:
-                subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+"_gtex_colocalization",
+                if pargs.cluster_system=="bsub":
+                    subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+"_gtex_colocalization",
                                  "-o", pargs.outdir+"/logs/"+pargs.outprefix+"_gtex_coloc.o%J",
                                  "-e", pargs.outdir+"/logs/"+pargs.outprefix+"_gtex_coloc.e%J",
                                  "./bsub_wrappers/gtex_coloc_bsub_wrapper.sh",
@@ -230,37 +249,77 @@ if __name__=="__main__":
                                  str(pargs.allele2_column), str(pargs.maf_column),
                                  str(pargs.case_prop), str(pargs.sample_size),
                                  config_vars["LOCUSZOOM_PATH"]])
+                else:
+                    subprocess.call(["./bsub_wrappers/gtex_coloc_bsub_wrapper.sh",
+                                    "./src/gtex_gwas_colocalization_analysis.R",
+                                    pargs.outdir+"/gtex_gwas_colocalization_analysis/",
+                                    param_file, config_vars["COLOC_H4_THRESH"],
+                                    config_vars["COLOC_ABF_THRESH"], coloc_input_f, 
+                                    pargs.summary_file, config_vars["COLOC_GTEX_DIR"],
+                                    config_vars["GTEX_SAMPLE_SIZEF"], config_vars["GTEX_CLASSES"],
+                                    config_vars["GTEX_RSID_MATCH"], config_vars["HG19_ENSEMBL_REF_FILE"],
+                                    config_vars["RELEVANT_CLASSES"], str(pargs.rsid_column), str(pargs.pos_column),
+                                    str(pargs.pval_column), str(pargs.chr_column), str(pargs.allele1_column),
+                                    str(pargs.allele2_column), str(pargs.maf_column),
+                                    str(pargs.case_prop), str(pargs.sample_size),
+                                    config_vars["LOCUSZOOM_PATH"]])
             else:
-                subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+"_gtex_colocalization",
-                                 "-o", pargs.outdir+"/logs/"+pargs.outprefix+"_gtex_coloc.o%J",
-                                 "-e", pargs.outdir+"/logs/"+pargs.outprefix+"_gtex_coloc.e%J",
-                                 "./bsub_wrappers/gtex_coloc_bsub_wrapper.sh",
-                                 "./src/gtex_gwas_colocalization_analysis.R",
-                                 pargs.outdir+"/gtex_gwas_colocalization_analysis/",
-                                 param_file, config_vars["COLOC_H4_THRESH"],
-                                 config_vars["COLOC_ABF_THRESH"], coloc_input_f, 
-                                 pargs.summary_file, config_vars["COLOC_GTEX_DIR"],
-                                 config_vars["GTEX_SAMPLE_SIZEF"], config_vars["GTEX_CLASSES"],
-                                 config_vars["GTEX_RSID_MATCH"], config_vars["HG19_ENSEMBL_REF_FILE"],
-                                 config_vars["RELEVANT_CLASSES"], str(pargs.rsid_column), str(pargs.pos_column),
-                                 str(pargs.pval_column), str(pargs.chr_column), str(pargs.allele1_column),
-                                 str(pargs.allele2_column), str(pargs.maf_column),
-                                 str(pargs.case_prop), str(pargs.sample_size)])
+                if pargs.cluster_system=="bsub":
+                    subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+"_gtex_colocalization",
+                                        "-o", pargs.outdir+"/logs/"+pargs.outprefix+"_gtex_coloc.o%J",
+                                        "-e", pargs.outdir+"/logs/"+pargs.outprefix+"_gtex_coloc.e%J",
+                                    "./bsub_wrappers/gtex_coloc_bsub_wrapper.sh",
+                                    "./src/gtex_gwas_colocalization_analysis.R",
+                                    pargs.outdir+"/gtex_gwas_colocalization_analysis/",
+                                    param_file, config_vars["COLOC_H4_THRESH"],
+                                    config_vars["COLOC_ABF_THRESH"], coloc_input_f, 
+                                    pargs.summary_file, config_vars["COLOC_GTEX_DIR"],
+                                    config_vars["GTEX_SAMPLE_SIZEF"], config_vars["GTEX_CLASSES"],
+                                    config_vars["GTEX_RSID_MATCH"], config_vars["HG19_ENSEMBL_REF_FILE"],
+                                    config_vars["RELEVANT_CLASSES"], str(pargs.rsid_column), str(pargs.pos_column),
+                                    str(pargs.pval_column), str(pargs.chr_column), str(pargs.allele1_column),
+                                    str(pargs.allele2_column), str(pargs.maf_column),
+                                    str(pargs.case_prop), str(pargs.sample_size)])
+                else:
+                    subprocess.call(["./bsub_wrappers/gtex_coloc_bsub_wrapper.sh",
+                                    "./src/gtex_gwas_colocalization_analysis.R",
+                                    pargs.outdir+"/gtex_gwas_colocalization_analysis/",
+                                    param_file, config_vars["COLOC_H4_THRESH"],
+                                    config_vars["COLOC_ABF_THRESH"], coloc_input_f, 
+                                    pargs.summary_file, config_vars["COLOC_GTEX_DIR"],
+                                    config_vars["GTEX_SAMPLE_SIZEF"], config_vars["GTEX_CLASSES"],
+                                    config_vars["GTEX_RSID_MATCH"], config_vars["HG19_ENSEMBL_REF_FILE"],
+                                    config_vars["RELEVANT_CLASSES"], str(pargs.rsid_column), str(pargs.pos_column),
+                                    str(pargs.pval_column), str(pargs.chr_column), str(pargs.allele1_column),
+                                    str(pargs.allele2_column), str(pargs.maf_column),
+                                    str(pargs.case_prop), str(pargs.sample_size)])
 
+                    
             if pargs.run_lncrna_correlation:
                 ## TODO: check config
                 print "Submitting lncRNA correlation analysis job"
-                subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+"_lncRNA_correlation",
-                                 "-o", pargs.outdir+"/logs/"+pargs.outprefix+"_gtex_lncRNA_corr.o%J",
-                                 "-e", pargs.outdir+"/logs/"+pargs.outprefix+"_gtex_lncRNA_corr.e%J",
-                                 "-w", "done("+pargs.outprefix+"_gtex_colocalization)",
-                                 "./bsub_wrappers/gtex_lncRNA_corr_bsub_wrapper.sh",
-                                 "./src/lncRNA_gtex_correlation.R",
-                                 pargs.outdir+"/gtex_lncRNA_correlation_analysis/",
-                                 pargs.outdir+"/gtex_gwas_colocalization_analysis/tables/"+pargs.outprefix+"_gtex_coloc_summaries.txt",
-                                 config_vars["GTEX_EXPR_DIR"], config_vars["SAMPLE_INFO_FILE"],
-                                 config_vars["GENCODE_LNCRNA_FILE"], config_vars["F5_CLASSES"],
-                                 config_vars["GTEX_CLASSES"], config_vars["ROADMAP_CLASSES"],
-                                 config_vars["COLOC_H4_THRESH"], config_vars["COR_THRESH"]])
+                if pargs.cluster_system=="bsub":
+                    subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+"_lncRNA_correlation",
+                                    "-o", pargs.outdir+"/logs/"+pargs.outprefix+"_gtex_lncRNA_corr.o%J",
+                                    "-e", pargs.outdir+"/logs/"+pargs.outprefix+"_gtex_lncRNA_corr.e%J",
+                                    "-w", "done("+pargs.outprefix+"_gtex_colocalization)",
+                                    "./bsub_wrappers/gtex_lncRNA_corr_bsub_wrapper.sh",
+                                    "./src/lncRNA_gtex_correlation.R",
+                                    pargs.outdir+"/gtex_lncRNA_correlation_analysis/",
+                                    pargs.outdir+"/gtex_gwas_colocalization_analysis/tables/"+pargs.outprefix+"_gtex_coloc_summaries.txt",
+                                    config_vars["GTEX_EXPR_DIR"], config_vars["SAMPLE_INFO_FILE"],
+                                    config_vars["GENCODE_LNCRNA_FILE"], config_vars["F5_CLASSES"],
+                                    config_vars["GTEX_CLASSES"], config_vars["ROADMAP_CLASSES"],
+                                    config_vars["COLOC_H4_THRESH"], config_vars["COR_THRESH"]])
+                else:
+                    subprocess.call(["./bsub_wrappers/gtex_lncRNA_corr_bsub_wrapper.sh",
+                                    "./src/lncRNA_gtex_correlation.R",
+                                    pargs.outdir+"/gtex_lncRNA_correlation_analysis/",
+                                    pargs.outdir+"/gtex_gwas_colocalization_analysis/tables/"+pargs.outprefix+"_gtex_coloc_summaries.txt",
+                                    config_vars["GTEX_EXPR_DIR"], config_vars["SAMPLE_INFO_FILE"],
+                                    config_vars["GENCODE_LNCRNA_FILE"], config_vars["F5_CLASSES"],
+                                    config_vars["GTEX_CLASSES"], config_vars["ROADMAP_CLASSES"],
+                                    config_vars["COLOC_H4_THRESH"], config_vars["COR_THRESH"]])
+                    
         else:
             print "Can't do colocalization without all the required columns"    

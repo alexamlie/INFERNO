@@ -17,8 +17,7 @@ repository](https://bitbucket.org/alexamlie/INFERNO/). The full processed annota
 used for the tool are [available for
 download](http://tesla.pcbi.upenn.edu/~alexaml/INFERNO/full_INFERNO_annotations.tar.gz). There
 is also a [web server](http://inferno.lisanwanglab.org) that runs a subset of the INFERNO
-analyses. The full INFERNO pipeline currently assumes you are running it on an interactive node
-of a bsub-based cluster system. To extract the annotation data and set up the configuration
+analyses. The full INFERNO pipeline can be run on a bsub-based cluster system (default) or through direct execution, using the '--cluster_system' flag. To extract the annotation data and set up the configuration
 file, run these steps:
 
 ```bash
