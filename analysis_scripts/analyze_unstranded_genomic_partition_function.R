@@ -27,9 +27,29 @@ analyze_unstranded_genomic_partition <- function(prefix, datadir, outdir, out_su
     
     partition_df$type <- factor(partition_df$type, levels=partition_order)
 
-    partition_outf <- paste0(outdir, 'tables/', prefix, '_unstranded_genomic_partition_', r2_thresh, "_ld_", dist_thresh, "_dist.txt")
+    partition_outf <- paste0(outdir, 'tables/', prefix, '_unstranded_genomic_partition_summary_', r2_thresh, "_ld_", dist_thresh, "_dist.txt")
     write.table(partition_df, file=partition_outf, quote=F, sep="\t",
                 row.names=F, col.names=T)
+
+    ## also read in the full results
+    entrywise_f <- paste0(datadir, prefix, "_", r2_thresh, "_ld_cutoff_snps_within_",
+                          dist_thresh, "_unstranded_entrywise_partition.txt") 
+
+    entrywise_df <- read.table(entrywise_f, header=T, sep="\t", quote="", as.is=T)
+    ## replace the labels with more informative ones
+    entrywise_df$partition[entrywise_df$partition=="fp_utr_exon"] <- "5' UTR Exon"
+    entrywise_df$partition[entrywise_df$partition=="fp_utr_intron"] <- "5' UTR Intron"
+    entrywise_df$partition[entrywise_df$partition=="tp_utr_exon"] <- "3' UTR Exon"
+    entrywise_df$partition[entrywise_df$partition=="tp_utr_intron"] <- "3' UTR Intron"
+    entrywise_df$partition[entrywise_df$partition=="promoter"] <- "Promoter"
+    entrywise_df$partition[entrywise_df$partition=="exon"] <- "mRNA Exon"
+    entrywise_df$partition[entrywise_df$partition=="intron"] <- "mRNA Intron"
+    entrywise_df$partition[entrywise_df$partition=="repeat"] <- "Repeat"
+    entrywise_df$partition[entrywise_df$partition=="intergenic"] <- "Intergenic"
+
+    entrywise_outf <- paste0(outdir, 'tables/', prefix, '_unstranded_genomic_partition_', r2_thresh, "_ld_", dist_thresh, "_dist.txt")
+    write.table(entrywise_df, file=entrywise_outf, quote=F, sep="\t",
+                row.names=F, col.names=T)    
     
     ## Visualize genomic partition
     make_graphic(paste0(outdir, 'plots/', prefix, '_stacked_partition_props_',

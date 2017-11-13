@@ -182,11 +182,11 @@ plot_title <- function(title_string, r2_thresh, dist_thresh, out_subtitle, skip_
 ## parameter_file <- "/home/alexaml/data/enhancer_snp_pipeline/output/IGAP_pval_expanded_ld_pruned_no_HLA_DSG2/parameters/08_26_2016_16:39:10_parameters.txt"
 ## out_subtitle <- "IGAP top hits, p-value expanded and LD pruned"
 
-## ## full analysis with correct beta directions
+## full analysis with correct beta directions
 ## parameter_file <- "/home/alexaml/data/enhancer_snp_pipeline/output/IGAP_same_dir_pval_expanded_ld_pruned_no_HLA_DSG2/parameters/12_12_2016_12:51:51_parameters.txt"
-## ## ## to do the partitioning
-## ## parameter_file <- "/home/alexaml/data/enhancer_snp_pipeline/output/IGAP_same_dir_pval_expanded_ld_pruned_no_HLA_DSG2/parameters/02_09_2017_11:58:39_parameters.txt"
-## out_subtitle <- "IGAP top hits, p-value expanded and LD pruned"
+## to do the partitioning
+parameter_file <- "/home/alexaml/data/enhancer_snp_pipeline/output/IGAP_same_dir_pval_expanded_ld_pruned_no_HLA_DSG2/parameters/02_09_2017_11:58:39_parameters.txt"
+out_subtitle <- "IGAP top hits, p-value expanded and LD pruned"
 
 ## ## LD pruning of suggestive regions
 ## ## parameter_file <- "/home/alexaml/data/enhancer_snp_pipeline/output/IGAP_suggestive_pval_expanded_ld_pruned/parameters/06_29_2016_15:55:32_parameters.txt"
@@ -203,9 +203,9 @@ plot_title <- function(title_string, r2_thresh, dist_thresh, out_subtitle, skip_
 ## parameter_file <- "/home/alexaml/data/psp_enhancer_analysis/output/PSP_HRC_top_region_ld_pruned/parameters/08_25_2016_13:15:21_parameters.txt"
 ## out_subtitle <- "PSP HRC analysis, LD pruning"
 
-## LD pruning
-parameter_file <- "/home/alexaml/data/psp_enhancer_analysis/output/PSP_HRC_030617/parameters/03_06_2017_15:53:49_parameters.txt"
-out_subtitle <- "PSP HRC indiv top SNP analysis"
+## ## LD pruning
+## parameter_file <- "/home/alexaml/data/psp_enhancer_analysis/output/PSP_HRC_030617/parameters/03_06_2017_15:53:49_parameters.txt"
+## out_subtitle <- "PSP HRC indiv top SNP analysis"
 
 ## read in the parameters and make a named vector for reference
 parameter_tab <- read.table(parameter_file, header=F, sep="\t", quote="", as.is=T, col.names=c("param", "value"))
