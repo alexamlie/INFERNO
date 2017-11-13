@@ -107,6 +107,7 @@ if (!file.exists(bg_snp_info_f)) {
 dir.create(paste0(output_dir, "/samples/"), F, T)
 dir.create(paste0(output_dir, "/plots/"), F, T)
 dir.create(paste0(output_dir, "/tables/"), F, T)
+summary_file <- paste0(output_dir, '/tables/', param_ref[['outprefix']], '_sampling_summary.txt')
 
 {
 ## read in data:
@@ -1037,6 +1038,7 @@ rm(enh_overlap_mat, hmm_overlap_mat)
 empirical_pvals <- (bootstrap_count_mat+1) / (num_samples+1)
 dimnames(empirical_pvals) <- dimnames(input_annot_mat)
 cat(sum(empirical_pvals < 0.05), 'unadjusted tests were significant for combined region analysis\n')
+cat(sum(empirical_pvals < 0.05), 'unadjusted tests were significant for combined region analysis\n', file=summary_file, append=T)
 
 ## now correct these for multiple testing
 ## correct all the p-values using Benjamini-Hochberg correction together
@@ -1046,6 +1048,7 @@ bh_adj_pvals <- matrix(p.adjust(empirical_pvals, "BH"), nrow=nrow(empirical_pval
 dimnames(bh_adj_pvals) <- dimnames(empirical_pvals)
 
 cat(sum(bh_adj_pvals < 0.05), "adjusted tests were significant for combined tag region\n")
+cat(sum(bh_adj_pvals < 0.05), "adjusted tests were significant for combined tag region", file=summary_file, append=T)
 
 ## --------------
 ## split tag region analysis
@@ -1054,10 +1057,11 @@ cat(sum(bh_adj_pvals < 0.05), "adjusted tests were significant for combined tag 
 split_empirical_pvals <- (bootstrap_region_count_arr+1) / (num_samples+1)
 dimnames(split_empirical_pvals) <- dimnames(input_region_annot_arr)
 cat(sum(split_empirical_pvals < 0.05), 'unadjusted tests were significant for split tag region analysis\n')
+cat(sum(split_empirical_pvals < 0.05), 'unadjusted tests were significant for split tag region analysis', file=summary_file, append=T)
 
 ## do this split by region
 for(i in seq(dim(split_empirical_pvals)[3])) {
-    cat("Significant unadjusted tests for", dimnames(split_empirical_pvals)[[3]][i], "\n")
+    cat("Significant unadjusted tests for", dimnames(split_empirical_pvals)[[3]][i], "\n")    
     cat(sum(split_empirical_pvals[,,i] < 0.05), "\n")
 }
 
@@ -1069,6 +1073,7 @@ split_bh_adj_pvals <- aperm(aaply(split_empirical_pvals, 3, function(tag_mat) {
 }), perm=c(2, 3, 1))
 
 cat(sum(split_bh_adj_pvals < 0.05), "adjusted tests were significant for split tag region analysis\n")
+cat(sum(split_bh_adj_pvals < 0.05), "adjusted tests were significant for split tag region analysis", file=summary_file, append=T)
 
 ## do this split by region
 for(i in seq(dim(split_bh_adj_pvals)[3])) {
@@ -1085,6 +1090,7 @@ for(i in seq(dim(split_bh_adj_pvals)[3])) {
 collapsed_empirical_pvals <- (collapsed_bootstrap_count_mat+1) / (num_samples+1)
 dimnames(collapsed_empirical_pvals) <- dimnames(input_annot_mat)
 cat(sum(collapsed_empirical_pvals < 0.05), 'unadjusted tests were significant for LD collapsed combined region analysis\n')
+cat(sum(collapsed_empirical_pvals < 0.05), 'unadjusted tests were significant for LD collapsed combined region analysis', file=summary_file, append=T)
 
 ## now correct these for multiple testing
 ## correct all the p-values using Benjamini-Hochberg correction together
@@ -1096,6 +1102,7 @@ collapsed_bh_adj_pvals <- matrix(p.adjust(collapsed_empirical_pvals, "BH"),
 dimnames(collapsed_bh_adj_pvals) <- dimnames(collapsed_empirical_pvals)
 
 cat(sum(collapsed_bh_adj_pvals < 0.05), "adjusted tests were significant for LD collapsed combined tag region analysis\n")
+cat(sum(collapsed_bh_adj_pvals < 0.05), 'adjusted tests were significant for LD collapsed combined region analysis', file=summary_file, append=T)
 
 ## --------------
 ## split tag region analysis
@@ -1104,6 +1111,7 @@ cat(sum(collapsed_bh_adj_pvals < 0.05), "adjusted tests were significant for LD 
 collapsed_split_empirical_pvals <- (collapsed_bootstrap_region_count_arr+1) / (num_samples+1)
 dimnames(collapsed_split_empirical_pvals) <- dimnames(input_region_annot_arr)
 cat(sum(collapsed_split_empirical_pvals < 0.05), 'unadjusted tests were significant for LD collapsed split tag region analysis\n')
+cat(sum(collapsed_split_empirical_pvals < 0.05), 'unadjusted tests were significant for LD collapsed split tag region analysis', file=summary_file, append=T)
 
 ## do this split by region
 for(i in seq(dim(collapsed_split_empirical_pvals)[3])) {
@@ -1120,6 +1128,7 @@ collapsed_split_bh_adj_pvals <- aperm(aaply(collapsed_split_empirical_pvals, 3,
 }), perm=c(2, 3, 1))
 
 cat(sum(collapsed_split_bh_adj_pvals < 0.05), "adjusted tests were significant for LD collapsed split tag region analysis\n")
+cat(sum(collapsed_split_bh_adj_pvals < 0.05), "adjusted tests were significant for LD collapsed split tag region analysis", file=summary_file, append=T)
 
 ## do this split by region
 for(i in seq(dim(collapsed_split_bh_adj_pvals)[3])) {

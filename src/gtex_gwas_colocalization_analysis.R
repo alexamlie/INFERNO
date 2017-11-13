@@ -152,6 +152,9 @@ if(check_param(param_ref, 'skip_ld_expansion')) {
 ## define a prefix for the output files that use the INFERNO data
 outprefix <- param_ref[['outprefix']]
 
+## set up the summary output
+summary_file <- paste0(output_dir, '/tables/', param_ref[['outprefix']], '_colocalization_summary.txt')
+
 ## read in the SNPs that were analyzed by INFERNO, to cross reference
 ld_stats_file <- paste0(param_ref[['outdir']], '/ld_expansion/', param_ref[['outprefix']],
                         "_", r2_thresh, "_ld_cutoff_snps_within_", dist_thresh, ".txt")
@@ -724,6 +727,8 @@ write.table(sort(unique(top_coloc_hits$eqtl_gene_name)), paste0(outdir, '/tables
 
 cat(nrow(unique(top_coloc_hits[,c("tissue", "gtex_tissue_class", "eqtl_gene_name", "eqtl_gene_id")])), "unique tissue-target gene comparisons with P(H_4) >=", coloc_h4_thresh, "\n")
 
+cat(nrow(unique(top_coloc_hits[,c("tissue", "gtex_tissue_class", "eqtl_gene_name", "eqtl_gene_id")])), "unique tissue-target gene comparisons with P(H_4) >=", coloc_h4_thresh, file=summary_file, append=T)
+
 {
 enh_start_time <- proc.time()
 
@@ -936,10 +941,16 @@ cat("Enhancer overlap analysis took", (proc.time() - enh_start_time)[["elapsed"]
 cat(sum(unique(top_coloc_enh_overlaps$top_coloc_snp) %in% ld_stats_df$rsID), "out of",
     length(unique(top_coloc_enh_overlaps$top_coloc_snp)),
     "unique max colocalized SNPs match up with INFERNO SNPs\n")
+cat(sum(unique(top_coloc_enh_overlaps$top_coloc_snp) %in% ld_stats_df$rsID), "out of",
+    length(unique(top_coloc_enh_overlaps$top_coloc_snp)),
+    "unique max colocalized SNPs match up with INFERNO SNPs", file=summary_file, append=T)
 
 cat(sum(unique(top_coloc_enh_overlaps.expanded$high_coloc_snp) %in% ld_stats_df$rsID), "out of",
     length(unique(top_coloc_enh_overlaps.expanded$high_coloc_snp)),
     "unique high colocalized SNPs in", coloc_abf_thresh, "expanded set match up with INFERNO SNPs\n")
+cat(sum(unique(top_coloc_enh_overlaps.expanded$high_coloc_snp) %in% ld_stats_df$rsID), "out of",
+    length(unique(top_coloc_enh_overlaps.expanded$high_coloc_snp)),
+    "unique high colocalized SNPs in", coloc_abf_thresh, "expanded set match up with INFERNO SNPs", file=summary_file, append=T)
 
 ## -----------------------------
 ## do some visualizations of the single max coloc SNP overlaps
@@ -2156,4 +2167,3 @@ if(check_param(param_ref, 'gtex_dir')) {
 
     }
 }
-
