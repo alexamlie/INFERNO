@@ -229,12 +229,12 @@ if (check_param(param_ref, "unstranded_partition_dir")) {
                                          out_subtitle, r2_thresh, dist_thresh)
 }
 
-## source("analyze_closest_genes_function.R")
-## if (check_param(param_ref, 'gene_bed_file')) {
-##     cat("Analyzing closest genes\n")
-##     analyze_closest_genes(param_ref[['outprefix']], param_ref[['outdir']],
-##                           paste0(result_outdir, "/closest_gene/"), out_subtitle, r2_thresh, dist_thresh)
-## }
+source("analyze_closest_genes_function.R")
+if (check_param(param_ref, 'gene_bed_file')) {
+    cat("Analyzing closest genes\n")
+    analyze_closest_genes(param_ref[['outprefix']], param_ref[['outdir']],
+                          paste0(result_outdir, "/closest_gene/"), out_subtitle, r2_thresh, dist_thresh)
+}
 
 source("analyze_fantom5_overlap_function.R")
 source("analyze_closest_fantom5_enhs_function.R")

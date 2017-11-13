@@ -13,7 +13,6 @@ analyze_factorbook_overlap <- function(prefix, datadir, outdir, out_subtitle, r2
 
     if(nrow(factorbook_df)==0) {
         cat("No FactorBook TFBS overlaps found in this dataset!\n")
-        ## write a table
         return("No FactorBook TFBS overlaps found in this dataset!")
     } 
 

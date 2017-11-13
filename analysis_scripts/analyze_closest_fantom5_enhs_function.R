@@ -21,6 +21,12 @@ analyze_closest_fantom5_enhs <- function(prefix, datadir, outdir, out_subtitle, 
                                "_closest_enhancers.txt")
     closest_enh_df <- read.table(closest_enh_file, header=T, sep="\t", quote="", as.is=T)
 
+    if(nrow(closest_enh_df)==0) {
+        cat("No closest enhancer data found in this dataset!\n")
+        return("No closest enhancer data found in this dataset!")
+    } 
+
+    
     ## count how many tissues each closest enhancer comes from
     closest_enh_df <- cbind(closest_enh_df, num_tissues = unlist(lapply(
                                         strsplit(closest_enh_df$enh_tissue, ","), length)))

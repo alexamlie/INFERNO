@@ -15,6 +15,11 @@ analyze_closest_genes <- function(prefix, datadir, outdir, out_subtitle, r2_thre
     closest_genes_df <- read.table(closest_genes_file, header=T, sep="\t",
                                    quote="", as.is=T)
 
+    if(nrow(closest_genes_df)==0) {
+        cat("No closest genes found in this dataset!\n")
+        return("No closest genes found in this dataset!")
+    } 
+    
     ## count number of overlaps:
     ## count by ID
     num_gene_ids <- unlist(lapply(strsplit(closest_genes_df$closest_gene_ids, ","),
