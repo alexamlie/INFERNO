@@ -2242,7 +2242,7 @@ def gtex_eqtl_overlap(outdir, outprefix, ld_snp_file, ld_threshold, ld_check_are
             ## if we're on a new chromosome, we will make a new dict to store these LD SNPs
             if snp_data[snp_idx['chr']] != this_chr:
                 ## if we had an old chromosome, we can now go through and check eQTLs against it
-                ## same as writing "if this_chr == '':"
+                ## same as writing "if this_chr != '':"
                 if this_chr:
                     logging_function("Analyzing eQTLs from chromosome %s" % (this_chr))
                     for this_tiss in eqtl_files.keys():
@@ -2280,7 +2280,7 @@ def gtex_eqtl_overlap(outdir, outprefix, ld_snp_file, ld_threshold, ld_check_are
                         
                 ## now reset the dict and chromosome tracking variables
                 this_chr_ld_snp_dict = {}
-                this_chr = snp_data[snp_idx['chr']] 
+                this_chr = snp_data[snp_idx['chr']]
 
             ## now read in this SNP and store it (by chr, position, and allele)
             this_key = ":".join([snp_data[snp_idx['chr']], snp_data[snp_idx['pos']],
@@ -2294,6 +2294,12 @@ def gtex_eqtl_overlap(outdir, outprefix, ld_snp_file, ld_threshold, ld_check_are
         ## analyze eQTLs for the last chromosome
         logging_function("Analyzing eQTLs from chromosome %s" % (this_chr))
         for this_tiss in eqtl_files.keys():
+            ## read through the eqtl file until we're on the right chromosome (make sure we
+            ## are, this is for the special case of only seeing one chromosome)
+            while (len(cur_eqtl[this_tiss]) > 1
+                and "chr"+cur_eqtl[this_tiss][eqtl_idx["snp_chrom"]]!=this_chr):
+                cur_eqtl[this_tiss] = eqtl_files[this_tiss].readline().strip().split("\t")
+                        
             if len(cur_eqtl[this_tiss]) == 1:
                 continue
             cur_eqtl_data = cur_eqtl[this_tiss]
