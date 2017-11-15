@@ -61,7 +61,7 @@ dir.create(paste0(outdir, "/plots/"), F, T)
 dir.create(paste0(outdir, "/tables/"), F, T)
 dir.create(paste0(outdir, "/full_correlation_tables/"), F, T)
 
-summary_file <- paste0(output_dir, '/tables/', 'lncRNA_corr_summary.txt')
+summary_file <- paste0(outdir, '/tables/', 'lncRNA_corr_summary.txt')
 
 ## read in the lncRNA annotations (genes only)
 gencode_lncrnas <- read.table(pipe(paste0("awk -F$'\t' '$3==\"gene\"' ", gencode_lncrna_file)), header=F, sep="\t", quote="", as.is=T)
@@ -126,7 +126,7 @@ if(nrow(top_lncrna_hits)==0) {
 }
 cat(length(unique(top_lncrna_hits$eqtl_gene_name)), "unique lncRNAs across",
                  length(unique(top_lncrna_hits$tissue)), "unique GTEx tissues and",
-                 length(unique(top_lncrna_hits$gtex_tissue_class)), "tissue classes found in data", file=summary_file, append=T)
+                 length(unique(top_lncrna_hits$gtex_tissue_class)), "tissue classes found in data\n", file=summary_file, append=T)
 
 ## save the expression vectors as a named list
 {
@@ -232,6 +232,7 @@ all_lncrna_targets <- data.frame(stringsAsFactors = FALSE)
 
 for(lncrna in names(lncrna_correlation_dfs)) {
     cat("Analyzing", lncrna, "correlation patterns\n")    
+    cat("Analyzing", lncrna, "correlation patterns\n", file=summary_file, append=T)    
     
     ## add mean correlation values
     lncrna_correlation_dfs[[lncrna]]$mean_cor <- rowMeans(lncrna_correlation_dfs[[lncrna]][,c("pearson_cor", "spearman_cor")])
@@ -254,7 +255,7 @@ for(lncrna in names(lncrna_correlation_dfs)) {
     ## also write out all the genes meeting a 0.5 correlation threshold
     corr_thresh_vec <- abs(lncrna_correlation_dfs[[lncrna]]$pearson_cor) > cor_thresh & abs(lncrna_correlation_dfs[[lncrna]]$spearman_cor) > cor_thresh
     cat(sum(corr_thresh_vec), 'genes met a', cor_thresh, 'correlation threshold\n')
-    cat(sum(corr_thresh_vec), 'genes met a', cor_thresh, 'correlation threshold', file=summary_file, append=T)
+    cat(sum(corr_thresh_vec), 'genes met a', cor_thresh, 'correlation threshold\n', file=summary_file, append=T)
     
     if(sum(corr_thresh_vec) > 0) {
         write.table(lncrna_correlation_dfs[[lncrna]][corr_thresh_vec,],
@@ -400,7 +401,7 @@ for(lncrna in names(lncrna_correlation_dfs)) {
 }
 
 cat(nrow(all_lncrna_targets), "total genes met the", cor_thresh, "correlation threshold, representing", length(unique(all_lncrna_targets$target_gene)), "unique genes and", length(unique(all_lncrna_targets$lncRNA)), "unique lncRNAs across", length(unique(unlist(strsplit(as.character(all_lncrna_targets$tissues), ";")))), "GTEx tissues and", length(unique(unlist(strsplit(as.character(all_lncrna_targets$classes), ";")))), "tissue classes\n")
-cat(nrow(all_lncrna_targets), "total genes met the", cor_thresh, "correlation threshold, representing", length(unique(all_lncrna_targets$target_gene)), "unique genes and", length(unique(all_lncrna_targets$lncRNA)), "unique lncRNAs across", length(unique(unlist(strsplit(as.character(all_lncrna_targets$tissues), ";")))), "GTEx tissues and", length(unique(unlist(strsplit(as.character(all_lncrna_targets$classes), ";")))), "tissue classes", file=summary_file, append=T)
+cat(nrow(all_lncrna_targets), "total genes met the", cor_thresh, "correlation threshold, representing", length(unique(all_lncrna_targets$target_gene)), "unique genes and", length(unique(all_lncrna_targets$lncRNA)), "unique lncRNAs across", length(unique(unlist(strsplit(as.character(all_lncrna_targets$tissues), ";")))), "GTEx tissues and", length(unique(unlist(strsplit(as.character(all_lncrna_targets$classes), ";")))), "tissue classes\n", file=summary_file, append=T)
 
 ## now write the full target file
 write.table(all_lncrna_targets, paste0(outdir, '/tables/all_lncRNA_targets_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=T)
@@ -604,5 +605,3 @@ print(ggplot(all_lncrna_targets, aes(x=pearson_cor, y=spearman_cor)) +
 dev.off()
 
 ## make expression distribution plots for all target genes (?)
-
-close(summary_conn)

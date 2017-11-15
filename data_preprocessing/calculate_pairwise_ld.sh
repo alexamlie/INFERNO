@@ -5,6 +5,8 @@
 ## a script that calculates pairwise LD information for files in some input directory
 ## takes in the data directory, the prefix of the vcf files to be analyzed, and the output directory
 
+module load plink/1.90Beta
+
 if [ $# == 3 ]; then
     DATADIR=$1
     FPREFIX=$2
@@ -18,7 +20,7 @@ if [ $# == 3 ]; then
 	## now run PLINK
 	echo "Analyzing file ${FNAME}"
 	## find all SNPs within a megabase
-	plink --vcf ${F} --r2 --ld-window 99999 --ld-window-kb 1000 --ld-window-r2 0.1 --out ${OUTDIR}/${OUTPREFIX}
+	plink --vcf ${F} --threads 1 --r2 --ld-window 99999 --ld-window-kb 1000 --ld-window-r2 0.1 --out ${OUTDIR}/${OUTPREFIX}
 	## now convert the output file into tab separated format:
 	sed -r 's/^\s+|\s+$//g' ${OUTDIR}/${OUTPREFIX}.ld | sed -r 's/\s+/\t/g' > ${OUTDIR}/${OUTPREFIX}.ld.parsed
 	## overwrite the original PLINK output file

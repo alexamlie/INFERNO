@@ -20,7 +20,7 @@ if [ $# == 3 ]; then
 	## trick is that the full file name is used as the prefix, so that only that file gets
 	## analyzed. also, need to ask for a lot of memory (40 Gb!)
 	bsub -J ${OUTPREFIX}_ld_calc -e ${OUTDIR}/logs/${DATESTRING}/${OUTPREFIX}.err \
-	    -o ${OUTDIR}/logs/${DATESTRING}/${OUTPREFIX}.out -M 40000 \
+	    -o ${OUTDIR}/logs/${DATESTRING}/${OUTPREFIX}.out -M 45000 \
 	    -q wang_normal \
 	    ./calculate_pairwise_ld.sh ${DATADIR} ${FNAME} ${OUTDIR}
     done
