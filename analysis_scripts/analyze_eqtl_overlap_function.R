@@ -90,10 +90,13 @@ analyze_eqtl_overlap <- function(prefix, datadir, outdir, out_subtitle, r2_thres
     ## plot the number of LD SNPs that are also eQTLs
     num_ld_eqtl_snps <- ddply(uniq_snp_eqtl_df, .(tag_name), summarize,
                               num_eqtl_ld_snps = length(unique(rsID)))    
-    
-    num_ld_eqtl_snps <- rbind(num_ld_eqtl_snps,
-                         data.frame(tag_name = all_regions[which(!(all_regions %in% uniq_snp_eqtl_df$tag_name))],
-                                    num_eqtl_ld_snps = 0, stringsAsFactors = F))
+
+    ## if there are any regions without eQTLs, take care of them
+    if(any(!(all_regions %in% uniq_snp_eqtl_df$tag_name))) {
+        num_ld_eqtl_snps <- rbind(num_ld_eqtl_snps,
+                                  data.frame(tag_name = all_regions[which(!(all_regions %in% uniq_snp_eqtl_df$tag_name))],
+                                             num_eqtl_ld_snps = 0, stringsAsFactors = F))
+    }
 
     ## re-order 
     num_ld_eqtl_snps <- num_ld_eqtl_snps[order(num_ld_eqtl_snps$tag_name),]

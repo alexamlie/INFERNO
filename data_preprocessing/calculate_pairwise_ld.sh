@@ -20,7 +20,7 @@ if [ $# == 3 ]; then
 	## now run PLINK
 	echo "Analyzing file ${FNAME}"
 	## find all SNPs within a megabase
-	plink --vcf ${F} --threads 1 --r2 --ld-window 99999 --ld-window-kb 1000 --ld-window-r2 0.1 --out ${OUTDIR}/${OUTPREFIX}
+	plink --vcf ${F} --memory 45000 --threads 1 --r2 --ld-window 99999 --ld-window-kb 1000 --ld-window-r2 0.1 --out ${OUTDIR}/${OUTPREFIX}
 	## now convert the output file into tab separated format:
 	sed -r 's/^\s+|\s+$//g' ${OUTDIR}/${OUTPREFIX}.ld | sed -r 's/\s+/\t/g' > ${OUTDIR}/${OUTPREFIX}.ld.parsed
 	## overwrite the original PLINK output file
