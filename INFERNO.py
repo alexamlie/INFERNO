@@ -108,9 +108,9 @@ if __name__=="__main__":
             ## TODO: check that the config file has the right variables
             print "Submitting job for enhancer bootstrapping analysis"
             if pargs.cluster_system=="bsub":
-                subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+"_enh_bootstrapping", "-o",
-                                    pargs.outdir+"/logs/"+pargs.outprefix+"_enh_bootstrapping.o%J", "-e",
-                                    pargs.outdir+"/logs/"+pargs.outprefix+"_enh_bootstrapping.e%J",
+                subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+".enh_bootstrapping", "-o",
+                                    pargs.outdir+"/logs/"+pargs.outprefix+".enh_bootstrapping.o%J", "-e",
+                                    pargs.outdir+"/logs/"+pargs.outprefix+".enh_bootstrapping.e%J",
                                     "./bsub_wrappers/enhancer_bootstrap_bsub_wrapper.sh",
                                     "./src/enhancer_only_sample_and_expand_matched_input_variants.R",
                                     config_vars["NUM_SAMPLES"], config_vars["MAF_BIN_SIZE"],
@@ -203,9 +203,9 @@ if __name__=="__main__":
             ## TODO: check config
             print "Submitting job for enhancer bootstrapping analysis"
             if pargs.cluster_system=="bsub":
-                subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+"_enh_bootstrapping", "-o",
-                                    pargs.outdir+"/logs/"+pargs.outprefix+"_enh_bootstrapping.o%J", "-e",
-                                    pargs.outdir+"/logs/"+pargs.outprefix+"_enh_bootstrapping.e%J",
+                subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+".enh_bootstrapping", "-o",
+                                    pargs.outdir+"/logs/"+pargs.outprefix+".enh_bootstrapping.o%J", "-e",
+                                    pargs.outdir+"/logs/"+pargs.outprefix+".enh_bootstrapping.e%J",
                                     "./bsub_wrappers/enhancer_bootstrap_bsub_wrapper.sh",
                                     "./src/enhancer_only_sample_and_expand_matched_input_variants.R",
                                     config_vars["NUM_SAMPLES"], config_vars["MAF_BIN_SIZE"],
@@ -233,9 +233,9 @@ if __name__=="__main__":
 
             if "LOCUSZOOM_PATH" in config_vars:
                 if pargs.cluster_system=="bsub":
-                    subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+"_gtex_colocalization",
-                                 "-o", pargs.outdir+"/logs/"+pargs.outprefix+"_gtex_coloc.o%J",
-                                 "-e", pargs.outdir+"/logs/"+pargs.outprefix+"_gtex_coloc.e%J",
+                    subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+".gtex_colocalization",
+                                 "-o", pargs.outdir+"/logs/"+pargs.outprefix+".gtex_coloc.o%J",
+                                 "-e", pargs.outdir+"/logs/"+pargs.outprefix+".gtex_coloc.e%J",
                                  "./bsub_wrappers/gtex_coloc_bsub_wrapper.sh",
                                  "./src/gtex_gwas_colocalization_analysis.R",
                                  pargs.outdir+"/gtex_gwas_colocalization_analysis/",
@@ -265,9 +265,9 @@ if __name__=="__main__":
                                     config_vars["LOCUSZOOM_PATH"]])
             else:
                 if pargs.cluster_system=="bsub":
-                    subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+"_gtex_colocalization",
-                                        "-o", pargs.outdir+"/logs/"+pargs.outprefix+"_gtex_coloc.o%J",
-                                        "-e", pargs.outdir+"/logs/"+pargs.outprefix+"_gtex_coloc.e%J",
+                    subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+".gtex_colocalization",
+                                        "-o", pargs.outdir+"/logs/"+pargs.outprefix+".gtex_coloc.o%J",
+                                        "-e", pargs.outdir+"/logs/"+pargs.outprefix+".gtex_coloc.e%J",
                                     "./bsub_wrappers/gtex_coloc_bsub_wrapper.sh",
                                     "./src/gtex_gwas_colocalization_analysis.R",
                                     pargs.outdir+"/gtex_gwas_colocalization_analysis/",
@@ -299,9 +299,9 @@ if __name__=="__main__":
                 ## TODO: check config
                 print "Submitting lncRNA correlation analysis job"
                 if pargs.cluster_system=="bsub":
-                    subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+"_lncRNA_correlation",
-                                    "-o", pargs.outdir+"/logs/"+pargs.outprefix+"_gtex_lncRNA_corr.o%J",
-                                    "-e", pargs.outdir+"/logs/"+pargs.outprefix+"_gtex_lncRNA_corr.e%J",
+                    subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+".lncRNA_correlation",
+                                    "-o", pargs.outdir+"/logs/"+pargs.outprefix+".gtex_lncRNA_corr.o%J",
+                                    "-e", pargs.outdir+"/logs/"+pargs.outprefix+".gtex_lncRNA_corr.e%J",
                                     "-w", "done("+pargs.outprefix+"_gtex_colocalization)",
                                     "./bsub_wrappers/gtex_lncRNA_corr_bsub_wrapper.sh",
                                     "./src/lncRNA_gtex_correlation.R",
