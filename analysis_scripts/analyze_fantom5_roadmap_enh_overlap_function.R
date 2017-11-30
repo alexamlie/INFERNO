@@ -312,13 +312,13 @@ analyze_fantom5_roadmap_enh_overlap <- function(prefix, datadir, outdir, out_sub
     
     ## make the combined tag region heatmap!
     bg_color <- "#e6e6e6"
-
+    
     ## make two plots, one with color text and one without
     make_graphic(paste0(outdir, 'plots/', prefix, '_roadmap_fantom5_tag_region_support_heatmap_color_axis_',
                         r2_thresh, "_ld_", dist_thresh,
                         "_dist"), width_ratio = 3.0, height_ratio = 2.0)
     print(ggplot(melt_tag_region_support,
-                 aes(x=tag_name_numbers[tag_name]+shift, y=tissue_class, width=width, fill=value)) +
+                aes(x=tag_name_numbers[tag_name]+shift, y=tissue_class, width=width, fill=value)) +
           geom_tile(size=1) +
           scale_fill_manual(name="Annotation overlaps",
                             values=c(erna_color, merge_hmm_color, erna_merged_hmm_color,
@@ -328,7 +328,7 @@ analyze_fantom5_roadmap_enh_overlap <- function(prefix, datadir, outdir, out_sub
                     ## old color: #948300
                     color="grey39", fill=NA, size=1) +
           scale_x_continuous(breaks=tag_name_numbers, labels=names(tag_name_numbers),
-                             limits=c(0.5, max(tag_name_numbers)+0.5), expand=c(0, 0)) +
+                             limits=c(0.5, max(tag_name_numbers)+ifelse(length(tag_name_numbers)==1, 0.51, 0.5)), expand=c(0, 0)) +
           theme_bw() +
           xlab(TAG_LAB) + ylab("Tissue Category") +
           plot_title("Heatmap of sources of functional support across tag regions and tissue categories", r2_thresh, dist_thresh, out_subtitle, strwrap_width=50) +
@@ -355,7 +355,7 @@ analyze_fantom5_roadmap_enh_overlap <- function(prefix, datadir, outdir, out_sub
           geom_tile(aes(x=tag_name_numbers[tag_name], y=tissue_class, width=1),
                     color="grey39", fill=NA, size=1) +
           scale_x_continuous(breaks=tag_name_numbers, labels=names(tag_name_numbers),
-                             limits=c(0.5, max(tag_name_numbers)+0.5), expand=c(0, 0)) +
+                             limits=c(0.5, max(tag_name_numbers)+ifelse(length(tag_name_numbers)==1, 0.51, 0.5)), expand=c(0, 0)) +
           theme_bw() +
           xlab(TAG_LAB) + ylab("Tissue Category") +
           plot_title("Heatmap of sources of functional support across tag regions and tissue categories", r2_thresh, dist_thresh, out_subtitle, strwrap_width=50) +
