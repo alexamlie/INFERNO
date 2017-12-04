@@ -80,14 +80,14 @@ if __name__=="__main__":
                             "full", "--kg_pop", config_vars["KG_POP"], "--ld_threshold",
                             config_vars["LD_THRESH"], "--ld_check_area", config_vars["LD_AREA"]] +
                             annotation_arg_list +
-                            [config_vars["KG_DIR"], pargs.top_snpf, pargs.outdir, pargs.outprefix])
+                            [config_vars["KG_DIR"]+"/sorted_files/", pargs.top_snpf, pargs.outdir, pargs.outprefix])
             print "LD expansion and annotation took %.2f seconds" % (time.time()-start_time)
         else:
             print "Running direct annotation (no LD expansion)"
             subprocess.call(["python", "-u", "./src/expand_and_annotate_snps.py", "--loglevel",
                             "full", "--skip_ld_expansion"] + 
                             annotation_arg_list +
-                            [config_vars["KG_DIR"], pargs.top_snpf, pargs.outdir, pargs.outprefix])
+                            [config_vars["KG_DIR"]+"/sorted_files/", pargs.top_snpf, pargs.outdir, pargs.outprefix])
             print "Direct annotation took %.2f seconds" % (time.time()-start_time)            
         
         print "Summarizing annotation results"
@@ -115,15 +115,19 @@ if __name__=="__main__":
                                     "./src/enhancer_only_sample_and_expand_matched_input_variants.R",
                                     config_vars["NUM_SAMPLES"], config_vars["MAF_BIN_SIZE"],
                                     config_vars["DIST_ROUND"], config_vars["DIST_THRESHOLD"],
-                                    config_vars["LD_PARTNER_THRESHOLD"], config_vars["BG_SNP_INFOF"],
-                                    config_vars["LD_SETS_DIR"], config_vars["REF_SUMMARY_DIR"], param_file])
+                                    config_vars["LD_PARTNER_THRESHOLD"],
+                                    config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/snp_maf_tss_ld_summary/snp_maf_tss_dist_"+config_vars["LD_THRESH"]+"_ld_info.txt", 
+                                    config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/precomputed_ld_sets/", 
+                                    config_vars["REF_SUMMARY_DIR"], param_file])
             else:
                 subprocess.call(["./bsub_wrappers/enhancer_bootstrap_bsub_wrapper.sh",
                                     "./src/enhancer_only_sample_and_expand_matched_input_variants.R",
                                     config_vars["NUM_SAMPLES"], config_vars["MAF_BIN_SIZE"],
                                     config_vars["DIST_ROUND"], config_vars["DIST_THRESHOLD"],
-                                    config_vars["LD_PARTNER_THRESHOLD"], config_vars["BG_SNP_INFOF"],
-                                    config_vars["LD_SETS_DIR"], config_vars["REF_SUMMARY_DIR"], param_file])
+                                    config_vars["LD_PARTNER_THRESHOLD"],
+                                    config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/snp_maf_tss_ld_summary/snp_maf_tss_dist_"+config_vars["LD_THRESH"]+"_ld_info.txt",
+                                    config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/precomputed_ld_sets/", 
+                                    config_vars["REF_SUMMARY_DIR"], param_file])
                 
     ## only run summary stats-based analyses if there is a summary file
     else:
@@ -139,7 +143,7 @@ if __name__=="__main__":
                                 "full", "--kg_pop", config_vars["KG_POP"], "--ld_threshold",
                                 config_vars["LD_THRESH"], "--ld_check_area", config_vars["LD_AREA"]] +
                                 annotation_arg_list + 
-                                [config_vars["KG_DIR"],pargs.top_snpf, pargs.outdir, pargs.outprefix])
+                                [config_vars["KG_DIR"]+"/sorted_files/",pargs.top_snpf, pargs.outdir, pargs.outprefix])
                 print "LD expansion and annotation took %.2f seconds" % (time.time()-start_time)
             else:
                 print "Directly LD-expanding and annotating top variant file"
@@ -148,7 +152,7 @@ if __name__=="__main__":
                 subprocess.call(["python", "-u", "./src/expand_and_annotate_snps.py", "--loglevel",
                                 "full", "--skip_ld_expansion"] +
                                 annotation_arg_list + 
-                                [config_vars["KG_DIR"],pargs.top_snpf, pargs.outdir, pargs.outprefix])
+                                [config_vars["KG_DIR"]+"/sorted_files/",pargs.top_snpf, pargs.outdir, pargs.outprefix])
                 print "Direct annotation took %.2f seconds" % (time.time()-start_time)
         else:
             ## do p-value expansion.  note that i ignore the skip_ld_expansion flag; you can't
@@ -169,7 +173,7 @@ if __name__=="__main__":
                 ## do LD pruning
                 print "Performing LD pruning of p-value expanded sets"
                 start_time = time.time()
-                subprocess.call(["python", "-u", "./data_preprocessing/ld_prune_snp_set.py", config_vars["LD_THRESH"], pargs.outdir+"/"+pargs.outprefix+"_pval_expanded_snps.txt", config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/", pargs.outdir+"/"+pargs.outprefix+"_pruning/"])
+                subprocess.call(["python", "-u", "./data_preprocessing/ld_prune_snp_set.py", config_vars["LD_THRESH"], pargs.outdir+"/"+pargs.outprefix+"_pval_expanded_snps.txt", config_vars["KG_DIR"]+"/sorted_files/"+config_vars["KG_POP"]+"/", pargs.outdir+"/"+pargs.outprefix+"_pruning/"])
                 print "LD pruning took %.2f seconds" % (time.time()-start_time)
                 
                 ## now annotate these
@@ -179,7 +183,7 @@ if __name__=="__main__":
                                 "full", "--kg_pop", config_vars["KG_POP"], "--ld_threshold",
                                 config_vars["LD_THRESH"], "--ld_check_area", config_vars["LD_AREA"]] +
                                 annotation_arg_list + 
-                                [config_vars["KG_DIR"], pargs.outdir+"/"+pargs.outprefix+"_pruning/pruned_set_pipeline_input.txt", pargs.outdir, pargs.outprefix])
+                                [config_vars["KG_DIR"]+"/sorted_files/", pargs.outdir+"/"+pargs.outprefix+"_pruning/pruned_set_pipeline_input.txt", pargs.outdir, pargs.outprefix])
                 print "LD expansion and annotation took %.2f seconds" % (time.time()-start_time)
             else:
                 sys.exit("For p-value expansion, p-value multiplier (--sig_mult) and column numbers for rsID, position, pvalue, and chromosome must be provided")
@@ -210,15 +214,19 @@ if __name__=="__main__":
                                     "./src/enhancer_only_sample_and_expand_matched_input_variants.R",
                                     config_vars["NUM_SAMPLES"], config_vars["MAF_BIN_SIZE"],
                                     config_vars["DIST_ROUND"], config_vars["DIST_THRESHOLD"],
-                                    config_vars["LD_PARTNER_THRESHOLD"], config_vars["BG_SNP_INFOF"],
-                                    config_vars["LD_SETS_DIR"], config_vars["REF_SUMMARY_DIR"], param_file])
+                                    config_vars["LD_PARTNER_THRESHOLD"],
+                                    config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/snp_maf_tss_ld_summary/snp_maf_tss_dist_"+config_vars["LD_THRESH"]+"_ld_info.txt",
+                                    config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/precomputed_ld_sets/", 
+                                    config_vars["REF_SUMMARY_DIR"], param_file])
             else:
                 subprocess.call(["./bsub_wrappers/enhancer_bootstrap_bsub_wrapper.sh",
                                     "./src/enhancer_only_sample_and_expand_matched_input_variants.R",
                                     config_vars["NUM_SAMPLES"], config_vars["MAF_BIN_SIZE"],
                                     config_vars["DIST_ROUND"], config_vars["DIST_THRESHOLD"],
-                                    config_vars["LD_PARTNER_THRESHOLD"], config_vars["BG_SNP_INFOF"],
-                                    config_vars["LD_SETS_DIR"], config_vars["REF_SUMMARY_DIR"], param_file])
+                                    config_vars["LD_PARTNER_THRESHOLD"],
+                                    config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/snp_maf_tss_ld_summary/snp_maf_tss_dist_"+config_vars["LD_THRESH"]+"_ld_info.txt", 
+                                    config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/precomputed_ld_sets/", 
+                                    config_vars["REF_SUMMARY_DIR"], param_file])
         
         ## submit a job for colocalization analysis
         ## first check that all the required arguments are present
