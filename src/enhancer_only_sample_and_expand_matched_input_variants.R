@@ -262,9 +262,11 @@ write.table(sample_mat, paste0(output_dir, "/samples/", param_ref[['outprefix']]
 write(sample_regions, paste0(output_dir, "/samples/", param_ref[['outprefix']],
                              "_input_sample_regions.txt"), sep="\n")
 ## ## to read this sample matrix back in, uncomment these:
-## sample_mat <- as.matrix(read.table(paste0(output_dir, "/samples/input_sample_mat.txt"),
+## sample_mat <- as.matrix(read.table(paste0(output_dir, "/samples/", param_ref[['outprefix']],
+##                                           "_input_sample_mat.txt"),
 ##                                    header=F, sep="\t", quote="", as.is=T))
-## sample_regions <- read.table(paste0(output_dir, "/samples/input_sample_regions.txt"),
+## sample_regions <- read.table(paste0(output_dir, "/samples/", param_ref[['outprefix']],
+##                                     "_input_sample_regions.txt"),
 ##                              header=F, quote="", as.is=T)$V1
 cat("Sampling against input and writing out file took:\n")
 cat((proc.time() - start_time)[["elapsed"]], 'seconds\n')
@@ -636,19 +638,13 @@ write.table(expanded_input_blocks, paste0(output_dir, "/samples/", param_ref[['o
             sep="\t", row.names=F, col.names=F)
 
 ## ## to read them back in, uncomment this:
-## expanded_snp_idx_mat <- as.matrix(read.table(paste0(output_dir, "/samples/expanded_sample_mat.txt"),
-##                                    header=F, sep="\t", quote="", as.is=T))
-## expanded_snp_regions <- as.matrix(read.table(paste0(output_dir, "/samples/expanded_sample_regions.txt"),
-##                                    header=F, sep="\t", quote="", as.is=T))
-## expanded_snp_blocks <- as.matrix(read.table(paste0(output_dir, "/samples/expanded_sample_blocks.txt"),
-##                                    header=F, sep="\t", quote="", as.is=T))
+## expanded_snp_idx_mat <- as.matrix(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_sample_mat.txt"), header=F, sep="\t", quote="", as.is=T))
+## expanded_snp_regions <- as.matrix(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_sample_regions.txt"), header=F, sep="\t", quote="", as.is=T))
+## expanded_snp_blocks <- as.matrix(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_sample_blocks.txt"), header=F, sep="\t", quote="", as.is=T))
 
-## expanded_input_idxs <- as.vector(read.table(paste0(output_dir, "/samples/expanded_input_idxs.txt"),
-##                                    header=F, sep="\t", quote="", as.is=T)$V1)
-## expanded_input_regions <- as.vector(read.table(paste0(output_dir, "/samples/expanded_input_regions.txt"),
-##                                    header=F, sep="\t", quote="", as.is=T)$V1)
-## expanded_input_blocks <- as.vector(read.table(paste0(output_dir, "/samples/expanded_input_blocks.txt"),
-##                                    header=F, sep="\t", quote="", as.is=T)$V1)
+## expanded_input_idxs <- as.vector(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_input_idxs.txt"), header=F, sep="\t", quote="", as.is=T)$V1)
+## expanded_input_regions <- as.vector(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_input_regions.txt"), header=F, sep="\t", quote="", as.is=T)$V1)
+## expanded_input_blocks <- as.vector(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_input_blocks.txt"), header=F, sep="\t", quote="", as.is=T)$V1)
 
 cat("Auto LD expansion took:\n")
 cat((proc.time() - start_time)[["elapsed"]], 'seconds\n')
@@ -1066,12 +1062,19 @@ for(i in seq(dim(split_empirical_pvals)[3])) {
 }
 
 ## use BH correction within each tag region
-split_bh_adj_pvals <- aperm(aaply(split_empirical_pvals, 3, function(tag_mat) {
-    corr_mat <- matrix(p.adjust(tag_mat, method="BH"), nrow=nrow(tag_mat), ncol=ncol(tag_mat),
-                       dimnames=dimnames(tag_mat))
-    return(corr_mat)
-}), perm=c(2, 3, 1))
-
+if(length(unique(dimnames(split_empirical_pvals)[[3]])) > 1) {
+    split_bh_adj_pvals <- aperm(aaply(split_empirical_pvals, 3, function(tag_mat) {
+        corr_mat <- matrix(p.adjust(tag_mat, method="BH"), nrow=nrow(tag_mat), ncol=ncol(tag_mat),
+                           dimnames=dimnames(tag_mat))
+        return(corr_mat)
+    }), perm=c(2, 3, 1))
+} else {
+    split_bh_adj_pvals <- bh_adj_pvals
+    cat("Only one tag region found, just reporting the single region results again!\n")
+    cat("Only one tag region found, just reporting the single region results again!\n", file=summary_file, append=T)
+}
+    
+    
 cat(sum(split_bh_adj_pvals < 0.05), "adjusted tests were significant for split tag region analysis\n")
 cat(sum(split_bh_adj_pvals < 0.05), "adjusted tests were significant for split tag region analysis\n", file=summary_file, append=T)
 
