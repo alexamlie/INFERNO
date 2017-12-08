@@ -200,8 +200,8 @@ if(num_tags > 30) {
     default_gfx_height <- 10
 }
     
-make_graphic <- function(filename, width_ratio=1, height_ratio=1, type='png') {
-## make_graphic <- function(filename, width_ratio=1, height_ratio=1, type='pdf') {
+## make_graphic <- function(filename, width_ratio=1, height_ratio=1, type='png') {
+make_graphic <- function(filename, width_ratio=1, height_ratio=1, type='pdf') {
     if(type=='pdf') {
         pdf(file=paste0(filename, ".pdf"), width=default_gfx_width*width_ratio, height=default_gfx_height*height_ratio, pointsize=12, onefile=FALSE)
     } else if(type=='png') {

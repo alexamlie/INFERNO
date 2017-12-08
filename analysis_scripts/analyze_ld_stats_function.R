@@ -10,7 +10,7 @@
 analyze_ld_stats <- function(prefix, datadir, outdir, out_subttitle, r2_thresh, dist_thresh) {
     dir.create(paste0(outdir, 'plots/'), F, T)
     dir.create(paste0(outdir, 'tables/'), F, T)
-    
+
     ## read in the data file:
     ld_stats_file <- paste0(datadir, prefix, "_", r2_thresh, "_ld_cutoff_snps_within_",
                             dist_thresh, ".txt")
