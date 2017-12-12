@@ -407,25 +407,29 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
 
     ## add columns for any tissue classes with concordant enhancer and eQTL support, and also
     ## describe what those specific signals are
-    ## first set up the column, which is 'None' by default
-    eqtl_f5_roadmap_union_snps$concordant_eqtl_signals <- "None"
-
-    ## TODO: vectorize this to make it faster!
-    for(i in seq(nrow(eqtl_f5_roadmap_union_snps))) {
-        eqtl_classes <- strsplit(eqtl_f5_roadmap_union_snps$eqtl_classes[i], ",")[[1]]
-        f5_classes <- strsplit(eqtl_f5_roadmap_union_snps$f5_classes[i], ",")[[1]]
-        roadmap_classes <- strsplit(eqtl_f5_roadmap_union_snps$hmm_classes[i], ",")[[1]]
-
-        overlap_classes <- eqtl_classes[eqtl_classes %in% f5_classes | eqtl_classes %in% roadmap_classes]
-        if(length(overlap_classes) > 0) {
-            ## if we have any overlapping classes, pull out all the eQTL-tissue pairs
-            concordant_eqtl_signals <- ddply(eqtl_overlap_df[eqtl_overlap_df$eqtl_class %in% overlap_classes & eqtl_overlap_df$rsID==eqtl_f5_roadmap_union_snps$rsID[i],], .(gene_name), summarize,
-                                             tissues=paste(sort(unique(tissue)), collapse=","))
-            ## make this into a single string and add to the data frame
-            eqtl_f5_roadmap_union_snps$concordant_eqtl_signals[i] <- paste(concordant_eqtl_signals$gene_name, concordant_eqtl_signals$tissues, sep="--", collapse=";")
-        } 
-    }
+    ## first get lists of all the classes for each annotation    
+    eqtl_classes <- lapply(lapply(eqtl_f5_roadmap_union_snps$eqtl_classes, strsplit, ","), "[[", 1)
+    f5_classes <- lapply(lapply(eqtl_f5_roadmap_union_snps$f5_classes, strsplit, ","), "[[", 1)
+    roadmap_classes <- lapply(lapply(eqtl_f5_roadmap_union_snps$hmm_classes, strsplit, ","), "[[", 1)
+    ## now find the overlapping classes for each
+    overlap_classes <- mapply(function(x, y, z) x[x %in% y | x %in% z], eqtl_classes, f5_classes, roadmap_classes)
+    ## add these to the DF
+    eqtl_f5_roadmap_union_snps$concordant_eqtl_classes <- unlist(lapply(overlap_classes, paste, collapse=","))    
+    eqtl_f5_roadmap_union_snps$concordant_eqtl_classes <- sub("^$", "None", eqtl_f5_roadmap_union_snps$concordant_eqtl_classes)
     
+    for(i in seq(nrow(eqtl_f5_roadmap_union_snps))) {
+        concordant_classes <- eqtl_f5_roadmap_union_snps$concordant_eqtl_classes[i]
+        if(concordant_classes!="None") {
+            overlap_classes <- strsplit(concordant_classes, ",")[[1]]
+            ## if we have any overlapping classes, pull out all the eQTL-tissue pairs
+            concordant_eqtl_signals <- ddply(eqtl_overlap_df[eqtl_overlap_df$eqtl_class %in% overlap_classes & eqtl_overlap_df$rsID==eqtl_f5_roadmap_union_snps$rsID[i],], .(gene_name), summarize, tissues=paste(sort(unique(tissue)), collapse=","))
+            ## make this into a single string and add to the data frame
+            eqtl_f5_roadmap_union_snps$concordant_eqtl_signals[i] <- paste(concordant_eqtl_signals$gene_name, concordant_eqtl_signals$tissues, sep="--", collapse=";")            
+        } else {
+            eqtl_f5_roadmap_union_snps$concordant_eqtl_signals[i] <- "None"
+        }
+    }
+        
     ## write out the enhancer / eQTL overlap summary file:
     enh_eqtl_summary_outf <- paste0(outdir, 'tables/', prefix, "_", r2_thresh,
                                    "_ld_cutoff_snps_within_", dist_thresh,
@@ -433,8 +437,6 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
                                    "_all_eQTL_enh_support.txt")
     write.table(eqtl_f5_roadmap_union_snps, enh_eqtl_summary_outf, quote=F, sep="\t", col.names=T, row.names=F)    
 
-    ## 12/6/17: STOPPED HERE
-    
     ## add TFBS overlaps, if they exist
     ## this uses the param_ref from the Rscript analysis, since this script is evaluated in the full analysis environment so I don't have to pass a bunch of arguments..
     if(check_param(param_ref, "homer_motif_pwm_file") & check_param(param_ref, "homer_motif_seq_file")) {
@@ -443,7 +445,7 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
         homer_pwm_overlaps <- read.table(homer_pwm_f, header=T, sep="\t", quote="", as.is=T)
 
         ## summarize these per SNP
-        homer_uniq_snp_tfbs_df <- ddply(homer_pwm_overlaps, c(uniq_snp_cols, "tag_rsID", "tag_pos", "tag_MAF", "R2", "Dprime"), summarize,
+        homer_uniq_snp_tfbs_df <- ddply(homer_pwm_overlaps, c(uniq_snp_cols), summarize,
                                         num_motif_hits = length(tf_name),
                                         motif_chr = unique(motif_chr),
                                         motif_starts=paste(motif_start, collapse=";"),
@@ -462,20 +464,27 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
 
         ## now combine with the summary DF
         eqtl_f5_roadmap_homer_union_snps <- join(eqtl_f5_roadmap_union_snps, homer_uniq_snp_tfbs_df)
-
+        ## clean up the count of motif overlaps when there are none
+        ## everything else can stay as NAs
+        eqtl_f5_roadmap_homer_union_snps$num_motif_hits[is.na(eqtl_f5_roadmap_homer_union_snps$num_motif_hits)] <- 0
+        
         ## write out the full summary file
-
+        enh_tfbs_eqtl_summary_outf <- paste0(outdir, 'tables/', prefix, "_", r2_thresh,
+                                        "_ld_cutoff_snps_within_", dist_thresh,
+                                        "_", enh_overlap_type,
+                                        "_all_eQTL_enh_HOMER_tfbs_support.txt")
+        
+        write.table(eqtl_f5_roadmap_homer_union_snps, enh_tfbs_eqtl_summary_outf, quote=F, sep="\t", col.names=T, row.names=F)            
     }
         
     ## ----------------------
     ## figure out the average number of tissue classes affected by each SNP in each data type
     cat("Average number of tissue classes affected by FANTOM5 enhancer overlapping SNPs:\n")
-    cat("Mean:", mean(f5_uniq_snp_df$num_enh_classes), "median:", median(f5_uniq_snp_df$num_enh_classes), "\n")
+    cat("Mean:", mean(f5_uniq_snp_df$num_f5_classes), "median:", median(f5_uniq_snp_df$num_f5_classes), "\n")
     cat("Average number of tissue classes affected by Roadmap ChromHMM enhancer overlapping SNPs:\n")
     cat("Mean:", mean(roadmap_uniq_enh_snp_df$num_hmm_classes), "median:", median(roadmap_uniq_enh_snp_df$num_hmm_classes), "\n")
     cat("Average number of tissue classes affected by eQTL overlapping SNPs:\n")
-    cat("Mean:", mean(eqtl_uniq_snp_df$num_eqtl_classes), "median:", median(eqtl_uniq_snp_df$num_eqtl_classes), "\n")
-        
+    cat("Mean:", mean(eqtl_uniq_snp_df$num_eqtl_classes), "median:", median(eqtl_uniq_snp_df$num_eqtl_classes), "\n")        
     
     ## ---------------------------------------------------
     ## make analysis plots
@@ -544,7 +553,7 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
     ## get the supporting data sets across all SNPs and tissue categories
     ## for this, we are just looking for the data source - tissue category combinations that
     ## are present
-    enh_snp_category_combos <- melt(unique(f5_overlap_df[,c("rsID", "pos", "tag_name", "f5_class")]),
+    enh_snp_category_combos <- melt(unique(f5_overlap_df[,c("rsID", "pos", "tag_name", "enh_class")]),
                                     id.vars=c("rsID", "tag_name", "pos"),
                                     variable.name="data_source", value.name="tissue_class")
     eqtl_snp_category_combos <- melt(unique(eqtl_overlap_df[,c("rsID", "pos", "tag_name", "eqtl_class")]),
@@ -557,12 +566,12 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
 
     ## get the supporting data sets per SNP and tissue category
     ## keep track of both the separate HMM states as well as the merged
-    snp_support_df <- ddply(rbind(f5_snp_category_combos, eqtl_snp_category_combos, roadmap_enh_snp_category_combos),
+    snp_support_df <- ddply(rbind(enh_snp_category_combos, eqtl_snp_category_combos, roadmap_enh_snp_category_combos),
                             .(rsID, pos, tag_name, tissue_class), function(x) {
                                 ## return the amount and type of support
                                 ## first check for individual data sources, then do combos
                                 eqtl_present <- "eqtl_class" %in% x$data_source
-                                f5_present <- "f5_class" %in% x$data_source
+                                f5_present <- "enh_class" %in% x$data_source
                                 hmm_enh_present <- "7_Enh" %in% x$data_source
                                 hmm_enhG_present <- "6_EnhG" %in% x$data_source
                                 hmm_enh_biv_present <- "12_EnhBiv" %in% x$data_source

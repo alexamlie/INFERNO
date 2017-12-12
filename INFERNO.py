@@ -98,8 +98,10 @@ if __name__=="__main__":
         param_file = subprocess.Popen('ls -t '+pargs.outdir+'/parameters/*parameters* | head -1', shell=True, stdout=subprocess.PIPE).stdout.read().strip()
 
         ## run the R analysis script
-        print "Running R analysis script"
+        print "Running R analysis script:"
         start_time = time.time()
+        ## output the actual command:
+        print " ".join(["Rscript", "./analysis_scripts/Rscript_run_full_analysis.R", "./analysis_scripts", param_file, pargs.outprefix, "TRUE", config_vars["F5_CLASSES"], config_vars["GTEX_CLASSES"], config_vars["ROADMAP_CLASSES"]])
         subprocess.call(["Rscript", "./analysis_scripts/Rscript_run_full_analysis.R", "./analysis_scripts", param_file, pargs.outprefix, "TRUE", config_vars["F5_CLASSES"], config_vars["GTEX_CLASSES"], config_vars["ROADMAP_CLASSES"]])
         print "R analysis took %.2f seconds" % (time.time()-start_time)
         
@@ -199,6 +201,7 @@ if __name__=="__main__":
         ## run the R analysis script
         print "Running R analysis script"
         start_time = time.time()
+        print " ".join(["Rscript", "./analysis_scripts/Rscript_run_full_analysis.R", "./analysis_scripts", param_file, pargs.outprefix, "TRUE", config_vars["F5_CLASSES"], config_vars["GTEX_CLASSES"], config_vars["ROADMAP_CLASSES"]])
         subprocess.call(["Rscript", "./analysis_scripts/Rscript_run_full_analysis.R", "./analysis_scripts", param_file, pargs.outprefix, "TRUE", config_vars["F5_CLASSES"], config_vars["GTEX_CLASSES"], config_vars["ROADMAP_CLASSES"]])
         print "R analysis took %.2f seconds" % (time.time()-start_time)
         
