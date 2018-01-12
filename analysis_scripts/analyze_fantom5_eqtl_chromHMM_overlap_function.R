@@ -421,12 +421,15 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
         concordant_classes <- eqtl_f5_roadmap_union_snps$concordant_eqtl_classes[i]
         if(concordant_classes!="None") {
             overlap_classes <- strsplit(concordant_classes, ",")[[1]]
-            ## if we have any overlapping classes, pull out all the eQTL-tissue pairs
-            concordant_eqtl_signals <- ddply(eqtl_overlap_df[eqtl_overlap_df$eqtl_class %in% overlap_classes & eqtl_overlap_df$rsID==eqtl_f5_roadmap_union_snps$rsID[i],], .(gene_name), summarize, tissues=paste(sort(unique(tissue)), collapse=","))
-            ## make this into a single string and add to the data frame
-            eqtl_f5_roadmap_union_snps$concordant_eqtl_signals[i] <- paste(concordant_eqtl_signals$gene_name, concordant_eqtl_signals$tissues, sep="--", collapse=";")            
+            ## if we have any overlapping classes, pull out all the eQTL-tissue pairs and the category combinations too
+            concordant_eqtl_signals <- ddply(eqtl_overlap_df[eqtl_overlap_df$eqtl_class %in% overlap_classes & eqtl_overlap_df$rsID==eqtl_f5_roadmap_union_snps$rsID[i],], .(gene_name), summarize, tissues=paste(sort(unique(tissue)), collapse=","), classes=paste(sort(unique(eqtl_class)), collapse=","))
+            ## make the gene-tissue combos into a single string and add to the data frame
+            eqtl_f5_roadmap_union_snps$concordant_eqtl_signals[i] <- paste(concordant_eqtl_signals$gene_name, concordant_eqtl_signals$tissues, sep="--", collapse=";")
+            ## same thing for the tissue classes
+            eqtl_f5_roadmap_union_snps$concordant_eqtl_class_signals[i] <- paste(concordant_eqtl_signals$gene_name, concordant_eqtl_signals$classes, sep="--", collapse=";")            
         } else {
             eqtl_f5_roadmap_union_snps$concordant_eqtl_signals[i] <- "None"
+            eqtl_f5_roadmap_union_snps$concordant_eqtl_class_signals[i] <- "None"
         }
     }
         
