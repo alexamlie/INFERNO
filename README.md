@@ -15,7 +15,7 @@ downstream biological processes affected by functional variants.
 To use INFERNO, pull the source code from [the bitbucket
 repository](https://bitbucket.org/alexamlie/INFERNO/). The full processed annotation datasets
 used for the tool are [available for
-download](http://tesla.pcbi.upenn.edu/~alexaml/INFERNO/full_INFERNO_annotations.tar.gz). There
+download](http://inferno.lisanwanglab.org/full_INFERNO_annotations.tar.gz). There
 is also a [web server](http://inferno.lisanwanglab.org) that runs a subset of the INFERNO
 analyses. The full INFERNO pipeline can be run on a bsub-based cluster system (default) or through direct execution, using the '--cluster_system' flag. To extract the annotation data and set up the configuration
 file, run these steps:
@@ -85,7 +85,7 @@ To run the full pipeline, around 40Gb of memory is required, as the enhancer sam
 co-localization, and lncRNA correlation analyses are computationally intensive and run in R,
 which loads objects into memory. A typical run for the full pipeline will generate around
 10-20Gb of result data. The [full annotation
-data](http://tesla.pcbi.upenn.edu/~alexaml/INFERNO/full_INFERNO_annotations.tar.gz) is around
+data](http://inferno.lisanwanglab.org/full_INFERNO_annotations.tar.gz) is around
 130Gb compressed and expands to around 320Gb of annotation data.
 
 To run the pipeline, the following main programs are required:
