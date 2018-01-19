@@ -637,14 +637,14 @@ write.table(expanded_input_blocks, paste0(output_dir, "/samples/", param_ref[['o
                                           "_expanded_input_blocks.txt"), quote=F,
             sep="\t", row.names=F, col.names=F)
 
-## ## to read them back in, uncomment this:
-## expanded_snp_idx_mat <- as.matrix(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_sample_mat.txt"), header=F, sep="\t", quote="", as.is=T))
-## expanded_snp_regions <- as.matrix(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_sample_regions.txt"), header=F, sep="\t", quote="", as.is=T))
-## expanded_snp_blocks <- as.matrix(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_sample_blocks.txt"), header=F, sep="\t", quote="", as.is=T))
+## to read them back in, uncomment this:
+expanded_snp_idx_mat <- as.matrix(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_sample_mat.txt"), header=F, sep="\t", quote="", as.is=T))
+expanded_snp_regions <- as.matrix(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_sample_regions.txt"), header=F, sep="\t", quote="", as.is=T))
+expanded_snp_blocks <- as.matrix(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_sample_blocks.txt"), header=F, sep="\t", quote="", as.is=T))
 
-## expanded_input_idxs <- as.vector(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_input_idxs.txt"), header=F, sep="\t", quote="", as.is=T)$V1)
-## expanded_input_regions <- as.vector(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_input_regions.txt"), header=F, sep="\t", quote="", as.is=T)$V1)
-## expanded_input_blocks <- as.vector(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_input_blocks.txt"), header=F, sep="\t", quote="", as.is=T)$V1)
+expanded_input_idxs <- as.vector(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_input_idxs.txt"), header=F, sep="\t", quote="", as.is=T)$V1)
+expanded_input_regions <- as.vector(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_input_regions.txt"), header=F, sep="\t", quote="", as.is=T)$V1)
+expanded_input_blocks <- as.vector(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_input_blocks.txt"), header=F, sep="\t", quote="", as.is=T)$V1)
 
 cat("Auto LD expansion took:\n")
 cat((proc.time() - start_time)[["elapsed"]], 'seconds\n')
@@ -809,6 +809,7 @@ cat((proc.time() - annot_start)[['elapsed']], 'seconds\n')
 
 ## now we need to go through each sampled dataset, grab the annotation overlaps, and
 ## compare them to the observed count matrices/arrays
+{
 start_time <- proc.time()
 ## first do the annotation overlap on the input variants
 ## note that these input matrices are both for the LD collapsed analysis
@@ -1021,6 +1022,7 @@ for(s in seq(num_samples)) {
 }
 cat("Bootstrap counting for p-value calculation took:\n")
 cat((proc.time() - start_time)[['elapsed']], 'seconds\n')
+}
 
 ## remove the annotation matrices to save memory
 rm(enh_overlap_mat, hmm_overlap_mat)
@@ -1068,21 +1070,20 @@ if(length(unique(dimnames(split_empirical_pvals)[[3]])) > 1) {
                            dimnames=dimnames(tag_mat))
         return(corr_mat)
     }), perm=c(2, 3, 1))
+    
+    ## do this split by region
+    for(i in seq(dim(split_bh_adj_pvals)[3])) {
+        cat("Significant adjusted tests for", dimnames(split_bh_adj_pvals)[[3]][i], "\n")
+        cat(sum(split_bh_adj_pvals[,,i] < 0.05), "\n")
+    }    
 } else {
     split_bh_adj_pvals <- bh_adj_pvals
     cat("Only one tag region found, just reporting the single region results again!\n")
     cat("Only one tag region found, just reporting the single region results again!\n", file=summary_file, append=T)
 }
     
-    
 cat(sum(split_bh_adj_pvals < 0.05), "adjusted tests were significant for split tag region analysis\n")
 cat(sum(split_bh_adj_pvals < 0.05), "adjusted tests were significant for split tag region analysis\n", file=summary_file, append=T)
-
-## do this split by region
-for(i in seq(dim(split_bh_adj_pvals)[3])) {
-    cat("Significant adjusted tests for", dimnames(split_bh_adj_pvals)[[3]][i], "\n")
-    cat(sum(split_bh_adj_pvals[,,i] < 0.05), "\n")
-}
 
 ## ------------------------------
 ## analysis on LD collapsed sets
@@ -1123,21 +1124,26 @@ for(i in seq(dim(collapsed_split_empirical_pvals)[3])) {
 }
 
 ## use BH correction within each tag region
-collapsed_split_bh_adj_pvals <- aperm(aaply(collapsed_split_empirical_pvals, 3,
-    function(tag_mat) {
-    corr_mat <- matrix(p.adjust(tag_mat, method="BH"), nrow=nrow(tag_mat), ncol=ncol(tag_mat),
-                       dimnames=dimnames(tag_mat))
+if(length(unique(dimnames(collapsed_split_empirical_pvals)[[3]])) > 1) {                         
+    collapsed_split_bh_adj_pvals <- aperm(aaply(collapsed_split_empirical_pvals, 3,
+                                                function(tag_mat) {
+        corr_mat <- matrix(p.adjust(tag_mat, method="BH"), nrow=nrow(tag_mat), ncol=ncol(tag_mat),
+                           dimnames=dimnames(tag_mat))
     return(corr_mat)
 }), perm=c(2, 3, 1))
-
+    ## do this split by region
+    for(i in seq(dim(collapsed_split_bh_adj_pvals)[3])) {
+        cat("Significant adjusted tests for", dimnames(collapsed_split_bh_adj_pvals)[[3]][i], "\n")
+        cat(sum(collapsed_split_bh_adj_pvals[,,i] < 0.05), "\n")
+    }
+} else {
+    collapsed_split_bh_adj_pvals <- collapsed_bh_adj_pvals
+    cat("Only one tag region found, just reporting the single region results again!\n")
+    cat("Only one tag region found, just reporting the single region results again!\n", file=summary_file, append=T)
+}
+    
 cat(sum(collapsed_split_bh_adj_pvals < 0.05), "adjusted tests were significant for LD collapsed split tag region analysis\n")
 cat(sum(collapsed_split_bh_adj_pvals < 0.05), "adjusted tests were significant for LD collapsed split tag region analysis\n", file=summary_file, append=T)
-
-## do this split by region
-for(i in seq(dim(collapsed_split_bh_adj_pvals)[3])) {
-    cat("Significant adjusted tests for", dimnames(collapsed_split_bh_adj_pvals)[[3]][i], "\n")
-    cat(sum(collapsed_split_bh_adj_pvals[,,i] < 0.05), "\n")
-}
 
 ## -----------------------------------------------------------------------------
 ## 8. Analysis plots for annotation overlap and p-values of non-LD collapsed analysis
@@ -1314,112 +1320,114 @@ dev.off()
 
 ## -------------------
 ## split tag region analysis
-## melt the results
-split_pval_df <- rbind(cbind(pval="Raw P-value", melt(split_empirical_pvals, varnames=c("tissue_class", "annotation", "tag_region"))),
-                 cbind(pval="BH-adjusted P-value", melt(split_bh_adj_pvals, varnames=c("tissue_class", "annotation", "tag_region"))))
-split_pval_df$annotation <- factor(split_pval_df$annotation, ordered=T,
-                             levels=c("gtex_eqtl", "locus_enh", "roadmap_hmm_enh", "locus_enh+gtex_eqtl", "gtex_eqtl+roadmap_hmm_enh", "locus_enh+roadmap_hmm_enh", "locus_enh+gtex_eqtl+roadmap_hmm_enh"),
-                             labels=c("GTEx eQTL", "FANTOM5 Enhancer", "Roadmap HMM Enhancer",
-                                 "FANTOM5 Enh+GTEx eQTL", "GTEx eQTL+Roadmap HMM Enh", "FANTOM5 Enh+Roadmap HMM Enh", "FANTOM5 Enh+GTEx eQTL+Roadmap HMM Enh"))
-split_pval_df$tissue_class <- factor(split_pval_df$tissue_class, ordered=T,
-                               levels=sort(unique(split_pval_df$tissue_class), dec=T))
-
-write.table(split_pval_df, paste0(output_dir, '/tables/', param_ref[['outprefix']], '_split_region_bootstrap_results.txt'), quote=F, sep="\t", row.names=F, col.names=T)
-## ## to read in this data
-## split_pval_df <- read.table(paste0(output_dir, '/tables/', param_ref[['outprefix']], '_split_region_bootstrap_results.txt'), header=T, sep="\t", quote="", as.is=T)
-## split_pval_df$annotation <- factor(split_pval_df$annotation, ordered=T,
-##                              levels=c("GTEx eQTL", "FANTOM5 Enhancer", "Roadmap HMM Enhancer",
-##                                  "FANTOM5 Enh+GTEx eQTL", "GTEx eQTL+Roadmap HMM Enh", "FANTOM5 Enh+Roadmap HMM Enh", "FANTOM5 Enh+GTEx eQTL+Roadmap HMM Enh"))
-## split_pval_df$tissue_class <- factor(split_pval_df$tissue_class, ordered=T,
-##                                levels=sort(unique(split_pval_df$tissue_class), dec=T))
-
-dir.create(paste0(output_dir, '/plots/split_tag_regions/'), F, T)
-for(this_tag in unique(split_pval_df$tag_region)) {
-#    tag_out <- gsub("/", "_", strsplit(this_tag, ":")[[1]][1])
-    tag_out <- gsub("/", "_", this_tag)
-    dir.create(paste0(output_dir, "/plots/split_tag_regions/", tag_out), F, T)
-
-    ## define the breaks
-    hm_breaks <- c(0, 0.05, 1)
-
-    ## grab the relevant data
-    this_pval_df <- subset(split_pval_df, pval=="BH-adjusted P-value" & tag_region==this_tag)
+## only do this if we have more than one tag region..
+if(length(unique(dimnames(split_empirical_pvals)[[3]])) > 1) {
+    split_pval_df <- rbind(cbind(pval="Raw P-value", melt(split_empirical_pvals, varnames=c("tissue_class", "annotation", "tag_region"))),
+                           cbind(pval="BH-adjusted P-value", melt(split_bh_adj_pvals, varnames=c("tissue_class", "annotation", "tag_region"))))
+    split_pval_df$annotation <- factor(split_pval_df$annotation, ordered=T,
+                                       levels=c("gtex_eqtl", "locus_enh", "roadmap_hmm_enh", "locus_enh+gtex_eqtl", "gtex_eqtl+roadmap_hmm_enh", "locus_enh+roadmap_hmm_enh", "locus_enh+gtex_eqtl+roadmap_hmm_enh"),
+                                       labels=c("GTEx eQTL", "FANTOM5 Enhancer", "Roadmap HMM Enhancer",
+                                           "FANTOM5 Enh+GTEx eQTL", "GTEx eQTL+Roadmap HMM Enh", "FANTOM5 Enh+Roadmap HMM Enh", "FANTOM5 Enh+GTEx eQTL+Roadmap HMM Enh"))
+    split_pval_df$tissue_class <- factor(split_pval_df$tissue_class, ordered=T,
+                                         levels=sort(unique(split_pval_df$tissue_class), dec=T))
     
-    make_graphic(paste0(output_dir, "/plots/split_tag_regions/", tag_out, '/',
-                        param_ref[['outprefix']], "_", tag_out, "_annotation_by_tissue_bh_pval_heatmap"))
-    print(ggplot(this_pval_df, 
-                 aes(x=annotation, y=tissue_class)) +
-          geom_tile(aes(fill=value), colour="#000000") +
-          ## use 4 colors here so that all significant hits are fairly red
-          scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                               values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
-                               limits=c(0, 1), name="BH-adjusted p-value", guide="colorbar") +
-          theme_bw() + ylab("Tissue category") +
-          xlab("Annotation") + ggtitle(paste("Heatmap of adjusted p-values,", this_tag)) +
-      theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1, size=15),
-            axis.text.y = element_text(size=15), axis.title=element_text(size=20),
-            legend.text=element_text(size=20), legend.key.height=unit(0.10, "npc"),
-            legend.title=element_text(size=20), plot.title = element_text(size=30, hjust = 0.5)))
-    dev.off()
-
-    ## also make one with text in the boxes for the p-values
-    make_graphic(paste0(output_dir, "/plots/split_tag_regions/", tag_out, '/',
-                        param_ref[['outprefix']], "_", tag_out, "_annotation_by_tissue_bh_pval_heatmap_with_text"))
-    print(ggplot(this_pval_df,
-                 aes(x=annotation, y=tissue_class)) +
-          geom_tile(aes(fill=value), colour="#000000") +
-          scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                               values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
-                               limits=c(0, 1), name="BH-adjusted p-value", guide="colorbar") +
-          theme_bw() + ylab("Tissue category") +
-          xlab("Annotation") + ggtitle(paste("Heatmap of adjusted p-values,", this_tag)) +
-          theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1, size=15),
-                axis.text.y = element_text(size=15), axis.title=element_text(size=20),
-                legend.text=element_text(size=20), legend.key.height=unit(0.10, "npc"),
-                legend.title=element_text(size=20), plot.title = element_text(size=30, hjust = 0.5)) +
-          geom_text(aes(x=annotation, y=tissue_class,
-                    label=format(round(value, digits=4), scientific=F)), color="black", size=4))
-    dev.off()
-
-    ## also make plots for the uncorrected p-values    
-    ## grab the relevant data
-    this_raw_pval_df <- subset(split_pval_df, pval=="Raw P-value" & tag_region==this_tag)
+    write.table(split_pval_df, paste0(output_dir, '/tables/', param_ref[['outprefix']], '_split_region_bootstrap_results.txt'), quote=F, sep="\t", row.names=F, col.names=T)
+    ## ## to read in this data
+    ## split_pval_df <- read.table(paste0(output_dir, '/tables/', param_ref[['outprefix']], '_split_region_bootstrap_results.txt'), header=T, sep="\t", quote="", as.is=T)
+    ## split_pval_df$annotation <- factor(split_pval_df$annotation, ordered=T,
+    ##                              levels=c("GTEx eQTL", "FANTOM5 Enhancer", "Roadmap HMM Enhancer",
+    ##                                  "FANTOM5 Enh+GTEx eQTL", "GTEx eQTL+Roadmap HMM Enh", "FANTOM5 Enh+Roadmap HMM Enh", "FANTOM5 Enh+GTEx eQTL+Roadmap HMM Enh"))
+    ## split_pval_df$tissue_class <- factor(split_pval_df$tissue_class, ordered=T,
+    ##                                levels=sort(unique(split_pval_df$tissue_class), dec=T))
     
-    make_graphic(paste0(output_dir, "/plots/split_tag_regions/", tag_out, '/',
-                        param_ref[['outprefix']], "_", tag_out, "_annotation_by_tissue_raw_pval_heatmap"))
-    print(ggplot(this_raw_pval_df, 
-                 aes(x=annotation, y=tissue_class)) +
-          geom_tile(aes(fill=value), colour="#000000") +
-          ## use 4 colors here so that all significant hits are fairly red
-          scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                               values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
-                               limits=c(0, 1), name="Raw p-value", guide="colorbar") +
-          theme_bw() + ylab("Tissue category") +
-          xlab("Annotation") + ggtitle(paste("Heatmap of unadjusted p-values,", this_tag)) +
-          theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1, size=15),
-                axis.text.y = element_text(size=15), axis.title=element_text(size=20),
-                legend.text=element_text(size=20), legend.key.height=unit(0.10, "npc"),
-                legend.title=element_text(size=20), plot.title = element_text(size=30, hjust = 0.5)))
-    dev.off()
+    dir.create(paste0(output_dir, '/plots/split_tag_regions/'), F, T)
+    for(this_tag in unique(split_pval_df$tag_region)) {
+                                        #    tag_out <- gsub("/", "_", strsplit(this_tag, ":")[[1]][1])
+        tag_out <- gsub("/", "_", this_tag)
+        dir.create(paste0(output_dir, "/plots/split_tag_regions/", tag_out), F, T)
+        
+        ## define the breaks
+        hm_breaks <- c(0, 0.05, 1)
+        
+        ## grab the relevant data
+        this_pval_df <- subset(split_pval_df, pval=="BH-adjusted P-value" & tag_region==this_tag)
+        
+        make_graphic(paste0(output_dir, "/plots/split_tag_regions/", tag_out, '/',
+                            param_ref[['outprefix']], "_", tag_out, "_annotation_by_tissue_bh_pval_heatmap"))
+        print(ggplot(this_pval_df, 
+                     aes(x=annotation, y=tissue_class)) +
+              geom_tile(aes(fill=value), colour="#000000") +
+              ## use 4 colors here so that all significant hits are fairly red
+              scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
+                                   values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                                   limits=c(0, 1), name="BH-adjusted p-value", guide="colorbar") +
+              theme_bw() + ylab("Tissue category") +
+              xlab("Annotation") + ggtitle(paste("Heatmap of adjusted p-values,", this_tag)) +
+              theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1, size=15),
+                    axis.text.y = element_text(size=15), axis.title=element_text(size=20),
+                    legend.text=element_text(size=20), legend.key.height=unit(0.10, "npc"),
+                    legend.title=element_text(size=20), plot.title = element_text(size=30, hjust = 0.5)))
+        dev.off()
 
-    ## also make one with text in the boxes for the p-values
-    make_graphic(paste0(output_dir, "/plots/split_tag_regions/", tag_out, '/',
-                        param_ref[['outprefix']], "_", tag_out, "_annotation_by_tissue_raw_pval_heatmap_with_text"))
-    print(ggplot(this_raw_pval_df,
-                 aes(x=annotation, y=tissue_class)) +
-          geom_tile(aes(fill=value), colour="#000000") +
-          scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                               values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
-                               limits=c(0, 1), name="Raw p-value", guide="colorbar") +
-          theme_bw() + ylab("Tissue category") +
-          xlab("Annotation") + ggtitle(paste("Heatmap of unadjusted p-values,", this_tag)) +
-          theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1, size=15),
-                axis.text.y = element_text(size=15), axis.title=element_text(size=20),
-                legend.text=element_text(size=20), legend.key.height=unit(0.10, "npc"),
-                legend.title=element_text(size=20), plot.title = element_text(size=30, hjust = 0.5)) +
-          geom_text(aes(x=annotation, y=tissue_class,
-                        label=format(round(value, digits=4), scientific=F)), color="black", size=4))
-    dev.off()
+        ## also make one with text in the boxes for the p-values
+        make_graphic(paste0(output_dir, "/plots/split_tag_regions/", tag_out, '/',
+                            param_ref[['outprefix']], "_", tag_out, "_annotation_by_tissue_bh_pval_heatmap_with_text"))
+        print(ggplot(this_pval_df,
+                     aes(x=annotation, y=tissue_class)) +
+              geom_tile(aes(fill=value), colour="#000000") +
+              scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
+                                   values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                                   limits=c(0, 1), name="BH-adjusted p-value", guide="colorbar") +
+              theme_bw() + ylab("Tissue category") +
+              xlab("Annotation") + ggtitle(paste("Heatmap of adjusted p-values,", this_tag)) +
+              theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1, size=15),
+                    axis.text.y = element_text(size=15), axis.title=element_text(size=20),
+                    legend.text=element_text(size=20), legend.key.height=unit(0.10, "npc"),
+                    legend.title=element_text(size=20), plot.title = element_text(size=30, hjust = 0.5)) +
+              geom_text(aes(x=annotation, y=tissue_class,
+                            label=format(round(value, digits=4), scientific=F)), color="black", size=4))
+        dev.off()
+
+        ## also make plots for the uncorrected p-values    
+        ## grab the relevant data
+        this_raw_pval_df <- subset(split_pval_df, pval=="Raw P-value" & tag_region==this_tag)
+        
+        make_graphic(paste0(output_dir, "/plots/split_tag_regions/", tag_out, '/',
+                            param_ref[['outprefix']], "_", tag_out, "_annotation_by_tissue_raw_pval_heatmap"))
+        print(ggplot(this_raw_pval_df, 
+                     aes(x=annotation, y=tissue_class)) +
+              geom_tile(aes(fill=value), colour="#000000") +
+              ## use 4 colors here so that all significant hits are fairly red
+              scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
+                                   values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                                   limits=c(0, 1), name="Raw p-value", guide="colorbar") +
+              theme_bw() + ylab("Tissue category") +
+              xlab("Annotation") + ggtitle(paste("Heatmap of unadjusted p-values,", this_tag)) +
+              theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1, size=15),
+                    axis.text.y = element_text(size=15), axis.title=element_text(size=20),
+                    legend.text=element_text(size=20), legend.key.height=unit(0.10, "npc"),
+                    legend.title=element_text(size=20), plot.title = element_text(size=30, hjust = 0.5)))
+        dev.off()
+
+        ## also make one with text in the boxes for the p-values
+        make_graphic(paste0(output_dir, "/plots/split_tag_regions/", tag_out, '/',
+                            param_ref[['outprefix']], "_", tag_out, "_annotation_by_tissue_raw_pval_heatmap_with_text"))
+        print(ggplot(this_raw_pval_df,
+                     aes(x=annotation, y=tissue_class)) +
+              geom_tile(aes(fill=value), colour="#000000") +
+              scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
+                                   values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                                   limits=c(0, 1), name="Raw p-value", guide="colorbar") +
+              theme_bw() + ylab("Tissue category") +
+              xlab("Annotation") + ggtitle(paste("Heatmap of unadjusted p-values,", this_tag)) +
+              theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1, size=15),
+                    axis.text.y = element_text(size=15), axis.title=element_text(size=20),
+                    legend.text=element_text(size=20), legend.key.height=unit(0.10, "npc"),
+                    legend.title=element_text(size=20), plot.title = element_text(size=30, hjust = 0.5)) +
+              geom_text(aes(x=annotation, y=tissue_class,
+                            label=format(round(value, digits=4), scientific=F)), color="black", size=4))
+        dev.off()
+    }
 }
 
 ## -------------------
@@ -1667,115 +1675,117 @@ dev.off()
 ## -------------------
 ## split tag region analysis
 ## melt the results
-collapsed_split_pval_df <- rbind(cbind(pval="Raw P-value", melt(collapsed_split_empirical_pvals, varnames=c("tissue_class", "annotation", "tag_region"))),
-                 cbind(pval="BH-adjusted P-value", melt(collapsed_split_bh_adj_pvals, varnames=c("tissue_class", "annotation", "tag_region"))))
-collapsed_split_pval_df$annotation <- factor(collapsed_split_pval_df$annotation, ordered=T,
-                             levels=c("gtex_eqtl", "locus_enh", "roadmap_hmm_enh", "locus_enh+gtex_eqtl", "gtex_eqtl+roadmap_hmm_enh", "locus_enh+roadmap_hmm_enh", "locus_enh+gtex_eqtl+roadmap_hmm_enh"),
-                             labels=c("GTEx eQTL", "FANTOM5 Enhancer", "Roadmap HMM Enhancer",
-                                 "FANTOM5 Enh+GTEx eQTL", "GTEx eQTL+Roadmap HMM Enh", "FANTOM5 Enh+Roadmap HMM Enh", "FANTOM5 Enh+GTEx eQTL+Roadmap HMM Enh"))
-collapsed_split_pval_df$tissue_class <- factor(collapsed_split_pval_df$tissue_class, ordered=T,
-                               levels=sort(unique(collapsed_split_pval_df$tissue_class), dec=T))
+if(length(unique(dimnames(split_empirical_pvals)[[3]])) > 1) {
+    collapsed_split_pval_df <- rbind(cbind(pval="Raw P-value", melt(collapsed_split_empirical_pvals, varnames=c("tissue_class", "annotation", "tag_region"))),
+                                     cbind(pval="BH-adjusted P-value", melt(collapsed_split_bh_adj_pvals, varnames=c("tissue_class", "annotation", "tag_region"))))
+    collapsed_split_pval_df$annotation <- factor(collapsed_split_pval_df$annotation, ordered=T,
+                                                 levels=c("gtex_eqtl", "locus_enh", "roadmap_hmm_enh", "locus_enh+gtex_eqtl", "gtex_eqtl+roadmap_hmm_enh", "locus_enh+roadmap_hmm_enh", "locus_enh+gtex_eqtl+roadmap_hmm_enh"),
+                                                 labels=c("GTEx eQTL", "FANTOM5 Enhancer", "Roadmap HMM Enhancer",
+                                                     "FANTOM5 Enh+GTEx eQTL", "GTEx eQTL+Roadmap HMM Enh", "FANTOM5 Enh+Roadmap HMM Enh", "FANTOM5 Enh+GTEx eQTL+Roadmap HMM Enh"))
+    collapsed_split_pval_df$tissue_class <- factor(collapsed_split_pval_df$tissue_class, ordered=T,
+                                                   levels=sort(unique(collapsed_split_pval_df$tissue_class), dec=T))
 
-write.table(collapsed_split_pval_df, paste0(output_dir, '/tables/', param_ref[['outprefix']], '_split_region_collapsed_bootstrap_results.txt'), quote=F, sep="\t", row.names=F, col.names=T)
-## ## to read in this data
-## collapsed_split_pval_df <- read.table(paste0(output_dir, '/tables/', param_ref[['outprefix']], '_split_region_collapsed_bootstrap_results.txt'), header=T, sep="\t", quote="", as.is=T)
-## collapsed_split_pval_df$annotation <- factor(collapsed_split_pval_df$annotation, ordered=T,
-##                              levels=c("GTEx eQTL", "FANTOM5 Enhancer", "Roadmap HMM Enhancer",
-##                                  "FANTOM5 Enh+GTEx eQTL", "GTEx eQTL+Roadmap HMM Enh", "FANTOM5 Enh+Roadmap HMM Enh", "FANTOM5 Enh+GTEx eQTL+Roadmap HMM Enh"))
-## collapsed_split_pval_df$tissue_class <- factor(collapsed_split_pval_df$tissue_class, ordered=T,
-##                                levels=sort(unique(collapsed_split_pval_df$tissue_class), dec=T))
+    write.table(collapsed_split_pval_df, paste0(output_dir, '/tables/', param_ref[['outprefix']], '_split_region_collapsed_bootstrap_results.txt'), quote=F, sep="\t", row.names=F, col.names=T)
+    ## ## to read in this data
+    ## collapsed_split_pval_df <- read.table(paste0(output_dir, '/tables/', param_ref[['outprefix']], '_split_region_collapsed_bootstrap_results.txt'), header=T, sep="\t", quote="", as.is=T)
+    ## collapsed_split_pval_df$annotation <- factor(collapsed_split_pval_df$annotation, ordered=T,
+    ##                              levels=c("GTEx eQTL", "FANTOM5 Enhancer", "Roadmap HMM Enhancer",
+    ##                                  "FANTOM5 Enh+GTEx eQTL", "GTEx eQTL+Roadmap HMM Enh", "FANTOM5 Enh+Roadmap HMM Enh", "FANTOM5 Enh+GTEx eQTL+Roadmap HMM Enh"))
+    ## collapsed_split_pval_df$tissue_class <- factor(collapsed_split_pval_df$tissue_class, ordered=T,
+    ##                                levels=sort(unique(collapsed_split_pval_df$tissue_class), dec=T))
 
-dir.create(paste0(output_dir, '/plots/ld_collapsed_split_tag_regions/'), F, T)
-for(this_tag in unique(collapsed_split_pval_df$tag_region)) {
-#    tag_out <- gsub("/", "_", strsplit(this_tag, ":")[[1]][1])
-    tag_out <- gsub("/", "_", this_tag)
-    dir.create(paste0(output_dir, "/plots/ld_collapsed_split_tag_regions/", tag_out), F, T)
+    dir.create(paste0(output_dir, '/plots/ld_collapsed_split_tag_regions/'), F, T)
+    for(this_tag in unique(collapsed_split_pval_df$tag_region)) {
+                                        #    tag_out <- gsub("/", "_", strsplit(this_tag, ":")[[1]][1])
+        tag_out <- gsub("/", "_", this_tag)
+        dir.create(paste0(output_dir, "/plots/ld_collapsed_split_tag_regions/", tag_out), F, T)
 
-    ## define the breaks
-    hm_breaks <- c(0, 0.05, 1)
+        ## define the breaks
+        hm_breaks <- c(0, 0.05, 1)
 
-    ## grab the relevant data
-    this_pval_df <- subset(collapsed_split_pval_df, pval=="BH-adjusted P-value" & tag_region==this_tag)
-    
-    make_graphic(paste0(output_dir, "/plots/ld_collapsed_split_tag_regions/", tag_out, '/',
-                        param_ref[['outprefix']], "_", tag_out, "_collapsed_annotation_by_tissue_bh_pval_heatmap"))
-    print(ggplot(this_pval_df, 
-                 aes(x=annotation, y=tissue_class)) +
-          geom_tile(aes(fill=value), colour="#000000") +
-          ## use 4 colors here so that all significant hits are fairly red
-          scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                               values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
-                               limits=c(0, 1), name="BH-adjusted p-value", guide="colorbar") +
-          theme_bw() + ylab("Tissue category") +
-          xlab("Annotation") + ggtitle(paste("Heatmap of adjusted p-values,", this_tag,
-                                             "\nLD collapsed")) +
-      theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1, size=15),
-            axis.text.y = element_text(size=15), axis.title=element_text(size=20),
-            legend.text=element_text(size=20), legend.key.height=unit(0.10, "npc"),
-            legend.title=element_text(size=20), plot.title = element_text(size=30, hjust = 0.5)))
-    dev.off()
+        ## grab the relevant data
+        this_pval_df <- subset(collapsed_split_pval_df, pval=="BH-adjusted P-value" & tag_region==this_tag)
+        
+        make_graphic(paste0(output_dir, "/plots/ld_collapsed_split_tag_regions/", tag_out, '/',
+                            param_ref[['outprefix']], "_", tag_out, "_collapsed_annotation_by_tissue_bh_pval_heatmap"))
+        print(ggplot(this_pval_df, 
+                     aes(x=annotation, y=tissue_class)) +
+              geom_tile(aes(fill=value), colour="#000000") +
+              ## use 4 colors here so that all significant hits are fairly red
+              scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
+                                   values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                                   limits=c(0, 1), name="BH-adjusted p-value", guide="colorbar") +
+              theme_bw() + ylab("Tissue category") +
+              xlab("Annotation") + ggtitle(paste("Heatmap of adjusted p-values,", this_tag,
+                                                 "\nLD collapsed")) +
+              theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1, size=15),
+                    axis.text.y = element_text(size=15), axis.title=element_text(size=20),
+                    legend.text=element_text(size=20), legend.key.height=unit(0.10, "npc"),
+                    legend.title=element_text(size=20), plot.title = element_text(size=30, hjust = 0.5)))
+        dev.off()
 
-    ## also make one with text in the boxes for the p-values
-    make_graphic(paste0(output_dir, "/plots/ld_collapsed_split_tag_regions/", tag_out, '/',
-                        param_ref[['outprefix']], "_", tag_out, "_collapsed_annotation_by_tissue_bh_pval_heatmap_with_text"))
-    print(ggplot(this_pval_df,
-                 aes(x=annotation, y=tissue_class)) +
-          geom_tile(aes(fill=value), colour="#000000") +
-          scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                               values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
-                               limits=c(0, 1), name="BH-adjusted p-value", guide="colorbar") +
-          theme_bw() + ylab("Tissue category") +
-          xlab("Annotation") + ggtitle(paste("Heatmap of adjusted p-values,", this_tag,
-                                             "\nLD collapsed")) +
-          theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1, size=15),
-                axis.text.y = element_text(size=15), axis.title=element_text(size=20),
-                legend.text=element_text(size=20), legend.key.height=unit(0.10, "npc"),
-                legend.title=element_text(size=20), plot.title = element_text(size=30, hjust = 0.5)) +
-          geom_text(aes(x=annotation, y=tissue_class,
-                    label=format(round(value, digits=4), scientific=F)), color="black", size=4))
-    dev.off()
+        ## also make one with text in the boxes for the p-values
+        make_graphic(paste0(output_dir, "/plots/ld_collapsed_split_tag_regions/", tag_out, '/',
+                            param_ref[['outprefix']], "_", tag_out, "_collapsed_annotation_by_tissue_bh_pval_heatmap_with_text"))
+        print(ggplot(this_pval_df,
+                     aes(x=annotation, y=tissue_class)) +
+              geom_tile(aes(fill=value), colour="#000000") +
+              scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
+                                   values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                                   limits=c(0, 1), name="BH-adjusted p-value", guide="colorbar") +
+              theme_bw() + ylab("Tissue category") +
+              xlab("Annotation") + ggtitle(paste("Heatmap of adjusted p-values,", this_tag,
+                                                 "\nLD collapsed")) +
+              theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1, size=15),
+                    axis.text.y = element_text(size=15), axis.title=element_text(size=20),
+                    legend.text=element_text(size=20), legend.key.height=unit(0.10, "npc"),
+                    legend.title=element_text(size=20), plot.title = element_text(size=30, hjust = 0.5)) +
+              geom_text(aes(x=annotation, y=tissue_class,
+                            label=format(round(value, digits=4), scientific=F)), color="black", size=4))
+        dev.off()
 
-    ## also make plots for the uncorrected p-values    
-    ## grab the relevant data
-    this_raw_pval_df <- subset(collapsed_split_pval_df, pval=="Raw P-value" & tag_region==this_tag)
-    
-    make_graphic(paste0(output_dir, "/plots/ld_collapsed_split_tag_regions/", tag_out, '/',
-                        param_ref[['outprefix']], "_", tag_out, "_collapsed_annotation_by_tissue_raw_pval_heatmap"))
-    print(ggplot(this_raw_pval_df, 
-                 aes(x=annotation, y=tissue_class)) +
-          geom_tile(aes(fill=value), colour="#000000") +
-          ## use 4 colors here so that all significant hits are fairly red
-          scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                               values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
-                               limits=c(0, 1), name="Raw p-value", guide="colorbar") +
-          theme_bw() + ylab("Tissue category") +
-          xlab("Annotation") + ggtitle(paste("Heatmap of unadjusted p-values,", this_tag,
-                                             "\nLD collapsed")) +
-          theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1, size=15),
-                axis.text.y = element_text(size=15), axis.title=element_text(size=20),
-                legend.text=element_text(size=20), legend.key.height=unit(0.10, "npc"),
-                legend.title=element_text(size=20), plot.title = element_text(size=30, hjust = 0.5)))
-    dev.off()
+        ## also make plots for the uncorrected p-values    
+        ## grab the relevant data
+        this_raw_pval_df <- subset(collapsed_split_pval_df, pval=="Raw P-value" & tag_region==this_tag)
+        
+        make_graphic(paste0(output_dir, "/plots/ld_collapsed_split_tag_regions/", tag_out, '/',
+                            param_ref[['outprefix']], "_", tag_out, "_collapsed_annotation_by_tissue_raw_pval_heatmap"))
+        print(ggplot(this_raw_pval_df, 
+                     aes(x=annotation, y=tissue_class)) +
+              geom_tile(aes(fill=value), colour="#000000") +
+              ## use 4 colors here so that all significant hits are fairly red
+              scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
+                                   values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                                   limits=c(0, 1), name="Raw p-value", guide="colorbar") +
+              theme_bw() + ylab("Tissue category") +
+              xlab("Annotation") + ggtitle(paste("Heatmap of unadjusted p-values,", this_tag,
+                                                 "\nLD collapsed")) +
+              theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1, size=15),
+                    axis.text.y = element_text(size=15), axis.title=element_text(size=20),
+                    legend.text=element_text(size=20), legend.key.height=unit(0.10, "npc"),
+                    legend.title=element_text(size=20), plot.title = element_text(size=30, hjust = 0.5)))
+        dev.off()
 
-    ## also make one with text in the boxes for the p-values
-    make_graphic(paste0(output_dir, "/plots/ld_collapsed_split_tag_regions/", tag_out, '/',
-                        param_ref[['outprefix']], "_", tag_out, "_collapsed_annotation_by_tissue_raw_pval_heatmap_with_text"))
-    print(ggplot(this_raw_pval_df,
-                 aes(x=annotation, y=tissue_class)) +
-          geom_tile(aes(fill=value), colour="#000000") +
-          scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                               values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
-                               limits=c(0, 1), name="Raw p-value", guide="colorbar") +
-          theme_bw() + ylab("Tissue category") +
-          xlab("Annotation") + ggtitle(paste("Heatmap of unadjusted p-values,", this_tag,
-                                             "\nLD collapsed")) +
-          theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1, size=15),
-                axis.text.y = element_text(size=15), axis.title=element_text(size=20),
-                legend.text=element_text(size=20), legend.key.height=unit(0.10, "npc"),
-                legend.title=element_text(size=20), plot.title = element_text(size=30, hjust = 0.5)) +
-          geom_text(aes(x=annotation, y=tissue_class,
-                        label=format(round(value, digits=4), scientific=F)), color="black", size=4))
-    dev.off()
+        ## also make one with text in the boxes for the p-values
+        make_graphic(paste0(output_dir, "/plots/ld_collapsed_split_tag_regions/", tag_out, '/',
+                            param_ref[['outprefix']], "_", tag_out, "_collapsed_annotation_by_tissue_raw_pval_heatmap_with_text"))
+        print(ggplot(this_raw_pval_df,
+                     aes(x=annotation, y=tissue_class)) +
+              geom_tile(aes(fill=value), colour="#000000") +
+              scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
+                                   values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                                   limits=c(0, 1), name="Raw p-value", guide="colorbar") +
+              theme_bw() + ylab("Tissue category") +
+              xlab("Annotation") + ggtitle(paste("Heatmap of unadjusted p-values,", this_tag,
+                                                 "\nLD collapsed")) +
+              theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1, size=15),
+                    axis.text.y = element_text(size=15), axis.title=element_text(size=20),
+                    legend.text=element_text(size=20), legend.key.height=unit(0.10, "npc"),
+                    legend.title=element_text(size=20), plot.title = element_text(size=30, hjust = 0.5)) +
+              geom_text(aes(x=annotation, y=tissue_class,
+                            label=format(round(value, digits=4), scientific=F)), color="black", size=4))
+        dev.off()
+    }
 }
 
 cat("Entire enhancer bootstrapping analysis took:\n")
