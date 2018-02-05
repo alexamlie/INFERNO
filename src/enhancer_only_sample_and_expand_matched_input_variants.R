@@ -757,6 +757,7 @@ rm(hmm_overlaps)
 ## this is NOT collapsed by LD blocks
 input_annotation_counts <- read.table(paste0(param_ref[['outdir']],
                                              '/summaries/tissue_class_annotation_counts_',
+                                             param_ref[['outprefix']], '_',
                                              r2_thresh, '_ld_', dist_thresh, '_dist.txt'),
                                       header=T, sep="\t", quote="", comment.char="", as.is=T)
 ## parse this down to only include the enhancer annotations for this analysis
@@ -769,9 +770,10 @@ input_annot_mat <- acast(input_annotation_counts, tissue_class ~ annotation, val
 
 ## in addition to full input counts, also read in the counts split by tag region
 region_annotation_counts <- read.table(paste0(param_ref[['outdir']],
-                                             '/summaries/tag_region_tissue_class_annotation_counts_',
-                                             r2_thresh, '_ld_', dist_thresh, '_dist.txt'),
-                                      header=T, sep="\t", quote="", comment.char="", as.is=T)
+                                              '/summaries/tag_region_tissue_class_annotation_counts_',
+                                              param_ref[['outprefix']], '_',
+                                              r2_thresh, '_ld_', dist_thresh, '_dist.txt'),
+                                       header=T, sep="\t", quote="", comment.char="", as.is=T)
 ## also parse this one down
 region_annotation_counts <- region_annotation_counts[grep("eqtl", region_annotation_counts$annotation, invert=T),]
 

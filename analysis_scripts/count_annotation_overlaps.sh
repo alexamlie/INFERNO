@@ -34,7 +34,7 @@ else
     OUTDIR=${@:$OPTIND+4:1}
 
     ## define a convenience variable for the parameter suffix of each output file
-    PARAM_STRING=${LD_THRESH}_ld_${DIST_THRESH}_dist
+    PARAM_STRING=${PREFIX}_${LD_THRESH}_ld_${DIST_THRESH}_dist
     
     mkdir -p ${OUTDIR}
     ## write a convenience file just saying when this data was generated..
@@ -71,10 +71,10 @@ else
     tail -n +2 ${DATADIR}/ld_expansion/${PREFIX}_${LD_THRESH}_ld_cutoff_snps_within_${DIST_THRESH}.txt | cut -f10 | sort -u | \
 	awk -F$'\t' 'BEGIN{OFS=FS} NR==FNR {c[$1]; next}
                                     {for(tiss in c) printf "%s\t%s\n", $1, tiss}' \
-	     ${OUTDIR}/all_classes.txt - | sort -t$'\t' -k1,1 -k2,2 > ${OUTDIR}/all_classes_tag_regions.txt
+	     ${OUTDIR}/all_classes.txt - | sort -t$'\t' -k1,1 -k2,2 > ${OUTDIR}/all_classes_tag_regions_${PREFIX}.txt
 
     ## finally, make one that has all the tag regions
-    tail -n +2 ${DATADIR}/ld_expansion/${PREFIX}_${LD_THRESH}_ld_cutoff_snps_within_${DIST_THRESH}.txt | cut -f10 | sort -u  > ${OUTDIR}/all_tag_regions.txt    
+    tail -n +2 ${DATADIR}/ld_expansion/${PREFIX}_${LD_THRESH}_ld_cutoff_snps_within_${DIST_THRESH}.txt | cut -f10 | sort -u  > ${OUTDIR}/all_tag_regions_${PREFIX}.txt    
     
     ## count the total number of SNPs
     UNIQ_SNPS=`tail -n +2 ${DATADIR}/ld_expansion/${PREFIX}_${LD_THRESH}_ld_cutoff_snps_within_${DIST_THRESH}.txt | cut -f2 | sort -u | wc -l`
@@ -109,13 +109,13 @@ else
 	    ## use awk to count the number of overlaps
 	    awk -F$'\t' 'BEGIN{OFS=FS} NR==FNR {c[$1"\t"$2]=0; next} {c[$1"\t"$2]+=1}
                          END {for(tiss_tag in c) {printf "%s\t%s\tmidpoint_enh\n", tiss_tag, c[tiss_tag]}}' \
-	        ${OUTDIR}/all_classes_tag_regions.txt - >> ${OUTDIR}/tag_region_tissue_class_annotation_counts_${PARAM_STRING}.txt
+	        ${OUTDIR}/all_classes_tag_regions_${PREFIX}.txt - >> ${OUTDIR}/tag_region_tissue_class_annotation_counts_${PARAM_STRING}.txt
 
         ## also do this split by tag region only
 	cut -f2,4 ${OUTDIR}/enh_mid_snps_${PARAM_STRING}.txt | sort -u | cut -f2 | sort | uniq -c \
 	    | awk 'BEGIN{OFS="\t"} NR==FNR {c[$1]=0; next} {c[$2]=$1}
                    END {for(tag in c) {printf "%s\tmidpoint_enh\t%s\n", tag, c[tag]}}' \
-	      ${OUTDIR}/all_tag_regions.txt - >> \
+	      ${OUTDIR}/all_tag_regions_${PREFIX}.txt - >> \
 	      ${OUTDIR}/tag_region_annotation_counts_${PARAM_STRING}.txt
 	    
 	ENH_SNPS=`cut -f1-2 ${OUTDIR}/enh_mid_snps_${PARAM_STRING}.txt | sort -u | wc -l | cut -d' ' -f1`
@@ -144,13 +144,13 @@ else
 	    ## use awk to count the number of overlaps
 	    awk -F$'\t' 'BEGIN{OFS=FS} NR==FNR {c[$1"\t"$2]=0; next} {c[$1"\t"$2]+=1}
                          END {for(tiss_tag in c) {printf "%s\t%d\tlocus_enh\n", tiss_tag, c[tiss_tag]}}' \
-	        ${OUTDIR}/all_classes_tag_regions.txt - >> ${OUTDIR}/tag_region_tissue_class_annotation_counts_${PARAM_STRING}.txt
+	        ${OUTDIR}/all_classes_tag_regions_${PREFIX}.txt - >> ${OUTDIR}/tag_region_tissue_class_annotation_counts_${PARAM_STRING}.txt
 
         ## also do this split by tag region only
 	cut -f2,4 ${OUTDIR}/enh_locus_snps_${PARAM_STRING}.txt | sort -u | cut -f2 | sort | uniq -c \
 	    | awk 'BEGIN{OFS="\t"} NR==FNR {c[$1]=0; next} {c[$2]=$1}
                    END {for(tag in c) {printf "%s\tlocus_enh\t%s\n", tag, c[tag]}}' \
-	      ${OUTDIR}/all_tag_regions.txt - >> \
+	      ${OUTDIR}/all_tag_regions_${PREFIX}.txt - >> \
 	      ${OUTDIR}/tag_region_annotation_counts_${PARAM_STRING}.txt
 	    
 	ENH_SNPS=`cut -f1-2 ${OUTDIR}/enh_locus_snps_${PARAM_STRING}.txt | sort -u | wc -l | cut -d' ' -f1`
@@ -179,13 +179,13 @@ else
 	## use awk to count the number of overlaps
 	awk -F$'\t' 'BEGIN{OFS=FS} NR==FNR {c[$1"\t"$2]=0; next} {c[$1"\t"$2]+=1}
 		     END {for(tiss_tag in c) {printf "%s\t%d\tgtex_eqtl\n", tiss_tag, c[tiss_tag]}}' \
-	  ${OUTDIR}/all_classes_tag_regions.txt - >> ${OUTDIR}/tag_region_tissue_class_annotation_counts_${PARAM_STRING}.txt
+	  ${OUTDIR}/all_classes_tag_regions_${PREFIX}.txt - >> ${OUTDIR}/tag_region_tissue_class_annotation_counts_${PARAM_STRING}.txt
 
     ## also do this split by tag region only
     cut -f2,4 ${OUTDIR}/eqtl_snps_${PARAM_STRING}.txt | sort -u | cut -f2 | sort | uniq -c \
 	| awk 'BEGIN{OFS="\t"} NR==FNR {c[$1]=0; next} {c[$2]=$1}
 	       END {for(tag in c) {printf "%s\tgtex_eqtl\t%s\n", tag, c[tag]}}' \
-	  ${OUTDIR}/all_tag_regions.txt - >> \
+	  ${OUTDIR}/all_tag_regions_${PREFIX}.txt - >> \
 	  ${OUTDIR}/tag_region_annotation_counts_${PARAM_STRING}.txt
 	
     EQTL_SNPS=`cut -f1-2 ${OUTDIR}/eqtl_snps_${PARAM_STRING}.txt | sort -u | wc -l | cut -d' ' -f1`
@@ -214,13 +214,13 @@ else
 	## use awk to count the number of overlaps
 	awk -F$'\t' 'BEGIN{OFS=FS} NR==FNR {c[$1"\t"$2]=0; next} {c[$1"\t"$2]+=1}
 		     END {for(tiss_tag in c) {printf "%s\t%d\troadmap_hmm_enh\n", tiss_tag, c[tiss_tag]}}' \
-	  ${OUTDIR}/all_classes_tag_regions.txt - >> ${OUTDIR}/tag_region_tissue_class_annotation_counts_${PARAM_STRING}.txt
+	  ${OUTDIR}/all_classes_tag_regions_${PREFIX}.txt - >> ${OUTDIR}/tag_region_tissue_class_annotation_counts_${PARAM_STRING}.txt
 
     ## also do this split by tag region only
     cut -f2,4 ${OUTDIR}/roadmap_hmm_snps_${PARAM_STRING}.txt | sort -u | cut -f2 | sort | uniq -c \
 	| awk 'BEGIN{OFS="\t"} NR==FNR {c[$1]=0; next} {c[$2]=$1}
 	       END {for(tag in c) {printf "%s\troadmap_hmm_enh\t%s\n", tag, c[tag]}}' \
-	  ${OUTDIR}/all_tag_regions.txt - >> \
+	  ${OUTDIR}/all_tag_regions_${PREFIX}.txt - >> \
 	  ${OUTDIR}/tag_region_annotation_counts_${PARAM_STRING}.txt
 	
     HMM_SNPS=`cut -f1-2 ${OUTDIR}/roadmap_hmm_snps_${PARAM_STRING}.txt | sort -u | wc -l | cut -d' ' -f1`
@@ -276,7 +276,7 @@ else
 	    awk -F$'\t' 'BEGIN{OFS=FS} NR==FNR {c[$1"\t"$2]=0; next} {c[$1"\t"$2]+=1}
 			 END {for(tiss_tag in c) {
                                   printf "%s\t%d\tmid_enh+gtex_eqtl\n", tiss_tag, c[tiss_tag]}}' \
-	      ${OUTDIR}/all_classes_tag_regions.txt - >> ${OUTDIR}/tag_region_tissue_class_annotation_counts_${PARAM_STRING}.txt
+	      ${OUTDIR}/all_classes_tag_regions_${PREFIX}.txt - >> ${OUTDIR}/tag_region_tissue_class_annotation_counts_${PARAM_STRING}.txt
 	    
 	## finally, do this split by tag region only
 	comm -1 -2 <(cut -f2,4 ${OUTDIR}/enh_mid_snps_${PARAM_STRING}.txt | sort -u) \
@@ -284,7 +284,7 @@ else
 	    ## count the overlap number
 	    awk 'BEGIN{OFS="\t"} NR==FNR {c[$1]=0; next} {c[$2]=$1}
                  END {for(tag in c) {printf "%s\tmid_enh+gtex_eqtl\t%s\n", tag, c[tag]}}' \
-	      ${OUTDIR}/all_tag_regions.txt - >> \
+	      ${OUTDIR}/all_tag_regions_${PREFIX}.txt - >> \
 	      ${OUTDIR}/tag_region_annotation_counts_${PARAM_STRING}.txt	    
     fi
 
@@ -304,7 +304,7 @@ else
 	    awk -F$'\t' 'BEGIN{OFS=FS} NR==FNR {c[$1"\t"$2]=0; next} {c[$1"\t"$2]+=1}
 			 END {for(tiss_tag in c) {
                                  printf "%s\t%d\tlocus_enh+gtex_eqtl\n", tiss_tag, c[tiss_tag]}}' \
-	      ${OUTDIR}/all_classes_tag_regions.txt - >> ${OUTDIR}/tag_region_tissue_class_annotation_counts_${PARAM_STRING}.txt
+	      ${OUTDIR}/all_classes_tag_regions_${PREFIX}.txt - >> ${OUTDIR}/tag_region_tissue_class_annotation_counts_${PARAM_STRING}.txt
 
 	## finally, do this split by tag region only
 	comm -1 -2 <(cut -f2,4 ${OUTDIR}/enh_locus_snps_${PARAM_STRING}.txt | sort -u) \
@@ -312,7 +312,7 @@ else
 	    ## count the overlap number
 	    awk 'BEGIN{OFS="\t"} NR==FNR {c[$1]=0; next} {c[$2]=$1}
                  END {for(tag in c) {printf "%s\tlocus_enh+gtex_eqtl\t%s\n", tag, c[tag]}}' \
-	      ${OUTDIR}/all_tag_regions.txt - >> \
+	      ${OUTDIR}/all_tag_regions_${PREFIX}.txt - >> \
 	      ${OUTDIR}/tag_region_annotation_counts_${PARAM_STRING}.txt	    
     fi
 
@@ -333,7 +333,7 @@ else
 	    awk -F$'\t' 'BEGIN{OFS=FS} NR==FNR {c[$1"\t"$2]=0; next} {c[$1"\t"$2]+=1}
 			 END {for(tiss_tag in c) {
                                  printf "%s\t%d\tmid_enh+roadmap_hmm_enh\n", tiss_tag, c[tiss_tag]}}' \
-	      ${OUTDIR}/all_classes_tag_regions.txt - >> ${OUTDIR}/tag_region_tissue_class_annotation_counts_${PARAM_STRING}.txt
+	      ${OUTDIR}/all_classes_tag_regions_${PREFIX}.txt - >> ${OUTDIR}/tag_region_tissue_class_annotation_counts_${PARAM_STRING}.txt
 
 	## finally, do this split by tag region only
 	comm -1 -2 <(cut -f2,4 ${OUTDIR}/enh_mid_snps_${PARAM_STRING}.txt | sort -u) \
@@ -341,7 +341,7 @@ else
 	    ## count the overlap number
 	    awk 'BEGIN{OFS="\t"} NR==FNR {c[$1]=0; next} {c[$2]=$1}
                  END {for(tag in c) {printf "%s\tmid_enh+roadmap_hmm_enh\t%s\n", tag, c[tag]}}' \
-	      ${OUTDIR}/all_tag_regions.txt - >> \
+	      ${OUTDIR}/all_tag_regions_${PREFIX}.txt - >> \
 	      ${OUTDIR}/tag_region_annotation_counts_${PARAM_STRING}.txt	    
     fi
 
@@ -361,7 +361,7 @@ else
 	    awk -F$'\t' 'BEGIN{OFS=FS} NR==FNR {c[$1"\t"$2]=0; next} {c[$1"\t"$2]+=1}
 			 END {for(tiss_tag in c) {
                                  printf "%s\t%d\tlocus_enh+roadmap_hmm_enh\n", tiss_tag, c[tiss_tag]}}' \
-	      ${OUTDIR}/all_classes_tag_regions.txt - >> ${OUTDIR}/tag_region_tissue_class_annotation_counts_${PARAM_STRING}.txt
+	      ${OUTDIR}/all_classes_tag_regions_${PREFIX}.txt - >> ${OUTDIR}/tag_region_tissue_class_annotation_counts_${PARAM_STRING}.txt
 
 	## finally, do this split by tag region only
 	comm -1 -2 <(cut -f2,4 ${OUTDIR}/enh_locus_snps_${PARAM_STRING}.txt | sort -u) \
@@ -369,7 +369,7 @@ else
 	    ## count the overlap number
 	    awk 'BEGIN{OFS="\t"} NR==FNR {c[$1]=0; next} {c[$2]=$1}
                  END {for(tag in c) {printf "%s\tlocus_enh+roadmap_hmm_enh\t%s\n", tag, c[tag]}}' \
-	      ${OUTDIR}/all_tag_regions.txt - >> \
+	      ${OUTDIR}/all_tag_regions_${PREFIX}.txt - >> \
 	      ${OUTDIR}/tag_region_annotation_counts_${PARAM_STRING}.txt	    
     fi
 
@@ -390,7 +390,7 @@ else
 	    awk -F$'\t' 'BEGIN{OFS=FS} NR==FNR {c[$1"\t"$2]=0; next} {c[$1"\t"$2]+=1}
 			 END {for(tiss_tag in c) {
                                  printf "%s\t%d\tgtex_eqtl+roadmap_hmm_enh\n", tiss_tag, c[tiss_tag]}}' \
-	      ${OUTDIR}/all_classes_tag_regions.txt - >> ${OUTDIR}/tag_region_tissue_class_annotation_counts_${PARAM_STRING}.txt
+	      ${OUTDIR}/all_classes_tag_regions_${PREFIX}.txt - >> ${OUTDIR}/tag_region_tissue_class_annotation_counts_${PARAM_STRING}.txt
 
 	## finally, do this split by tag region only
 	comm -1 -2 <(cut -f2,4 ${OUTDIR}/eqtl_snps_${PARAM_STRING}.txt | sort -u) \
@@ -398,7 +398,7 @@ else
 	    ## count the overlap number
 	    awk 'BEGIN{OFS="\t"} NR==FNR {c[$1]=0; next} {c[$2]=$1}
                  END {for(tag in c) {printf "%s\tgtex_eqtl+roadmap_hmm_enh\t%s\n", tag, c[tag]}}' \
-	      ${OUTDIR}/all_tag_regions.txt - >> \
+	      ${OUTDIR}/all_tag_regions_${PREFIX}.txt - >> \
 	      ${OUTDIR}/tag_region_annotation_counts_${PARAM_STRING}.txt	    
     fi
 
@@ -421,7 +421,7 @@ else
 	    awk -F$'\t' 'BEGIN{OFS=FS} NR==FNR {c[$1"\t"$2]=0; next} {c[$1"\t"$2]+=1}
 			 END {for(tiss_tag in c) {
                                  printf "%s\t%d\tmid_enh+gtex_eqtl+roadmap_hmm_enh\n", tiss_tag, c[tiss_tag]}}' \
-	      ${OUTDIR}/all_classes_tag_regions.txt - >> ${OUTDIR}/tag_region_tissue_class_annotation_counts_${PARAM_STRING}.txt
+	      ${OUTDIR}/all_classes_tag_regions_${PREFIX}.txt - >> ${OUTDIR}/tag_region_tissue_class_annotation_counts_${PARAM_STRING}.txt
 
 	## split by tag region only
 	comm -1 -2 <(comm -1 -2 <(cut -f2,4 ${OUTDIR}/enh_mid_snps_${PARAM_STRING}.txt | sort -u) \
@@ -430,7 +430,7 @@ else
 	    ## count the overlap number
 	    awk 'BEGIN{OFS="\t"} NR==FNR {c[$1]=0; next} {c[$2]=$1}
                  END {for(tag in c) {printf "%s\tmid_enh+gtex_eqtl+roadmap_hmm_enh\t%s\n", tag, c[tag]}}' \
-	      ${OUTDIR}/all_tag_regions.txt - >> \
+	      ${OUTDIR}/all_tag_regions_${PREFIX}.txt - >> \
 	      ${OUTDIR}/tag_region_annotation_counts_${PARAM_STRING}.txt	    
     fi
 
@@ -452,7 +452,7 @@ else
 	    awk -F$'\t' 'BEGIN{OFS=FS} NR==FNR {c[$1"\t"$2]=0; next} {c[$1"\t"$2]+=1}
 			 END {for(tiss_tag in c) {
                                  printf "%s\t%d\tlocus_enh+gtex_eqtl+roadmap_hmm_enh\n", tiss_tag, c[tiss_tag]}}' \
-	      ${OUTDIR}/all_classes_tag_regions.txt - >> ${OUTDIR}/tag_region_tissue_class_annotation_counts_${PARAM_STRING}.txt
+	      ${OUTDIR}/all_classes_tag_regions_${PREFIX}.txt - >> ${OUTDIR}/tag_region_tissue_class_annotation_counts_${PARAM_STRING}.txt
 
 	## split by tag region only
 	comm -1 -2 <(comm -1 -2 <(cut -f2,4 ${OUTDIR}/enh_locus_snps_${PARAM_STRING}.txt | sort -u) \
@@ -461,7 +461,7 @@ else
 	    ## count the overlap number
 	    awk 'BEGIN{OFS="\t"} NR==FNR {c[$1]=0; next} {c[$2]=$1}
                  END {for(tag in c) {printf "%s\tlocus_enh+gtex_eqtl+roadmap_hmm_enh\t%s\n", tag, c[tag]}}' \
-	      ${OUTDIR}/all_tag_regions.txt - >> \
+	      ${OUTDIR}/all_tag_regions_${PREFIX}.txt - >> \
 	      ${OUTDIR}/tag_region_annotation_counts_${PARAM_STRING}.txt	    
     fi
 
