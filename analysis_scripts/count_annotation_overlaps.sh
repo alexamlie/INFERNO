@@ -38,7 +38,7 @@ else
     
     mkdir -p ${OUTDIR}
     ## write a convenience file just saying when this data was generated..
-    date > ${OUTDIR}/command_run_date.txt
+    date > ${OUTDIR}/${PARAM_STRING}_command_run_date.txt
     
     ## create the overlap count file
     echo -e "tissue_class\tcount\tannotation" > ${OUTDIR}/tissue_class_annotation_counts_${PARAM_STRING}.txt
