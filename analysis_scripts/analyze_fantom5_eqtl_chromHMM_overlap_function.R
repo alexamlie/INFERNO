@@ -268,7 +268,11 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
                              f5_tissues = paste(sort(unique(enh_source)), collapse=","),
                              num_f5_classes = length(unique(enh_class)),
                              f5_classes = paste(sort(unique(enh_class)), collapse=","))
-
+    ## if there's no data, still need to make the column names consistent
+    if(nrow(f5_uniq_snp_df)==0) {
+        f5_uniq_snp_df <- setNames(data.frame(matrix(ncol=12, nrow=0)), c(uniq_snp_cols, "num_f5_tissues", "f5_tissues", "num_f5_classes", "f5_classes"))
+    }
+    
     ## ----------------------
     ## read in the eQTL data
     eqtl_overlap_file <- paste0(datadir, '/gtex_eqtl_overlap/',
@@ -294,11 +298,15 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
                               eqtl_tissues = paste(sort(unique(tissue)), collapse=","),
                               num_eqtl_classes = length(unique(eqtl_class)),
                               eqtl_classes = paste(sort(unique(eqtl_class)), collapse=","))
-
+    ## get the format right even if there are no eQTLs
+    if(nrow(eqtl_uniq_snp_df)==0) {
+        eqtl_uniq_snp_df <- setNames(data.frame(matrix(ncol=14, nrow=0)), c(uniq_snp_cols, "num_eqtl_genes", "eqtl_genes", "num_eqtl_tissues", "eqtl_tissues", "num_eqtl_classes", "eqtl_classes"))
+    }
+    
     ## merge the enhancer and eQTL data (finding overlapping SNPs only)
     f5_eqtl_overlap_snp_df <- join(f5_uniq_snp_df, eqtl_uniq_snp_df, type="inner")
     ## also get the union
-    eqtl_f5_union_snp_df <- join(eqtl_uniq_snp_df, f5_uniq_snp_df, type='left', match='all')    
+    eqtl_f5_union_snp_df <- join(eqtl_uniq_snp_df, f5_uniq_snp_df, type='full', match='all')    
     
     ## ----------------------
     ## read in the roadmap chromHMM data
@@ -358,6 +366,11 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
                                      hmm_enh_states = paste(sort(unique(state)), collapse=","),
                                      num_hmm_classes = length(unique(class)),
                                      hmm_classes = paste(sort(unique(class)), collapse=","))   
+    ## get the format right even if there are no enhancer SNPs
+    if(nrow(roadmap_uniq_enh_snp_df)==0) {
+        roadmap_uniq_enh_snp_df <- setNames(data.frame(matrix(ncol=14, nrow=0)), c(uniq_snp_cols, "num_hmm_tissues", "hmm_tissues", "num_hmm_enh_states", "hmm_enh_states", "num_hmm_classes", "hmm_classes"))
+    }
+    
     
     ## ----------------------
     ## find the SNPs that have all 3 data sources:
@@ -387,8 +400,8 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
     ## ----------------------
     ## also make a table summarizing overlap of every eQTL SNP with all annotation sources
     ## need to combine the FANTOM5 / eQTL overlap with roadmap
-    eqtl_f5_roadmap_union_snps <- join(eqtl_f5_union_snp_df, roadmap_uniq_enh_snp_df, type="left", match="all")
-    ## now just need to refactor some stuff for readability
+    eqtl_f5_roadmap_union_snps <- join(eqtl_f5_union_snp_df, roadmap_uniq_enh_snp_df, type="full", match="all")
+    ## now just need to refactor some stuff for readability       
     ## get a vector for empty FANTOM5 entries
     missing_f5_vec <- is.na(eqtl_f5_roadmap_union_snps$num_f5_tissues)
     eqtl_f5_roadmap_union_snps$num_f5_tissues[missing_f5_vec] <- 0
@@ -405,12 +418,22 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
     eqtl_f5_roadmap_union_snps$num_hmm_classes[missing_hmm_vec] <- 0
     eqtl_f5_roadmap_union_snps$hmm_classes[missing_hmm_vec] <- "None"
 
+    ## and for eQTLs
+    missing_eqtl_vec <- is.na(eqtl_f5_roadmap_union_snps$num_eqtl_tissues)
+    eqtl_f5_roadmap_union_snps$num_eqtl_genes[missing_eqtl_vec] <- 0
+    eqtl_f5_roadmap_union_snps$eqtl_genes[missing_eqtl_vec] <- "None"
+    eqtl_f5_roadmap_union_snps$num_eqtl_tissues[missing_eqtl_vec] <- 0
+    eqtl_f5_roadmap_union_snps$eqtl_tissues[missing_eqtl_vec] <- "None"
+    eqtl_f5_roadmap_union_snps$num_eqtl_classes[missing_eqtl_vec] <- 0
+    eqtl_f5_roadmap_union_snps$eqtl_classes[missing_eqtl_vec] <- "None"
+    
     ## add columns for any tissue classes with concordant enhancer and eQTL support, and also
     ## describe what those specific signals are
-    ## first get lists of all the classes for each annotation    
+    ## first get lists of all the classes for each annotation
     eqtl_classes <- lapply(lapply(eqtl_f5_roadmap_union_snps$eqtl_classes, strsplit, ","), "[[", 1)
     f5_classes <- lapply(lapply(eqtl_f5_roadmap_union_snps$f5_classes, strsplit, ","), "[[", 1)
-    roadmap_classes <- lapply(lapply(eqtl_f5_roadmap_union_snps$hmm_classes, strsplit, ","), "[[", 1)
+    roadmap_classes <- lapply(lapply(eqtl_f5_roadmap_union_snps$hmm_classes, strsplit, ","), "[[", 1)    
+
     ## now find the overlapping classes for each
     overlap_classes <- mapply(function(x, y, z) x[x %in% y | x %in% z], eqtl_classes, f5_classes, roadmap_classes)
     ## add these to the DF
@@ -501,13 +524,14 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
         eqtl_count <- sum(this_region_snps %in% eqtl_uniq_snp_df$rsID)
         return(data.frame("FANTOM5 Enhancer" = f5_count, "Roadmap Roadmap" = hmm_count, "GTEx eQTL" = eqtl_count, stringsAsFactors=F))
     }), id.vars=c("tag_name"), variable.name="annotation", value.name="SNP_Count")
-    
-    max_snp_count <- round_any(max(tagregion_support_counts$SNP_Count)+1, accuracy=5, f=ceiling)
+
+    ## don't need this for this plot
+    ## max_snp_count <- round_any(max(tagregion_support_counts$SNP_Count)+1, accuracy=5, f=ceiling)
 
     ## write a specific break function for this
     snp_count_breaks <- function(x) {
         if(max(x) >= 100) {
-            breaks <- c(0, 10, 25, 50, seq(100, max_snp_count, by=100))
+            breaks <- c(0, 10, 25, 50, seq(100, max(x), by=100))
         } else {
             breaks <- c(0, 1, 5, 10, 25, 50, 100)
         }

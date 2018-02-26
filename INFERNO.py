@@ -11,6 +11,10 @@ python script or submitted through bsub/qsub using the INFERNO.sh wrapper script
 import argparse, subprocess, datetime, os, time, sys
 
 if __name__=="__main__":
+    ## record the starting time. this only really works for the non-bsub steps of the pipeline
+    ## that run sequentially, but it's in here for the web server
+    full_pipeline_start_time = time.time()
+    
     parser = argparse.ArgumentParser(description="Driver script for the INFERNO pipeline")
     parser.add_argument("--skip_ld_expansion", action='store_true', help="Give this flag to skip any LD (and p-value-based) expansion and just run analysis directly on the provided list of input variants.")
     ## arguments for summary statistics analysis
@@ -334,3 +338,8 @@ if __name__=="__main__":
                     
         else:
             print "Can't do colocalization without all the required columns"    
+
+    ## report the whole time since the beginning of the pipeline
+    print "Full INFERNO pipeline took %.2f seconds" % (time.time()-full_pipeline_start_time)
+    print str(time.time()-full_pipeline_start_time)
+            

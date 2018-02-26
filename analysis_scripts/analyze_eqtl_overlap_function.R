@@ -74,7 +74,7 @@ analyze_eqtl_overlap <- function(prefix, datadir, outdir, out_subtitle, r2_thres
                       eqtl_bed_outf, append=T, quote=F, sep="\t", row.names=F, col.names=F)
 
     ## also make a summary of all the genes with eQTL signals
-    gene_summary <- ddply(uniq_snp_eqtl_df, .(gene_name), summarize, id=unique(gene), tissues=paste(sort(unique(tissue)), collapse=","), classes=paste(sort(unique(eqtl_class)), collapse=","))
+    gene_summary <- ddply(uniq_snp_eqtl_df, .(gene_name), summarize, id=paste(unique(gene), collapse=","), tissues=paste(sort(unique(tissue)), collapse=","), classes=paste(sort(unique(eqtl_class)), collapse=","))
     gene_summary_outf <- paste0(outdir, 'tables/', prefix, "_", r2_thresh,
                                 "_ld_cutoff_snps_within_", dist_thresh,
                                 "_gene_eQTL_summary.txt")
@@ -238,7 +238,7 @@ analyze_eqtl_overlap <- function(prefix, datadir, outdir, out_subtitle, r2_thres
           xlab(TAG_LAB) + ylab("Absolute value of distance (bp)") +
           scale_fill_hue(h=c(180, 270)) +
           scale_y_continuous(breaks=seq(0,
-                                 round_any(max(dist_to_tss_per_snp$tss_distance), accuracy=step_size, f=ceiling)
+                                 round_any(max(abs(dist_to_tss_per_snp$tss_distance)), accuracy=step_size, f=ceiling)
                                  , by=step_size), labels=comma) + 
           theme_bw() + geom_boxplot() +
           theme(legend.position="none",
