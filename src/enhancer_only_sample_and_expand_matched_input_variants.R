@@ -61,6 +61,8 @@ full_analysis_start_time <- proc.time()
 ## -----------------------------------------------------------------------------
 args <- commandArgs(trailingOnly=TRUE)
 cat(args, "\n")
+## set the significance threshold
+sig_thresh <- 0.1
 ## stop("Done")
 if (length(args)==9) {
     ## sampling parameters
@@ -1037,8 +1039,8 @@ rm(enh_overlap_mat, hmm_overlap_mat)
 ## we add one to all the values to represent the input sample
 empirical_pvals <- (bootstrap_count_mat+1) / (num_samples+1)
 dimnames(empirical_pvals) <- dimnames(input_annot_mat)
-cat(sum(empirical_pvals < 0.05), 'unadjusted tests were significant for combined region analysis\n')
-cat(sum(empirical_pvals < 0.05), 'unadjusted tests were significant for combined region analysis\n', file=summary_file, append=T)
+cat(sum(empirical_pvals < sig_thresh), 'unadjusted tests were significant (', sig_thresh, ') for combined region analysis\n')
+cat(sum(empirical_pvals < sig_thresh), 'unadjusted tests were significant (', sig_thresh, ') for combined region analysis\n', file=summary_file, append=T)
 
 ## now correct these for multiple testing
 ## correct all the p-values using Benjamini-Hochberg correction together
@@ -1047,8 +1049,8 @@ bh_adj_pvals <- matrix(p.adjust(empirical_pvals, "BH"), nrow=nrow(empirical_pval
 
 dimnames(bh_adj_pvals) <- dimnames(empirical_pvals)
 
-cat(sum(bh_adj_pvals < 0.05), "adjusted tests were significant for combined tag region\n")
-cat(sum(bh_adj_pvals < 0.05), "adjusted tests were significant for combined tag region\n", file=summary_file, append=T)
+cat(sum(bh_adj_pvals < sig_thresh), "adjusted tests were significant (", sig_thresh, ") for combined tag region\n")
+cat(sum(bh_adj_pvals < sig_thresh), "adjusted tests were significant (", sig_thresh, ") for combined tag region\n", file=summary_file, append=T)
 
 ## --------------
 ## split tag region analysis
@@ -1056,13 +1058,13 @@ cat(sum(bh_adj_pvals < 0.05), "adjusted tests were significant for combined tag 
 ## we add one to all the values to represent the input sample
 split_empirical_pvals <- (bootstrap_region_count_arr+1) / (num_samples+1)
 dimnames(split_empirical_pvals) <- dimnames(input_region_annot_arr)
-cat(sum(split_empirical_pvals < 0.05), 'unadjusted tests were significant for split tag region analysis\n')
-cat(sum(split_empirical_pvals < 0.05), 'unadjusted tests were significant for split tag region analysis\n', file=summary_file, append=T)
+cat(sum(split_empirical_pvals < sig_thresh), 'unadjusted tests were significant (', sig_thresh, ') for split tag region analysis\n')
+cat(sum(split_empirical_pvals < sig_thresh), 'unadjusted tests were significant (', sig_thresh, ') for split tag region analysis\n', file=summary_file, append=T)
 
 ## do this split by region
 for(i in seq(dim(split_empirical_pvals)[3])) {
     cat("Significant unadjusted tests for", dimnames(split_empirical_pvals)[[3]][i], "\n")    
-    cat(sum(split_empirical_pvals[,,i] < 0.05), "\n")
+    cat(sum(split_empirical_pvals[,,i] < sig_thresh), "\n")
 }
 
 ## use BH correction within each tag region
@@ -1076,7 +1078,7 @@ if(length(unique(dimnames(split_empirical_pvals)[[3]])) > 1) {
     ## do this split by region
     for(i in seq(dim(split_bh_adj_pvals)[3])) {
         cat("Significant adjusted tests for", dimnames(split_bh_adj_pvals)[[3]][i], "\n")
-        cat(sum(split_bh_adj_pvals[,,i] < 0.05), "\n")
+        cat(sum(split_bh_adj_pvals[,,i] < sig_thresh), "\n")
     }    
 } else {
     split_bh_adj_pvals <- bh_adj_pvals
@@ -1084,8 +1086,8 @@ if(length(unique(dimnames(split_empirical_pvals)[[3]])) > 1) {
     cat("Only one tag region found, just reporting the single region results again!\n", file=summary_file, append=T)
 }
     
-cat(sum(split_bh_adj_pvals < 0.05), "adjusted tests were significant for split tag region analysis\n")
-cat(sum(split_bh_adj_pvals < 0.05), "adjusted tests were significant for split tag region analysis\n", file=summary_file, append=T)
+cat(sum(split_bh_adj_pvals < sig_thresh), "adjusted tests were significant (", sig_thresh, ") for split tag region analysis\n")
+cat(sum(split_bh_adj_pvals < sig_thresh), "adjusted tests were significant (", sig_thresh, ") for split tag region analysis\n", file=summary_file, append=T)
 
 ## ------------------------------
 ## analysis on LD collapsed sets
@@ -1095,8 +1097,8 @@ cat(sum(split_bh_adj_pvals < 0.05), "adjusted tests were significant for split t
 ## we add one to all the values to represent the input sample
 collapsed_empirical_pvals <- (collapsed_bootstrap_count_mat+1) / (num_samples+1)
 dimnames(collapsed_empirical_pvals) <- dimnames(input_annot_mat)
-cat(sum(collapsed_empirical_pvals < 0.05), 'unadjusted tests were significant for LD collapsed combined region analysis\n')
-cat(sum(collapsed_empirical_pvals < 0.05), 'unadjusted tests were significant for LD collapsed combined region analysis\n', file=summary_file, append=T)
+cat(sum(collapsed_empirical_pvals < sig_thresh), 'unadjusted tests were significant (', sig_thresh, ') for LD collapsed combined region analysis\n')
+cat(sum(collapsed_empirical_pvals < sig_thresh), 'unadjusted tests were significant (', sig_thresh, ') for LD collapsed combined region analysis\n', file=summary_file, append=T)
 
 ## now correct these for multiple testing
 ## correct all the p-values using Benjamini-Hochberg correction together
@@ -1107,8 +1109,8 @@ collapsed_bh_adj_pvals <- matrix(p.adjust(collapsed_empirical_pvals, "BH"),
 
 dimnames(collapsed_bh_adj_pvals) <- dimnames(collapsed_empirical_pvals)
 
-cat(sum(collapsed_bh_adj_pvals < 0.05), "adjusted tests were significant for LD collapsed combined tag region analysis\n")
-cat(sum(collapsed_bh_adj_pvals < 0.05), 'adjusted tests were significant for LD collapsed combined region analysis\n', file=summary_file, append=T)
+cat(sum(collapsed_bh_adj_pvals < sig_thresh), "adjusted tests were significant (", sig_thresh, ") for LD collapsed combined tag region analysis\n")
+cat(sum(collapsed_bh_adj_pvals < sig_thresh), 'adjusted tests were significant (", sig_thresh, ") for LD collapsed combined region analysis\n', file=summary_file, append=T)
 
 ## --------------
 ## split tag region analysis
@@ -1116,13 +1118,13 @@ cat(sum(collapsed_bh_adj_pvals < 0.05), 'adjusted tests were significant for LD 
 ## we add one to all the values to represent the input sample
 collapsed_split_empirical_pvals <- (collapsed_bootstrap_region_count_arr+1) / (num_samples+1)
 dimnames(collapsed_split_empirical_pvals) <- dimnames(input_region_annot_arr)
-cat(sum(collapsed_split_empirical_pvals < 0.05), 'unadjusted tests were significant for LD collapsed split tag region analysis\n')
-cat(sum(collapsed_split_empirical_pvals < 0.05), 'unadjusted tests were significant for LD collapsed split tag region analysis\n', file=summary_file, append=T)
+cat(sum(collapsed_split_empirical_pvals < sig_thresh), 'unadjusted tests were significant (', sig_thresh, ') for LD collapsed split tag region analysis\n')
+cat(sum(collapsed_split_empirical_pvals < sig_thresh), 'unadjusted tests were significant (', sig_thresh, ') for LD collapsed split tag region analysis\n', file=summary_file, append=T)
 
 ## do this split by region
 for(i in seq(dim(collapsed_split_empirical_pvals)[3])) {
     cat("Significant unadjusted tests for", dimnames(collapsed_split_empirical_pvals)[[3]][i], "\n")
-    cat(sum(collapsed_split_empirical_pvals[,,i] < 0.05), "\n")
+    cat(sum(collapsed_split_empirical_pvals[,,i] < sig_thresh), "\n")
 }
 
 ## use BH correction within each tag region
@@ -1136,7 +1138,7 @@ if(length(unique(dimnames(collapsed_split_empirical_pvals)[[3]])) > 1) {
     ## do this split by region
     for(i in seq(dim(collapsed_split_bh_adj_pvals)[3])) {
         cat("Significant adjusted tests for", dimnames(collapsed_split_bh_adj_pvals)[[3]][i], "\n")
-        cat(sum(collapsed_split_bh_adj_pvals[,,i] < 0.05), "\n")
+        cat(sum(collapsed_split_bh_adj_pvals[,,i] < sig_thresh), "\n")
     }
 } else {
     collapsed_split_bh_adj_pvals <- collapsed_bh_adj_pvals
@@ -1144,8 +1146,8 @@ if(length(unique(dimnames(collapsed_split_empirical_pvals)[[3]])) > 1) {
     cat("Only one tag region found, just reporting the single region results again!\n", file=summary_file, append=T)
 }
     
-cat(sum(collapsed_split_bh_adj_pvals < 0.05), "adjusted tests were significant for LD collapsed split tag region analysis\n")
-cat(sum(collapsed_split_bh_adj_pvals < 0.05), "adjusted tests were significant for LD collapsed split tag region analysis\n", file=summary_file, append=T)
+cat(sum(collapsed_split_bh_adj_pvals < sig_thresh), "adjusted tests were significant (", sig_thresh, ") for LD collapsed split tag region analysis\n")
+cat(sum(collapsed_split_bh_adj_pvals < sig_thresh), "adjusted tests were significant (", sig_thresh, ") for LD collapsed split tag region analysis\n", file=summary_file, append=T)
 
 ## -----------------------------------------------------------------------------
 ## 8. Analysis plots for annotation overlap and p-values of non-LD collapsed analysis
@@ -1250,7 +1252,7 @@ dev.off()
 ## -------------------
 ## make a heatmap of the p-values
 ## define the breaks
-hm_breaks <- c(0, 0.05, 1)
+hm_breaks <- c(0, sig_thresh, 1)
 
 make_graphic(paste0(output_dir, "/plots/", param_ref[['outprefix']], "_annotation_by_tissue_raw_pval_heatmap"))
 print(ggplot(pval_df[pval_df$pval=="Raw P-value",],
@@ -1258,7 +1260,8 @@ print(ggplot(pval_df[pval_df$pval=="Raw P-value",],
       geom_tile(aes(fill=value), colour="#000000") +
       ## use 4 colors here so that all significant hits are fairly red
       scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                           values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                           values=c(0, sig_thresh, sig_thresh + 0.0001, 1),
+                           breaks=hm_breaks, labels=format(hm_breaks),
                            limits=c(0, 1), name="P-value", guide="colorbar") +
       theme_bw() + ylab("Tissue category") +
       xlab("Annotation") + ggtitle("Heatmap of p-values") +
@@ -1274,7 +1277,8 @@ print(ggplot(pval_df[pval_df$pval=="Raw P-value",],
              aes(x=annotation, y=tissue_class)) +
       geom_tile(aes(fill=value), colour="#000000") +
       scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                           values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                           values=c(0, sig_thresh, sig_thresh + 0.0001, 1),
+                           breaks=hm_breaks, labels=format(hm_breaks),
                            limits=c(0, 1), name="P-value", guide="colorbar") +
       theme_bw() + ylab("Tissue category") +
       xlab("Annotation") + ggtitle("Heatmap of p-values") +
@@ -1292,7 +1296,8 @@ print(ggplot(pval_df[pval_df$pval=="BH-adjusted P-value",],
       geom_tile(aes(fill=value), colour="#000000") +
       ## use 4 colors here so that all significant hits are fairly red
       scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                           values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                           values=c(0, sig_thresh, sig_thresh + 0.0001, 1),
+                           breaks=hm_breaks, labels=format(hm_breaks),
                            limits=c(0, 1), name="BH-adjusted p-value", guide="colorbar") +
       theme_bw() + ylab("Tissue category") +
       xlab("Annotation") + ggtitle("Heatmap of adjusted p-values") +
@@ -1308,7 +1313,8 @@ print(ggplot(pval_df[pval_df$pval=="BH-adjusted P-value",],
              aes(x=annotation, y=tissue_class)) +
       geom_tile(aes(fill=value), colour="#000000") +
       scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                           values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                           values=c(0, sig_thresh, sig_thresh + 0.0001, 1),
+                           breaks=hm_breaks, labels=format(hm_breaks),
                            limits=c(0, 1), name="BH-adjusted p-value", guide="colorbar") +
       theme_bw() + ylab("Tissue category") +
       xlab("Annotation") + ggtitle("Heatmap of adjusted p-values") +
@@ -1349,7 +1355,7 @@ if(length(unique(dimnames(split_empirical_pvals)[[3]])) > 1) {
         dir.create(paste0(output_dir, "/plots/split_tag_regions/", tag_out), F, T)
         
         ## define the breaks
-        hm_breaks <- c(0, 0.05, 1)
+        hm_breaks <- c(0, sig_thresh, 1)
         
         ## grab the relevant data
         this_pval_df <- subset(split_pval_df, pval=="BH-adjusted P-value" & tag_region==this_tag)
@@ -1361,7 +1367,8 @@ if(length(unique(dimnames(split_empirical_pvals)[[3]])) > 1) {
               geom_tile(aes(fill=value), colour="#000000") +
               ## use 4 colors here so that all significant hits are fairly red
               scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                                   values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                                   values=c(0, sig_thresh, sig_thresh + 0.0001, 1),
+                                   breaks=hm_breaks, labels=format(hm_breaks),
                                    limits=c(0, 1), name="BH-adjusted p-value", guide="colorbar") +
               theme_bw() + ylab("Tissue category") +
               xlab("Annotation") + ggtitle(paste("Heatmap of adjusted p-values,", this_tag)) +
@@ -1378,7 +1385,8 @@ if(length(unique(dimnames(split_empirical_pvals)[[3]])) > 1) {
                      aes(x=annotation, y=tissue_class)) +
               geom_tile(aes(fill=value), colour="#000000") +
               scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                                   values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                                   values=c(0, sig_thresh, sig_thresh + 0.0001, 1),
+                                   breaks=hm_breaks, labels=format(hm_breaks),
                                    limits=c(0, 1), name="BH-adjusted p-value", guide="colorbar") +
               theme_bw() + ylab("Tissue category") +
               xlab("Annotation") + ggtitle(paste("Heatmap of adjusted p-values,", this_tag)) +
@@ -1401,7 +1409,8 @@ if(length(unique(dimnames(split_empirical_pvals)[[3]])) > 1) {
               geom_tile(aes(fill=value), colour="#000000") +
               ## use 4 colors here so that all significant hits are fairly red
               scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                                   values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                                   values=c(0, sig_thresh, sig_thresh + 0.0001, 1),
+                                   breaks=hm_breaks, labels=format(hm_breaks),
                                    limits=c(0, 1), name="Raw p-value", guide="colorbar") +
               theme_bw() + ylab("Tissue category") +
               xlab("Annotation") + ggtitle(paste("Heatmap of unadjusted p-values,", this_tag)) +
@@ -1418,7 +1427,8 @@ if(length(unique(dimnames(split_empirical_pvals)[[3]])) > 1) {
                      aes(x=annotation, y=tissue_class)) +
               geom_tile(aes(fill=value), colour="#000000") +
               scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                                   values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                                   values=c(0, sig_thresh, sig_thresh + 0.0001, 1),
+                                   breaks=hm_breaks, labels=format(hm_breaks),
                                    limits=c(0, 1), name="Raw p-value", guide="colorbar") +
               theme_bw() + ylab("Tissue category") +
               xlab("Annotation") + ggtitle(paste("Heatmap of unadjusted p-values,", this_tag)) +
@@ -1604,7 +1614,7 @@ dev.off()
 ## -------------------
 ## make a heatmap of the p-values
 ## define the breaks
-hm_breaks <- c(0, 0.05, 1)
+hm_breaks <- c(0, sig_thresh, 1)
 
 make_graphic(paste0(output_dir, "/plots/", param_ref[['outprefix']], "_collapsed_annotation_by_tissue_raw_pval_heatmap"))
 print(ggplot(collapsed_pval_df[collapsed_pval_df$pval=="Raw P-value",],
@@ -1612,7 +1622,8 @@ print(ggplot(collapsed_pval_df[collapsed_pval_df$pval=="Raw P-value",],
       geom_tile(aes(fill=value), colour="#000000") +
       ## use 4 colors here so that all significant hits are fairly red
       scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                           values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                           values=c(0, sig_thresh, sig_thresh + 0.0001, 1),
+                           breaks=hm_breaks, labels=format(hm_breaks),
                            limits=c(0, 1), name="P-value", guide="colorbar") +
       theme_bw() + ylab("Tissue category") +
       xlab("Annotation") + ggtitle("Heatmap of p-values, LD collapsed") +
@@ -1628,7 +1639,8 @@ print(ggplot(collapsed_pval_df[collapsed_pval_df$pval=="Raw P-value",],
              aes(x=annotation, y=tissue_class)) +
       geom_tile(aes(fill=value), colour="#000000") +
       scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                           values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                           values=c(0, sig_thresh, sig_thresh + 0.0001, 1),
+                           breaks=hm_breaks, labels=format(hm_breaks),
                            limits=c(0, 1), name="P-value", guide="colorbar") +
       theme_bw() + ylab("Tissue category") +
       xlab("Annotation") + ggtitle("Heatmap of p-values, LD collapsed") +
@@ -1646,7 +1658,8 @@ print(ggplot(collapsed_pval_df[collapsed_pval_df$pval=="BH-adjusted P-value",],
       geom_tile(aes(fill=value), colour="#000000") +
       ## use 4 colors here so that all significant hits are fairly red
       scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                           values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                           values=c(0, sig_thresh, sig_thresh + 0.0001, 1),
+                           breaks=hm_breaks, labels=format(hm_breaks),
                            limits=c(0, 1), name="BH-adjusted p-value", guide="colorbar") +
       theme_bw() + ylab("Tissue category") +
       xlab("Annotation") + ggtitle("Heatmap of adjusted p-values, LD collapsed") +
@@ -1662,7 +1675,8 @@ print(ggplot(collapsed_pval_df[collapsed_pval_df$pval=="BH-adjusted P-value",],
              aes(x=annotation, y=tissue_class)) +
       geom_tile(aes(fill=value), colour="#000000") +
       scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                           values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                           values=c(0, sig_thresh, sig_thresh + 0.0001, 1),
+                           breaks=hm_breaks, labels=format(hm_breaks),
                            limits=c(0, 1), name="BH-adjusted p-value", guide="colorbar") +
       theme_bw() + ylab("Tissue category") +
       xlab("Annotation") + ggtitle("Heatmap of adjusted p-values, LD collapsed") +
@@ -1688,6 +1702,7 @@ if(length(unique(dimnames(split_empirical_pvals)[[3]])) > 1) {
                                                    levels=sort(unique(collapsed_split_pval_df$tissue_class), dec=T))
 
     write.table(collapsed_split_pval_df, paste0(output_dir, '/tables/', param_ref[['outprefix']], '_split_region_collapsed_bootstrap_results.txt'), quote=F, sep="\t", row.names=F, col.names=T)
+    
     ## ## to read in this data
     ## collapsed_split_pval_df <- read.table(paste0(output_dir, '/tables/', param_ref[['outprefix']], '_split_region_collapsed_bootstrap_results.txt'), header=T, sep="\t", quote="", as.is=T)
     ## collapsed_split_pval_df$annotation <- factor(collapsed_split_pval_df$annotation, ordered=T,
@@ -1703,7 +1718,7 @@ if(length(unique(dimnames(split_empirical_pvals)[[3]])) > 1) {
         dir.create(paste0(output_dir, "/plots/ld_collapsed_split_tag_regions/", tag_out), F, T)
 
         ## define the breaks
-        hm_breaks <- c(0, 0.05, 1)
+        hm_breaks <- c(0, sig_thresh, 1)
 
         ## grab the relevant data
         this_pval_df <- subset(collapsed_split_pval_df, pval=="BH-adjusted P-value" & tag_region==this_tag)
@@ -1715,7 +1730,8 @@ if(length(unique(dimnames(split_empirical_pvals)[[3]])) > 1) {
               geom_tile(aes(fill=value), colour="#000000") +
               ## use 4 colors here so that all significant hits are fairly red
               scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                                   values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                                   values=c(0, sig_thresh, sig_thresh + 0.0001, 1),
+                                   breaks=hm_breaks, labels=format(hm_breaks),
                                    limits=c(0, 1), name="BH-adjusted p-value", guide="colorbar") +
               theme_bw() + ylab("Tissue category") +
               xlab("Annotation") + ggtitle(paste("Heatmap of adjusted p-values,", this_tag,
@@ -1733,7 +1749,8 @@ if(length(unique(dimnames(split_empirical_pvals)[[3]])) > 1) {
                      aes(x=annotation, y=tissue_class)) +
               geom_tile(aes(fill=value), colour="#000000") +
               scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                                   values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                                   values=c(0, sig_thresh, sig_thresh + 0.0001, 1),
+                                   breaks=hm_breaks, labels=format(hm_breaks),
                                    limits=c(0, 1), name="BH-adjusted p-value", guide="colorbar") +
               theme_bw() + ylab("Tissue category") +
               xlab("Annotation") + ggtitle(paste("Heatmap of adjusted p-values,", this_tag,
@@ -1757,7 +1774,8 @@ if(length(unique(dimnames(split_empirical_pvals)[[3]])) > 1) {
               geom_tile(aes(fill=value), colour="#000000") +
               ## use 4 colors here so that all significant hits are fairly red
               scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                                   values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                                   values=c(0, sig_thresh, sig_thresh + 0.0001, 1),
+                                   breaks=hm_breaks, labels=format(hm_breaks),
                                    limits=c(0, 1), name="Raw p-value", guide="colorbar") +
               theme_bw() + ylab("Tissue category") +
               xlab("Annotation") + ggtitle(paste("Heatmap of unadjusted p-values,", this_tag,
@@ -1775,7 +1793,8 @@ if(length(unique(dimnames(split_empirical_pvals)[[3]])) > 1) {
                      aes(x=annotation, y=tissue_class)) +
               geom_tile(aes(fill=value), colour="#000000") +
               scale_fill_gradientn(colours=c("red", muted("red"), "#08306B", muted("blue")),
-                                   values=c(0, 0.05, 0.0501, 1), breaks=hm_breaks, labels=format(hm_breaks),
+                                   values=c(0, sig_thresh, sig_thresh + 0.0001, 1),
+                                   breaks=hm_breaks, labels=format(hm_breaks),
                                    limits=c(0, 1), name="Raw p-value", guide="colorbar") +
               theme_bw() + ylab("Tissue category") +
               xlab("Annotation") + ggtitle(paste("Heatmap of unadjusted p-values,", this_tag,

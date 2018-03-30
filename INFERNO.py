@@ -317,7 +317,7 @@ if __name__=="__main__":
                     subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+".lncRNA_correlation",
                                     "-o", pargs.outdir+"/logs/"+pargs.outprefix+".gtex_lncRNA_corr.o%J",
                                     "-e", pargs.outdir+"/logs/"+pargs.outprefix+".gtex_lncRNA_corr.e%J",
-                                    "-w", "done("+pargs.outprefix+"_gtex_colocalization)",
+                                    "-w", "done("+pargs.outprefix+".gtex_colocalization)",
                                     "./bsub_wrappers/gtex_lncRNA_corr_bsub_wrapper.sh",
                                     "./src/lncRNA_gtex_correlation.R",
                                     pargs.outdir+"/gtex_lncRNA_correlation_analysis/",
