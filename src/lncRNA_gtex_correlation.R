@@ -15,11 +15,12 @@ sessionInfo()
 
 ## 0. Table of Contents
 ## 1. Function Definitions
-## 2. Read in data
+## 2. Read in data, compute tissue-specific PCs
 ## 3. Identify colocalized lncRNAs, pull out their expression vectors
 ## 4. Compute correlation of all lncRNAs with all GTEx genes
 ## 5. Analyze correlation patterns and GTEx expression of individual lncRNAs
-## 6. Summarize correlation patterns across all lncRNAs
+## 6. Summarize correlation patterns across all lncRNAs and tissues
+## 7. Summarize correlation patterns for class-specific correlation analysis
 
 ## -----------------------------------------------------------------------------
 ## 1. Function Definitions
@@ -37,7 +38,7 @@ make_graphic <- function(filename, width_ratio=1, height_ratio=1, type='pdf') {
 }
 
 ## -----------------------------------------------------------------------------
-## 2. Read in data
+## 2. Read in data, compute tissue-specific PCs
 ## -----------------------------------------------------------------------------
 args <- commandArgs(trailingOnly=TRUE)
 cat(args, '\n')
@@ -132,6 +133,8 @@ cat(length(unique(top_lncrna_hits$eqtl_gene_name)), "unique lncRNAs across",
 {
 expr_vec_start <- proc.time()
 lncrna_expression_vectors <- list()
+## also save their tissue-specific residuals
+lncrna_tissue_resids <- list()
 
 for(this_chr in sort(unique(top_lncrna_hits$V1))) {
     cat("Reading in lncRNA expression levels from", this_chr, "\n")
@@ -154,11 +157,46 @@ for(this_chr in sort(unique(top_lncrna_hits$V1))) {
             lncrna_expression_vectors[[lncrna]] <- as.matrix(gene_expression_mat[,which(colnames(gene_expression_mat)==lncrna)])
         } else {
             cat("lncRNA", lncrna, "was not found in GTEx expression data by name!\n")
+            cat("lncRNA", lncrna, "was not found in GTEx expression data by name!\n", file=summary_file, append=T)
         }
     }
+
+    ## now get the tissue-specific residuals
+    for(tissue_class in unique(top_lncrna_hits$gtex_tissue_class)) {
+        ## find the matching samples
+        class_samples <- sample_info_df$SAMPID[!is.na(sample_info_df$inferno_class) &
+                                               sample_info_df$inferno_class==tissue_class]
+        ## use a logical vector to match samples (both the lncRNA and the gene matrices). use the
+        ## first lncRNA with any expression (to avoid the case of non-expressed lncRNAs)
+        sample_match <- rownames(lncrna_expression_vectors[[1]]) %in% gsub("-", ".", class_samples, fixed=T)
+        ## now also have to filter to get genes that are expressed in this tissue
+        tiss_nonexpressed_genes <- apply(gene_expression_mat[sample_match,], 2, function(x) {all(x==0)})
+        cat(sum(tiss_nonexpressed_genes), "genes are never expressed in", tissue_class, "and are filtered out.\n")
+        cat(sum(tiss_nonexpressed_genes), "genes are never expressed in", tissue_class, "and are filtered out.\n", file=summary_file, append=T)        
+
+        this_tiss_expr_mat <- gene_expression_mat[sample_match,!tiss_nonexpressed_genes]
+        
+        ## now read in the top 10 PCs for this tissue
+        this_tiss_PCs <- read.table(paste0(gtex_expr_dir, "/", gsub(" ", "_", tissue_class), "_top10_PCs.txt"), header=T, sep="\t", as.is=T)
+        
+        ## now loop through the lncRNAs that are colocalized in this tissue class and get their residuals
+        for(lncrna in unique(top_lncrna_hits$eqtl_gene_name[top_lncrna_hits$gtex_tissue_class==tissue_class])) {
+            if(lncrna %in% colnames(this_tiss_expr_mat)) {
+                this_lncrna_data <- cbind(y=this_tiss_expr_mat[,which(colnames(this_tiss_expr_mat)==lncrna)], this_tiss_PCs)
+                f <- paste("y ~", paste0("PC", 1:10, collapse=" + "))                
+                lncrna_tissue_resids[[lncrna]][[tissue_class]] <- as.matrix(residuals(lm(f, this_lncrna_data)))
+            } else {
+                cat("lncRNA", lncrna, "was not found in GTEx expression data by name!\n")
+                cat("lncRNA", lncrna, "was not found in GTEx expression data by name!\n", file=summary_file, append=T)
+            }
+        }
+    }
+    
 }
 
-cat("Reading in all lncRNA expression vectors took", (proc.time() - expr_vec_start)[['elapsed']], 'seconds\n')
+reading_time <- proc.time() - expr_vec_start
+cat("Reading in all lncRNA expression vectors took", (reading_time)[['elapsed']], 'seconds\n')
+cat("Reading in all lncRNA expression vectors took", (reading_time)[['elapsed']], 'seconds\n', file=summary_file, append=T)
 }
 
 ## -----------------------------------------------------------------------------
@@ -182,7 +220,8 @@ for(chr_file in sort(list.files(gtex_expr_dir, 'chr.*_gtex_expression.txt', full
     
     ## filter out genes that are never expressed
     nonexpressed_genes <- apply(gene_expression_mat, 2, function(x) {all(x==0)})
-    cat(sum(nonexpressed_genes), "genes are never expressed and are filtered out.\n")
+    cat(sum(nonexpressed_genes), "genes are never expressed in", this_chr, "and are filtered out.\n")
+    cat(sum(nonexpressed_genes), "genes are never expressed in", this_chr, "and are filtered out.\n", file=summary_file, append=T)
 
     ## remove duplicated genes
     gene_expression_mat <- gene_expression_mat[,!nonexpressed_genes & !duplicated(colnames(gene_expression_mat))]
@@ -192,8 +231,8 @@ for(chr_file in sort(list.files(gtex_expr_dir, 'chr.*_gtex_expression.txt', full
     sample_tissues <- sample_info_df$SMTS[match(rownames(gene_expression_mat),
                                                 gsub("-", ".", sample_info_df$SAMPID, fixed=T))]
     
-    ## now go through and compute the correlation of each lncRNA with the genes on this chromosome
-    cat("Analyzing lncRNA correlations: ")
+    ## now go through and compute the full correlation of each lncRNA with the genes on this chromosome
+    cat("Analyzing cross-tissue lncRNA correlations: ")
     for(lncrna in names(lncrna_expression_vectors)) {
         cat(lncrna, " ")
         this_lncrna_pearson_cor <- corr.test(lncrna_expression_vectors[[lncrna]], gene_expression_mat, method="pearson", adjust="none")
@@ -221,8 +260,7 @@ for(chr_file in sort(list.files(gtex_expr_dir, 'chr.*_gtex_expression.txt', full
         lncrna_correlation_dfs[[lncrna]] <- rbind(lncrna_correlation_dfs[[lncrna]], this_lncrna_corr_df)
     }
 
-    ## TODO: add option to do this
-    cat("Performing tissue-specific correlation analysis\n")
+    cat("\nPerforming tissue-specific correlation analysis\n")
     ## now do the tissue-specific correlation analysis (only look at tissue classes with a
     ## strong co-localized signal for each lncRNA)
     for(tissue_class in unique(top_lncrna_hits$gtex_tissue_class)) {
@@ -232,10 +270,23 @@ for(chr_file in sort(list.files(gtex_expr_dir, 'chr.*_gtex_expression.txt', full
         ## use a logical vector to match samples (both the lncRNA and the gene matrices). use the
         ## first lncRNA with any expression (to avoid the case of non-expressed lncRNAs)
         sample_match <- rownames(lncrna_expression_vectors[[1]]) %in% gsub("-", ".", class_samples, fixed=T)
-        ## now also have to filter out genes that are expressed in this tissue
+        ## now also have to filter to get genes that are expressed in this tissue
         tiss_nonexpressed_genes <- apply(gene_expression_mat[sample_match,], 2, function(x) {all(x==0)})
         cat(sum(tiss_nonexpressed_genes), "genes are never expressed in", tissue_class, "and are filtered out.\n")
 
+        this_tiss_expr_mat <- gene_expression_mat[sample_match,!tiss_nonexpressed_genes]
+        
+        ## now read in the top 10 PCs for this tissue
+        this_tiss_PCs <- read.table(paste0(gtex_expr_dir, "/", gsub(" ", "_", tissue_class), "_top10_PCs.txt"), header=T, sep="\t", as.is=T)
+
+        ## regress the gene expression data on these
+        ## NOTE: this assumes that the PCs are in the same order
+        cat(sum(rownames(this_tiss_expr_mat)!=this_tiss_PCs$sample), "PC and expression samples are out of order!\n")
+        ## this is not a very nice solution because i cbind the gene vector with the PCs
+        residual_expr_data <- apply(this_tiss_expr_mat, 2, function(gene_vec) {
+            f <- paste("y ~", paste0("PC", 1:10, collapse=" + "))
+            return(residuals(lm(f, data=cbind(y=gene_vec, this_tiss_PCs)))) })
+        
         ## now loop through the lncRNAs that are colocalized in this tissue class
         for(lncrna in unique(top_lncrna_hits$eqtl_gene_name[top_lncrna_hits$gtex_tissue_class==tissue_class])) {
             if(!lncrna %in% names(lncrna_expression_vectors)) {
@@ -243,11 +294,11 @@ for(chr_file in sort(list.files(gtex_expr_dir, 'chr.*_gtex_expression.txt', full
                 next
             }
             this_lncrna_tiss_pearson_cor <- corr.test(
-                lncrna_expression_vectors[[lncrna]][sample_match,,drop=FALSE],
-                gene_expression_mat[sample_match,!tiss_nonexpressed_genes], method="pearson", adjust="none")
+                lncrna_tissue_resids[[lncrna]][[tissue_class]],
+                residual_expr_data, method="pearson", adjust="none")
             this_lncrna_tiss_spearman_cor <- corr.test(
-                lncrna_expression_vectors[[lncrna]][sample_match,,drop=FALSE],
-                gene_expression_mat[sample_match,!tiss_nonexpressed_genes], method="spearman", adjust="none")
+                lncrna_tissue_resids[[lncrna]][[tissue_class]],
+                residual_expr_data, method="spearman", adjust="none")
 
             this_lncrna_tiss_corr_df <- data.frame(
                 tissue_class=tissue_class,
@@ -267,7 +318,9 @@ for(chr_file in sort(list.files(gtex_expr_dir, 'chr.*_gtex_expression.txt', full
     cat("\n")
 }
 
-cat("Computing all expression correlations took", (proc.time() - corr_start)[['elapsed']], 'seconds\n')
+corr_time <- proc.time() - corr_start
+ cat("Computing all expression correlations took", (corr_time)[['elapsed']], 'seconds\n')
+ cat("Computing all expression correlations took", (corr_time)[['elapsed']], 'seconds\n', file=summary_file, append=T)
 }
 
 ## -----------------------------------------------------------------------------
@@ -459,15 +512,16 @@ write.table(sort(unique(all_lncrna_targets$target_gene)), paste0(outdir, '/table
 save(lncrna_correlation_dfs, file=paste0(outdir, '/full_correlation_tables/full_lncRNA_correlation_df_list.Rdata'))
 
 ## now write out tissue-specific lists of target genes
-dir.create(paste0(outdir, '/tables/tissue_specific_gene_lists/'), F, T)
-for(gtex_tissue in unique(unlist(strsplit(as.character(all_lncrna_targets$tissues), ";")))) {
-    write.table(sort(unique(all_lncrna_targets$target_gene[grep(gtex_tissue, all_lncrna_targets$tissues)])), paste0(outdir, '/tables/tissue_specific_gene_lists/', gtex_tissue, '_lncRNA_genes_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=F)
-}
+## NOTE: this is deprecated by the tissue-specific correlation analysis so i don't output this
+## dir.create(paste0(outdir, '/tables/tissue_specific_gene_lists/'), F, T)
+## for(gtex_tissue in unique(unlist(strsplit(as.character(all_lncrna_targets$tissues), ";")))) {
+##     write.table(sort(unique(all_lncrna_targets$target_gene[grep(gtex_tissue, all_lncrna_targets$tissues)])), paste0(outdir, '/tables/tissue_specific_gene_lists/', gtex_tissue, '_lncRNA_genes_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=F)
+## }
 
-dir.create(paste0(outdir, '/tables/class_specific_gene_lists/'), F, T)
-for(gtex_class in unique(unlist(strsplit(as.character(all_lncrna_targets$classes), ";")))) {
-    write.table(sort(unique(all_lncrna_targets$target_gene[grep(gtex_class, all_lncrna_targets$classes)])), paste0(outdir, '/tables/class_specific_gene_lists/', gtex_class, '_lncRNA_genes_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=F)
-}
+## dir.create(paste0(outdir, '/tables/class_specific_gene_lists/'), F, T)
+## for(gtex_class in unique(unlist(strsplit(as.character(all_lncrna_targets$classes), ";")))) {
+##     write.table(sort(unique(all_lncrna_targets$target_gene[grep(gtex_class, all_lncrna_targets$classes)])), paste0(outdir, '/tables/class_specific_gene_lists/', gtex_class, '_lncRNA_genes_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=F)
+## }
 
 ## ## to read the target file back in
 ## all_lncrna_targets <- read.table(paste0(outdir, '/tables/all_lncRNA_targets_', cor_thresh, '_correlation_threshold.txt'), header=T, sep="\t", quote="", as.is=T)
@@ -475,7 +529,6 @@ for(gtex_class in unique(unlist(strsplit(as.character(all_lncrna_targets$classes
 ## load(file=paste0(outdir, '/full_correlation_tables/full_lncRNA_correlation_df_list.Rdata'))
 
 ## now do the same analysis for the tissue-specific data
-## TODO: add option for this
 tissue_spec_lncrna_targets <- data.frame(stringsAsFactors = FALSE)
 
 ## note that this should be the same set of lncRNAs as the loop above, but we deal with the tissue-specific data separately
@@ -519,7 +572,7 @@ for(lncrna in names(tissue_spec_lncrna_correlation_dfs)) {
         ## save this in the tissue-specific summary DF
         ## for ease, just report the tissue classes that have correlated signals (we know that
         ## the lncRNA was colocalized in this class)
-        tiss_spec_lncrna_targets <- rbind(tissue_spec_lncrna_targets,
+        tissue_spec_lncrna_targets <- rbind(tissue_spec_lncrna_targets,
                                           data.frame(
                                               lncRNA = lncrna,
                                               tissue_spec_lncrna_correlation_dfs[[lncrna]][corr_thresh_vec,], stringsAsFactors = F))
@@ -579,7 +632,6 @@ for(lncrna in names(tissue_spec_lncrna_correlation_dfs)) {
                     plot.title = element_text(hjust = 0.5)))
         dev.off()
 
-
         ## make density plots for the tissue-specific correlations
         make_graphic(paste0(outdir, '/plots/', lncrna_out, '/', lncrna_out, '_tissue_specific_spearman_density'))
         print(ggplot(tissue_spec_lncrna_correlation_dfs[[lncrna]],
@@ -603,8 +655,22 @@ for(lncrna in names(tissue_spec_lncrna_correlation_dfs)) {
     
 }
 
+cat(nrow(tissue_spec_lncrna_targets), "tissue-specific lncRNA correlations meeting the", cor_thresh, "threshold, representing", length(unique(tissue_spec_lncrna_targets$gene)), "unique target genes and", length(unique(tissue_spec_lncrna_targets$lncRNA)), "unique lncRNAs across", length(unique(tissue_spec_lncrna_targets$tissue_class)), "tissue categories\n")
+cat(nrow(tissue_spec_lncrna_targets), "tissue-specific lncRNA correlations meeting the", cor_thresh, "threshold, representing", length(unique(tissue_spec_lncrna_targets$gene)), "unique target genes and", length(unique(tissue_spec_lncrna_targets$lncRNA)), "unique lncRNAs across", length(unique(tissue_spec_lncrna_targets$tissue_class)), "tissue categories\n", file=summary_file, append=T)
+
+## write out the full tissue class-speciifc target file
+write.table(tissue_spec_lncrna_targets, paste0(outdir, '/tables/tissue_class_specific_lncRNA_targets_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=T)
+save(tissue_spec_lncrna_correlation_dfs, file=paste0(outdir, '/full_correlation_tables/tissue_class_spec_lncRNA_correlation_df_list.Rdata'))
+
+## also write out class-specific gene lists for ease of pathway analysis
+## note that we know that the lncRNAs and target genes match up in terms of classes here
+dir.create(paste0(outdir, '/tables/class_specific_gene_lists/'), F, T)
+for(gtex_class in unique(tissue_spec_lncrna_targets$tissue_class)) {
+    write.table(sort(unique(tissue_spec_lncrna_targets$gene[tissue_spec_lncrna_targets$tissue_class==gtex_class])), paste0(outdir, '/tables/class_specific_gene_lists/', gtex_class, '_lncRNA_genes_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=F)
+}
+
 ## -----------------------------------------------------------------------------
-## 6. Summarize correlation patterns across all lncRNAs
+## 6. Summarize correlation patterns across all lncRNAs and tissues
 ## -----------------------------------------------------------------------------
 ## make this a factor so that we have counts for all lncRNAs
 all_lncrna_targets$lncRNA <- factor(all_lncrna_targets$lncRNA, levels=names(lncrna_correlation_dfs))
@@ -780,4 +846,84 @@ print(ggplot(all_lncrna_targets, aes(x=pearson_cor, y=spearman_cor)) +
             axis.text.y = element_text(size=20), title=element_text(size=20),
             plot.title = element_text(hjust = 0.5), legend.text = element_text(size=15)))
 dev.off()
+
+## -----------------------------------------------------------------------------
+## 7. Summarize correlation patterns for class-specific correlation analysis
+## -----------------------------------------------------------------------------
+tissue_spec_lncrna_targets$lncRNA <- factor(tissue_spec_lncrna_targets$lncRNA, levels=names(tissue_spec_lncrna_correlation_dfs))
+
+## look at correlation patterns by lncRNA
+melted_class_lncrna_targets <- melt(tissue_spec_lncrna_targets, measure.vars=c("pearson_cor", "spearman_cor"), variable="cor_type")
+melted_class_lncrna_targets$lncRNA <- factor(melted_class_lncrna_targets$lncRNA, levels=sort(unique(as.character(melted_class_lncrna_targets$lncRNA))), ordered=T)
+
+make_graphic(paste0(outdir, '/plots/', outprefix, '_class_specific_target_spearman_and_pearson_dist_per_lncRNA'), width_ratio = 2.0)
+print(ggplot(melted_class_lncrna_targets, aes(x=lncRNA, y=value, fill=cor_type)) +
+      geom_boxplot() + 
+      scale_fill_manual(values=c("#FF6C91", "#9F8CFF"), labels=c("Pearson", "Spearman"),
+                        name="Type of correlation") + 
+      ## ggtitle("Spearman and Pearson correlation distributions per lncRNA") + 
+      theme_bw() + xlab("lncRNA") +
+      ylab("Tissue class-specific Correlation values") + 
+      theme(legend.position="bottom", axis.text.x=element_text(angle=60, hjust=1, size=18),
+            axis.text.y = element_text(size=25), 
+            title=element_text(size=25),
+            legend.text=element_text(size=25),
+            plot.title=element_text(hjust=0.5)))
+dev.off()
+
+## look at correlation patterns by tissue
+make_graphic(paste0(outdir, '/plots/', outprefix, '_class_specific_target_spearman_and_pearson_dist_per_tiss'), width_ratio = 2.0)
+print(ggplot(melted_class_lncrna_targets, aes(x=tissue_class, y=value, fill=cor_type)) +
+      geom_boxplot() + 
+      scale_fill_manual(values=c("#FF6C91", "#9F8CFF"), labels=c("Pearson", "Spearman"),
+                        name="Type of correlation") + 
+      ## ggtitle("Spearman and Pearson correlation distributions per lncRNA") + 
+      theme_bw() + xlab("Tissue category") +
+      ylab("Tissue class-specific Correlation values") + 
+      theme(legend.position="bottom", axis.text.x=element_text(angle=60, hjust=1, size=18),
+            axis.text.y = element_text(size=25), 
+            title=element_text(size=25),
+            legend.text=element_text(size=25),
+            plot.title=element_text(hjust=0.5)))
+dev.off()
+
+## make a summary scatterplot across tissues
+## make two, one for positive and one for negative
+pos_corr <- tissue_spec_lncrna_targets$pearson_cor > 0 & tissue_spec_lncrna_targets$spearman_cor > 0
+if(any(pos_corr)) {
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_tissue_specific_target_positive_correlation_scatterplot'),
+                 height_ratio = 1.5, width_ratio = 1.5)
+    print(ggplot(tissue_spec_lncrna_targets[pos_corr,], aes(x=pearson_cor, y=spearman_cor)) +
+          geom_point(aes(color=tissue_class), alpha=0.8, shape=5) +
+          scale_color_manual(name="Tissue Category", values=category_colors) + 
+          theme_bw() +
+          geom_hline(yintercept=cor_thresh, linetype=3) +
+          geom_vline(xintercept=cor_thresh, linetype=3) +
+          xlab("Pearson correlation") + ylab("Spearman correlation") +
+          ggtitle("Tissue class-specific (positive) correlation values of top lncRNA - mRNA pairs") +
+          theme(legend.position="bottom", axis.text.x = element_text(size=20),
+                axis.text.y = element_text(size=20), title=element_text(size=20),
+                plot.title = element_text(hjust = 0.5),
+                legend.text = element_text(size=20)))
+    dev.off()
+}
+
+if(any(!pos_corr)) {
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_tissue_specific_target_negative_correlation_scatterplot'),
+                 height_ratio = 1.5, width_ratio = 1.5)
+    print(ggplot(tissue_spec_lncrna_targets[!pos_corr,], aes(x=pearson_cor, y=spearman_cor)) +
+          geom_point(aes(color=tissue_class), alpha=0.8, shape=5) +
+          scale_color_manual(name="Tissue Category", values=category_colors) +          
+          theme_bw() +
+          geom_hline(yintercept=-cor_thresh, linetype=3) +
+          geom_vline(xintercept=-cor_thresh, linetype=3) +
+          xlab("Pearson correlation") + ylab("Spearman correlation") +
+          ggtitle("Tissue class-specific (negative) correlation values of top lncRNA - mRNA pairs") +
+          theme(legend.position="bottom", axis.text.x = element_text(size=20),
+                axis.text.y = element_text(size=20), title=element_text(size=20),
+                plot.title = element_text(hjust = 0.5),
+                legend.text = element_text(size=20)))    
+    dev.off()
+}
+
 

@@ -724,6 +724,8 @@ nrow(top_coloc_hits)
 
 ## write out the unique genes for pathway analysis
 write.table(sort(unique(top_coloc_hits$eqtl_gene_name)), paste0(outdir, '/tables/', outprefix, '_gtex_coloc_all_top_genes.', coloc_h4_thresh, '_thresh.txt'), quote=F, sep="\t", row.names=F, col.names=F)
+## also write out the full file
+write.table(top_coloc_hits, paste0(outdir, '/tables/', outprefix, '_gtex_coloc_top_signals.', coloc_h4_thresh, '_thresh.txt'), quote=F, sep="\t", row.names=F, col.names=T)
 
 cat(nrow(unique(top_coloc_hits[,c("tissue", "gtex_tissue_class", "eqtl_gene_name", "eqtl_gene_id")])), "unique tissue-target gene comparisons with P(H_4) >=", coloc_h4_thresh, "\n")
 
