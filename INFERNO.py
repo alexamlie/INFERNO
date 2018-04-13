@@ -36,6 +36,7 @@ if __name__=="__main__":
     parser.add_argument("--run_enhancer_sampling", action='store_true', help="If you want to run the enhancer bootstrapping analysis, provide this flag.")
     parser.add_argument("--run_gtex_coloc", action="store_true", help="If you want to run COLOC analysis of your summary statistics against GTEx eQTLs from 44 tissues (requires summary statistics)")
     parser.add_argument("--run_lncrna_correlation", action="store_true", help="If you want to analyze expression correlation of any lncRNAs identified by COLOC analysis (--run_gtex_coloc flag) against all other RNAseq-based GTEx genes to find lncRNA targets.")
+    parser.add_argument("--run_pathway_analysis", action="store_true", help="If you want to run pathway analysis (only applies if you also run lncRNA correlation). Note that the WebGestaltR package must be installed for this, and your environment must have internet access for that package to work, so this will only run if you're directly running the pipeline (i.e. --cluster_system='shell').")
     parser.add_argument("--cluster_system", default="bsub", choices=['bsub', 'shell'], help="If running enhancer sampling, GTEx co-localization, and/or lncRNA correlation, this flag describes how those computationally intensive jobs will be run. The bsub option submits them as separate bsub jobs, while the shell option just runs them sequentially from the same shell as the other INFERNO.py analyses")
     ## required arguments 
     parser.add_argument("top_snpf", help="The tab separated file of the tag SNPs you want to analyze. Should be formatted with four columns: chromosome, rsID, region naming information, and position (in that order). IMPORTANT: Note that SNPs without dbSNP rsIDs should use 'chr-pos' naming format, not 'chr:pos', which is incompatible with this pipeline!")
@@ -308,7 +309,6 @@ if __name__=="__main__":
                                     str(pargs.pval_column), str(pargs.chr_column), str(pargs.allele1_column),
                                     str(pargs.allele2_column), str(pargs.maf_column),
                                     str(pargs.case_prop), str(pargs.sample_size)])
-
                     
             if pargs.run_lncrna_correlation:
                 ## TODO: check config
@@ -335,6 +335,13 @@ if __name__=="__main__":
                                     config_vars["GENCODE_LNCRNA_FILE"], config_vars["F5_CLASSES"],
                                     config_vars["GTEX_CLASSES"], config_vars["ROADMAP_CLASSES"],
                                     config_vars["COLOC_H4_THRESH"], config_vars["COR_THRESH"]])
+                    if "MIN_PATHWAY_NUM" in config_vars and "MAX_PATHWAY_NUM" in config_vars and "FDR_THRESH" in config_vars:
+                        subprocess.call(["Rscript" "./src/webgestalt_pathway_analysis.R",
+                                        pargs.outdir, config_vars["MIN_PATHWAY_NUM"],
+                                        config_vars["MAX_PATHWAY_NUM"], config_vars["FDR_THRESH"]])
+                    else:
+                        subprocess.call(["Rscript" "./src/webgestalt_pathway_analysis.R",
+                                        pargs.outdir])
                     
         else:
             print "Can't do colocalization without all the required columns"    

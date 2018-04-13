@@ -152,7 +152,7 @@ for(this_chr in sort(unique(top_lncrna_hits$V1))) {
 
     gene_expression_mat <- gene_expression_mat[,!nonexpressed_genes & !duplicated(colnames(gene_expression_mat))]
 
-    for(lncrna in unique(top_lncrna_hits$eqtl_gene_name[top_lncrna_hits$V1==this_chr])) {
+    for(lncrna in sort(unique(top_lncrna_hits$eqtl_gene_name[top_lncrna_hits$V1==this_chr]))) {
         if(lncrna %in% colnames(gene_expression_mat)) {
             lncrna_expression_vectors[[lncrna]] <- as.matrix(gene_expression_mat[,which(colnames(gene_expression_mat)==lncrna)])
         } else {
@@ -162,7 +162,7 @@ for(this_chr in sort(unique(top_lncrna_hits$V1))) {
     }
 
     ## now get the tissue-specific residuals
-    for(tissue_class in unique(top_lncrna_hits$gtex_tissue_class)) {
+    for(tissue_class in sort(unique(top_lncrna_hits$gtex_tissue_class))) {
         ## find the matching samples
         class_samples <- sample_info_df$SAMPID[!is.na(sample_info_df$inferno_class) &
                                                sample_info_df$inferno_class==tissue_class]
@@ -179,15 +179,16 @@ for(this_chr in sort(unique(top_lncrna_hits$V1))) {
         ## now read in the top 10 PCs for this tissue
         this_tiss_PCs <- read.table(paste0(gtex_expr_dir, "/", gsub(" ", "_", tissue_class), "_top10_PCs.txt"), header=T, sep="\t", as.is=T)
         
-        ## now loop through the lncRNAs that are colocalized in this tissue class and get their residuals
-        for(lncrna in unique(top_lncrna_hits$eqtl_gene_name[top_lncrna_hits$gtex_tissue_class==tissue_class])) {
+        ## now loop through the lncRNAs that are colocalized in this tissue class and come from
+        ## this chromosome and get their residuals
+        for(lncrna in sort(unique(top_lncrna_hits$eqtl_gene_name[top_lncrna_hits$gtex_tissue_class==tissue_class & top_lncrna_hits$V1==this_chr]))) {
             if(lncrna %in% colnames(this_tiss_expr_mat)) {
                 this_lncrna_data <- cbind(y=this_tiss_expr_mat[,which(colnames(this_tiss_expr_mat)==lncrna)], this_tiss_PCs)
                 f <- paste("y ~", paste0("PC", 1:10, collapse=" + "))                
                 lncrna_tissue_resids[[lncrna]][[tissue_class]] <- as.matrix(residuals(lm(f, this_lncrna_data)))
             } else {
-                cat("lncRNA", lncrna, "was not found in GTEx expression data by name!\n")
-                cat("lncRNA", lncrna, "was not found in GTEx expression data by name!\n", file=summary_file, append=T)
+                cat("lncRNA", lncrna, "was not found in GTEx expression data in", tissue_class, "by name!\n")
+                cat("lncRNA", lncrna, "was not found in GTEx expression data in", tissue_class, "by name!\n", file=summary_file, append=T)
             }
         }
     }
@@ -273,15 +274,18 @@ for(chr_file in sort(list.files(gtex_expr_dir, 'chr.*_gtex_expression.txt', full
         ## now also have to filter to get genes that are expressed in this tissue
         tiss_nonexpressed_genes <- apply(gene_expression_mat[sample_match,], 2, function(x) {all(x==0)})
         cat(sum(tiss_nonexpressed_genes), "genes are never expressed in", tissue_class, "and are filtered out.\n")
-
+        ## don't write this to the summary because it becomes too much to look at
+        
         this_tiss_expr_mat <- gene_expression_mat[sample_match,!tiss_nonexpressed_genes]
         
         ## now read in the top 10 PCs for this tissue
         this_tiss_PCs <- read.table(paste0(gtex_expr_dir, "/", gsub(" ", "_", tissue_class), "_top10_PCs.txt"), header=T, sep="\t", as.is=T)
 
         ## regress the gene expression data on these
-        ## NOTE: this assumes that the PCs are in the same order
-        cat(sum(rownames(this_tiss_expr_mat)!=this_tiss_PCs$sample), "PC and expression samples are out of order!\n")
+        if(sum(rownames(this_tiss_expr_mat)!=this_tiss_PCs$sample) > 0) {
+            cat(sum(rownames(this_tiss_expr_mat)!=this_tiss_PCs$sample), "PC and expression samples are out of order!\n")
+        }
+        
         ## this is not a very nice solution because i cbind the gene vector with the PCs
         residual_expr_data <- apply(this_tiss_expr_mat, 2, function(gene_vec) {
             f <- paste("y ~", paste0("PC", 1:10, collapse=" + "))
