@@ -19,7 +19,7 @@ sessionInfo()
 ## 3. Run colocalization target pathway analysis
 ## 4. Run and analyze tissue-specific colocalization target pathway analysis
 ## 5. Run lncRNA correlation target pathway analysis
-## 6. Visualize tissue-specific lncRNA target pathway enrichments
+## 6. Visualize lncRNA target pathway enrichments
 
 ## -----------------------------------------------------------------------------
 ## 1. Function Definitions
@@ -57,7 +57,10 @@ if(length(args)==1) {
     ## these parameters are for manual analysis purposes
     ## datadir <- "~/Dropbox/wang_lab/inferno_landscape_analysis/individual_phenotypes/SCZ2_94_indep_regions/"
     ## datadir <- "~/Dropbox/wang_lab/psp_enhancer_snps/PSP_H1H2_tag_variant/analysis_results/updated_tiss_spec_lncRNA_corr/"
-    datadir <- "~/Dropbox/wang_lab/psp_enhancer_snps/PSP_H1H2_tag_variant/analysis_results/updated_brain_blood_lncRNA_040518/"
+    ## datadir <- "~/Dropbox/wang_lab/psp_enhancer_snps/PSP_H1H2_tag_variant/analysis_results/updated_brain_blood_lncRNA_040518/"
+    ## datadir <- "~/Dropbox/wang_lab/psp_enhancer_snps/PSP_H1H2_tag_variant/analysis_results/updated_brain_blood_lncRNA_041018/"
+    ## datadir <- "~/Dropbox/wang_lab/psp_enhancer_snps/PSP_H1H2_tag_variant/analysis_results/KANSL1_and_MAPT_AS1_041018/"
+    datadir <- "~/Dropbox/wang_lab/psp_enhancer_snps/PSP_H1H2_tag_variant/analysis_results/KANSL1_and_MAPT_AS1_041018/KANSL1_only/"    
 
     ## define parameters for the pathway analysis
     min_pathway_num <- 5
@@ -359,21 +362,18 @@ if(!is.null(all_lncRNA_target_KEGG_enrichment)) {
 if(nrow(cross_tissue_lncRNA_target_enrichment) > 0) {
     write.table(cross_tissue_lncRNA_target_enrichment,
                 paste0(datadir, '/pathway_analysis/lncRNA_cross_tissue_target_pathway_enrichments.txt'), quote=F, sep="\t", row.names=F)
+    ## ## to read in this data
+    ## cross_tissue_lncRNA_target_enrichment <- read.table(paste0(datadir, '/pathway_analysis/lncRNA_cross_tissue_target_pathway_enrichments.txt'), header=T, sep="\t", quote="", as.is=T)
 }
 
 ## now do tissue-specific correlation analysis
 {
 lncrna_all_class_start_time <- proc.time()
 lncrna_tissue_specific_target_enrichment <- data.frame(stringsAsFactors = FALSE)
-for(class_file in sort(list.files(paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/class_specific_gene_lists/'), pattern="*correlation_threshold.txt"))) {
-## for PSP analysis:
-## for(class_file in list.files(paste0(datadir, '/tables/class_specific_gene_lists/'), pattern="*correlation_threshold.txt")) {
-    
+for(class_file in sort(list.files(paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/class_specific_gene_lists/'), pattern="*correlation_threshold.txt"))) {    
     this_class <- gsub(" ", "_", gsub("_lncRNA_genes.*", "", class_file))
 
     this_gene_list <- read.table(paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/class_specific_gene_lists/', class_file), header=F, col.names="gene", as.is=T)
-    ## for PSP analysis:    
-    ## this_gene_list <- read.table(paste0(datadir, '/tables/class_specific_gene_lists/', class_file), header=F, col.names="gene", as.is=T)
     
     lncRNA_target_GO_BP_enrichment <- WebGestaltR(enrichMethod="ORA", organism="hsapiens",
                                            enrichDatabase="geneontology_Biological_Process_noRedundant",
@@ -468,72 +468,101 @@ lncrna_tissue_specific_target_enrichment$desc_with_pathway <- factor(lncrna_tiss
 
 if(nrow(lncrna_tissue_specific_target_enrichment) > 0) {
     write.table(lncrna_tissue_specific_target_enrichment, paste0(datadir, '/pathway_analysis/lncRNA_tissue_specific_pathway_enrichments.txt'), quote=F, sep="\t", row.names=F)
+    ## to read this in
+    lncrna_tissue_specific_target_enrichment <- read.table(paste0(datadir, '/pathway_analysis/lncRNA_tissue_specific_pathway_enrichments.txt'), header=T, sep="\t", quote="", as.is=T)
 }
-## write.table(lncrna_tissue_specific_target_enrichment, paste0(datadir, '/pathway_analysis/lncrna_blood_brain_class_pathway_enrichments.txt'), quote=F, sep="\t", row.names=F)
 
 ## -----------------------------------------------------------------------------
-## 6. Visualize tissue-specific lncRNA target pathway enrichments
+## 6. Visualize lncRNA target pathway enrichments
 ## -----------------------------------------------------------------------------
-lncrna_all_pathway_combos <- lncrna_tissue_specific_target_enrichment[,c('class', 'desc_with_pathway', 'FDR')]
-lncrna_all_pathway_combos <- merge(expand.grid(class=unique(lncrna_all_pathway_combos$class),
-                                        desc_with_pathway=unique(lncrna_all_pathway_combos$desc_with_pathway)),
-                            lncrna_all_pathway_combos, all.x=T)
-lncrna_all_pathway_combos$pathway_type <- unlist(lapply(strsplit(as.character(lncrna_all_pathway_combos$desc_with_pathway), ":"), "[[", 1))
-lncrna_all_pathway_combos$pathway_desc <- unlist(lapply(strsplit(as.character(lncrna_all_pathway_combos$desc_with_pathway), ":"), "[[", 2))
-
-make_graphic(paste0(datadir, '/pathway_analysis/lncrna_tissue_specific_pathways_heatmap'), width_ratio=4, height_ratio=2)
-print(ggplot(lncrna_all_pathway_combos, aes(y=factor(class), x=factor(desc_with_pathway))) +
-      geom_tile(aes(fill=FDR), colour="black", size=2) +
-      scale_fill_gradient(low="navyblue", high="orchid", guide="colorbar", na.value="white", limits=c(0, fdr_thresh)) + 
-      theme_bw() + ylab("lncRNA tissue class") + xlab("KEGG or GO pathway") +
-      theme(axis.text.x = element_text(angle=45, hjust=1, size=25),
-            axis.text.y = element_text(size=18),
-            legend.text = element_text(size=25), legend.key.height=unit(0.10, "npc"),
-            title=element_text(size=30), plot.title = element_text(hjust = 0.5)))
-dev.off()
-
-make_graphic(paste0(datadir, '/pathway_analysis/lncrna_tissue_specific_pathways_heatmap_facet'), width_ratio=5, height_ratio=3)
-print(ggplot(lncrna_all_pathway_combos, aes(y=factor(class), x=factor(pathway_desc))) +
-      geom_tile(aes(fill=FDR), colour="black", size=2) +
-      facet_wrap(~ pathway_type, scales="free", shrink=F) + 
-      scale_fill_gradient(low="navyblue", high="orchid", guide="colorbar", na.value="white",limits=c(0, fdr_thresh)) + 
-      theme_bw() + ylab("lncRNA tissue class") + xlab("KEGG or GO pathway") +
-      theme(axis.text.x = element_text(angle=75, hjust=1, size=20),
-            axis.text.y = element_text(size=18),
-            strip.text = element_text(size=30), 
-            legend.text = element_text(size=25), legend.key.height=unit(0.10, "npc"),
-            title=element_text(size=30), plot.title = element_text(hjust = 0.5)))
-dev.off()
-
-## make specific plots for the different pathway annotations
-for(pathway_type in c("KEGG", "GO_BP", "GO_CC", "GO_MF")) {
-    these_pathways <- lncrna_all_pathway_combos[grepl(pathway_type, lncrna_all_pathway_combos$desc_with_pathway),]
-    these_pathways$desc_with_pathway <- gsub(paste0(pathway_type, ": "), "", these_pathways$desc_with_pathway)
-    these_pathways$desc_with_pathway <- factor(these_pathways$desc_with_pathway, ordered=T, levels=sort(unique(these_pathways$desc_with_pathway), decreasing=T))
-
-    make_graphic(paste0(datadir, '/pathway_analysis/lncrna_tissue_specific_', pathway_type, '_pathways_heatmap'), width_ratio=2, height_ratio=1.75 * round_any(length(unique(these_pathways$pathway_desc)), accuracy=100, f=ceiling) / 100)
-    print(ggplot(these_pathways, aes(x=factor(class), y=desc_with_pathway)) +
+## first visualize the cross-tissue pathway enrichments
+if(nrow(cross_tissue_lncRNA_target_enrichment) > 0) {
+    cross_tissue_lncRNA_target_enrichment$clean_desc <- gsub(" - Homo sapiens (human)", "", cross_tissue_lncRNA_target_enrichment$description, fixed=T)
+    cross_tissue_lncRNA_target_enrichment$clean_desc <- factor(cross_tissue_lncRNA_target_enrichment$clean_desc, ordered=T, levels=sort(unique(cross_tissue_lncRNA_target_enrichment$clean_desc), decreasing=T))
+    
+    make_graphic(paste0(datadir, '/pathway_analysis/lncrna_cross_tissue_pathways_heatmap'), width_ratio=4, height_ratio=2)
+    print(ggplot(cross_tissue_lncRNA_target_enrichment,
+                 aes(x=factor(pathway_type), y=factor(clean_desc))) +
+          facet_wrap(~ pathway_type, scales="free", shrink=F) + 
           geom_tile(aes(fill=FDR), colour="black", size=2) +
           scale_fill_gradient(low="navyblue", high="orchid", guide="colorbar", na.value="white", limits=c(0, fdr_thresh)) + 
-          theme_bw() + xlab("lncRNA tissue class") +
-          ylab(paste0(pathway_type, " pathway")) +
+          theme_bw() + ylab("Pathway description") + xlab("Pathway Type") +
           theme(axis.text.x = element_text(angle=45, hjust=1, size=25),
-                axis.text.y = element_text(size=18),
+                axis.text.y = element_text(size=25),
+                strip.background = element_blank(),
+                strip.text.x = element_blank(), 
+                legend.text = element_text(size=25), legend.key.height=unit(0.10, "npc"),
+                title=element_text(size=30), plot.title = element_text(hjust = 0.5)))
+    dev.off()
+    
+}
+
+if(nrow(lncrna_tissue_specific_target_enrichment) > 0) {
+    lncrna_all_pathway_combos <- lncrna_tissue_specific_target_enrichment[,c('class', 'desc_with_pathway', 'FDR')]
+    lncrna_all_pathway_combos <- merge(expand.grid(class=unique(lncrna_all_pathway_combos$class),
+                                            desc_with_pathway=unique(lncrna_all_pathway_combos$desc_with_pathway)),
+                                lncrna_all_pathway_combos, all.x=T)
+    lncrna_all_pathway_combos$pathway_type <- unlist(lapply(strsplit(as.character(lncrna_all_pathway_combos$desc_with_pathway), ":"), "[[", 1))
+    lncrna_all_pathway_combos$pathway_desc <- unlist(lapply(strsplit(as.character(lncrna_all_pathway_combos$desc_with_pathway), ":"), "[[", 2))
+
+    lncrna_all_pathway_combos$class <- factor(lncrna_all_pathway_combos$class, levels=sort(unique(lncrna_all_pathway_combos$class), decreasing=T), ordered=T)
+
+    lncrna_all_pathway_combos$desc_with_pathway <- factor(lncrna_all_pathway_combos$desc_with_pathway, levels=sort(unique(lncrna_all_pathway_combos$desc_with_pathway), decreasing=T), ordered=T)    
+    
+    make_graphic(paste0(datadir, '/pathway_analysis/lncrna_tissue_specific_pathways_heatmap'), width_ratio=4, height_ratio=2)
+    print(ggplot(lncrna_all_pathway_combos, aes(y=class, x=desc_with_pathway)) +
+          geom_tile(aes(fill=FDR), colour="black", size=2) +
+          scale_fill_gradient(low="navyblue", high="orchid", guide="colorbar", na.value="white", limits=c(0, fdr_thresh)) + 
+          theme_bw() + ylab("lncRNA tissue class") + xlab("Pathway") +
+          theme(axis.text.x = element_text(angle=75, hjust=1, size=25),
+                axis.text.y = element_text(size=25),
+                legend.text = element_text(size=25), legend.key.height=unit(0.08, "npc"),
+                title=element_text(size=30), plot.title = element_text(hjust = 0.5)))
+    dev.off()
+
+    make_graphic(paste0(datadir, '/pathway_analysis/lncrna_tissue_specific_pathways_heatmap_facet'), width_ratio=4, height_ratio=3)
+    print(ggplot(lncrna_all_pathway_combos, aes(y=class, x=pathway_desc)) +
+          geom_tile(aes(fill=FDR), colour="black", size=2) +
+          facet_wrap(~ pathway_type, scales="free", shrink=F) + 
+          scale_fill_gradient(low="navyblue", high="orchid", guide="colorbar", na.value="white",limits=c(0, fdr_thresh)) + 
+          theme_bw() + ylab("lncRNA tissue class") + xlab("Pathway") +
+          theme(axis.text.x = element_text(angle=75, hjust=1, size=25),
+                axis.text.y = element_text(size=25),
+                strip.text = element_text(size=30), 
                 legend.text = element_text(size=25), legend.key.height=unit(0.10, "npc"),
                 title=element_text(size=30), plot.title = element_text(hjust = 0.5)))
     dev.off()
 
-    ## also make one with only tissue categories that showed up
-    make_graphic(paste0(datadir, '/pathway_analysis/lncrna_tissue_specific_', pathway_type, '_pathways_filtered_category_heatmap'), width_ratio=2, height_ratio=1.75 * round_any(length(unique(these_pathways$pathway_desc)), accuracy=100, f=ceiling) / 100)
-    print(ggplot(these_pathways, aes(x=class, y=desc_with_pathway)) +
-          geom_tile(aes(fill=FDR), colour="black", size=2) +
-          scale_fill_gradient(low="navyblue", high="orchid", guide="colorbar", na.value="white", limits=c(0, fdr_thresh)) + 
-          theme_bw() + xlab("lncRNA tissue class") +
-          ylab(paste0(pathway_type, " pathway")) +
-          theme(axis.text.x = element_text(angle=45, hjust=1, size=25),
-                axis.text.y = element_text(size=18),
-                legend.text = element_text(size=25), legend.key.height=unit(0.10, "npc"),
-                title=element_text(size=30), plot.title = element_text(hjust = 0.5)))
-    dev.off()
+    ## make specific plots for the different pathway annotations
+    for(pathway_type in c("KEGG", "GO_BP", "GO_CC", "GO_MF")) {
+        these_pathways <- lncrna_all_pathway_combos[grepl(pathway_type, lncrna_all_pathway_combos$desc_with_pathway),]
+        these_pathways$desc_with_pathway <- gsub(paste0(pathway_type, ": "), "", these_pathways$desc_with_pathway)
+        these_pathways$desc_with_pathway <- factor(these_pathways$desc_with_pathway, ordered=T, levels=sort(unique(these_pathways$desc_with_pathway), decreasing=T))
 
+        make_graphic(paste0(datadir, '/pathway_analysis/lncrna_tissue_specific_', pathway_type, '_pathways_heatmap'), width_ratio=2, height_ratio=1.75 * round_any(length(unique(these_pathways$pathway_desc)), accuracy=100, f=ceiling) / 100)
+        print(ggplot(these_pathways, aes(x=factor(class), y=desc_with_pathway)) +
+              geom_tile(aes(fill=FDR), colour="black", size=2) +
+              scale_fill_gradient(low="navyblue", high="orchid", guide="colorbar", na.value="white", limits=c(0, fdr_thresh)) + 
+              theme_bw() + xlab("lncRNA tissue class") +
+              ylab(paste0(pathway_type, " pathway")) +
+              theme(axis.text.x = element_text(angle=45, hjust=1, size=25),
+                    axis.text.y = element_text(size=18),
+                    legend.text = element_text(size=25), legend.key.height=unit(0.10, "npc"),
+                    title=element_text(size=30), plot.title = element_text(hjust = 0.5)))
+        dev.off()
+
+        ## also make one with only tissue categories that showed up
+        make_graphic(paste0(datadir, '/pathway_analysis/lncrna_tissue_specific_', pathway_type, '_pathways_filtered_category_heatmap'), width_ratio=2, height_ratio=1.75 * round_any(length(unique(these_pathways$pathway_desc)), accuracy=100, f=ceiling) / 100)
+        print(ggplot(these_pathways, aes(x=class, y=desc_with_pathway)) +
+              geom_tile(aes(fill=FDR), colour="black", size=2) +
+              scale_fill_gradient(low="navyblue", high="orchid", guide="colorbar", na.value="white", limits=c(0, fdr_thresh)) + 
+              theme_bw() + xlab("lncRNA tissue class") +
+              ylab(paste0(pathway_type, " pathway")) +
+              theme(axis.text.x = element_text(angle=45, hjust=1, size=25),
+                    axis.text.y = element_text(size=18),
+                    legend.text = element_text(size=25), legend.key.height=unit(0.10, "npc"),
+                    title=element_text(size=30), plot.title = element_text(hjust = 0.5)))
+        dev.off()
+
+    }
 }
