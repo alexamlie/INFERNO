@@ -36,7 +36,7 @@ Config file variable | Value
 KG_POP		     | Desired 1,000 genomes population to use (EUR, AMR, ASN, AFR), EUR by default
 LD_THRESH	     | Threshold for R^2 values of the LD expansion (Default = 0.7)
 LD_AREA		     | Distance around each tag variant to check (Default = 500000)
-KG_DIR		     | The folder containing the sorted 1,000 genomes vcf files
+KG_DIR		     | The folder containing the population-specific 1,000 genomes data (vcf files, precomputed LD sets, and summary files)
 GENE_BED_FILE	     | Bed file containing exons of protein-coding genes
 KGXREF_FILE	     | Reference file to match exon IDs to gene names
 UNSTRANDED_PARTITION_DIR	 | Directory containing parsed partition information

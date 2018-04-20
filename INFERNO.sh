@@ -31,5 +31,7 @@ module load R/3.2.3
 module load plink/1.90Beta
 
 ## just feed all the arguments to the python script
-## assume that we are in the same directory as the python script!
-python ./INFERNO.py $*
+## go to the INFERNO directory to make sure everything runs correctly
+cd "${0%/*}"
+python .//INFERNO.py $*
+cd -

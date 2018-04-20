@@ -88,7 +88,13 @@ if (length(args)==21) {
     allele1_col <- as.numeric(args[17])
     allele2_col <- as.numeric(args[18])
     maf_col <- as.numeric(args[19])
-    case_prop <- as.numeric(args[20])
+    ## check the case proportion, and the flag for if it's a quantitative trait
+    if(args[20]=="QUANT" | args[20]=="NA") {
+        QUANT_GWAS <- TRUE 
+    } else {
+        case_prop <- as.numeric(args[20])
+        QUANT_GWAS <- FALSE
+    }    
     sample_size <- as.numeric(args[21])
 } else if (length(args)==22) {
     ## the main output directory
@@ -126,7 +132,13 @@ if (length(args)==21) {
     allele1_col <- as.numeric(args[17])
     allele2_col <- as.numeric(args[18])
     maf_col <- as.numeric(args[19])
-    case_prop <- as.numeric(args[20])
+    ## check the case proportion, and the flag for if it's a quantitative trait
+    if(args[20]=="QUANT") {
+        QUANT_GWAS <- TRUE 
+    } else {
+        case_prop <- as.numeric(args[20])
+        QUANT_GWAS <- FALSE
+    }    
     sample_size <- as.numeric(args[21])
     ## for locuszoom analysis, set the path to the binary:
     locuszoom <- args[22]
@@ -391,13 +403,22 @@ for(this_chr in unique(top_snps$chr)) {
                 }
 
                 this_gtex_samp_size <- gtex_sample_sizes$eqtl_samp_num[gtex_sample_sizes$tissmatch==gtex_tiss_match]
-                
-                this_pval_coloc_results <- coloc.abf(
-                    dataset1=list(pvalues=this_region_gwas_snps.parsed[,pval_col],
-                        type="cc", s=case_prop, N=sample_size),
-                    dataset2=list(pvalues=this_eqtl_data.parsed$pval_nominal,
-                        type="quant", N=this_gtex_samp_size),
-                    MAF=this_region_gwas_snps.parsed[,maf_col])
+
+                if(QUANT_GWAS) {
+                    this_pval_coloc_results <- coloc.abf(
+                        dataset1=list(pvalues=this_region_gwas_snps.parsed[,pval_col],
+                            type="quant", N=sample_size),
+                        dataset2=list(pvalues=this_eqtl_data.parsed$pval_nominal,
+                            type="quant", N=this_gtex_samp_size),
+                        MAF=this_region_gwas_snps.parsed[,maf_col])
+                } else {
+                    this_pval_coloc_results <- coloc.abf(
+                        dataset1=list(pvalues=this_region_gwas_snps.parsed[,pval_col],
+                            type="cc", s=case_prop, N=sample_size),
+                        dataset2=list(pvalues=this_eqtl_data.parsed$pval_nominal,
+                            type="quant", N=this_gtex_samp_size),
+                        MAF=this_region_gwas_snps.parsed[,maf_col])
+                }
                 
                 write.table(this_pval_coloc_results[['summary']],
                             file=paste0(this_tiss_outdir, gene_name, "_", this_gene_id, "_summary.txt"),

@@ -29,7 +29,7 @@ if __name__=="__main__":
     ## for p-value expansion and pruning
     parser.add_argument("--run_pval_expansion", action='store_true', help="If you want to do expansion by p-values when you have summary statistics, provide this flag. Otherwise, the top SNP file will be directly expanded.")
     parser.add_argument("--sig_mult", type=float, help="The multiplier range for significance of the p-value expanded variant set (e.g. a value of 10 means one order of magnitude)")
-    parser.add_argument("--case_prop", type=float, help="The proportion of cases in the GWAS, for colocalization.")
+    parser.add_argument("--case_prop", help="The proportion of cases in the GWAS, for colocalization. If the GWAS is quantitative, set this to 'QUANT' or 'NA'.")
     parser.add_argument("--sample_size", type=int, help="The total number of samples in the GWAS, for colocalization.")
     parser.add_argument("--summary_file", help="The path to the full summary statistics file, required for p-value expansion, colocalization analysis, and lncRNA target analysis.")
     ## flags for running the slow, bsub'd steps after expansion and annotation
@@ -260,7 +260,8 @@ if __name__=="__main__":
                                  pargs.summary_file, config_vars["COLOC_GTEX_DIR"],
                                  config_vars["GTEX_SAMPLE_SIZEF"], config_vars["GTEX_CLASSES"],
                                  config_vars["GTEX_RSID_MATCH"], config_vars["HG19_ENSEMBL_REF_FILE"],
-                                 config_vars["RELEVANT_CLASSES"], str(pargs.rsid_column), str(pargs.pos_column),
+                                 "\'"+config_vars["RELEVANT_CLASSES"]+"\'",
+                                 str(pargs.rsid_column), str(pargs.pos_column),
                                  str(pargs.pval_column), str(pargs.chr_column), str(pargs.allele1_column),
                                  str(pargs.allele2_column), str(pargs.maf_column),
                                  str(pargs.case_prop), str(pargs.sample_size),
@@ -274,7 +275,8 @@ if __name__=="__main__":
                                     pargs.summary_file, config_vars["COLOC_GTEX_DIR"],
                                     config_vars["GTEX_SAMPLE_SIZEF"], config_vars["GTEX_CLASSES"],
                                     config_vars["GTEX_RSID_MATCH"], config_vars["HG19_ENSEMBL_REF_FILE"],
-                                    config_vars["RELEVANT_CLASSES"], str(pargs.rsid_column), str(pargs.pos_column),
+                                    "\'"+config_vars["RELEVANT_CLASSES"]+"\'",
+                                    str(pargs.rsid_column), str(pargs.pos_column),
                                     str(pargs.pval_column), str(pargs.chr_column), str(pargs.allele1_column),
                                     str(pargs.allele2_column), str(pargs.maf_column),
                                     str(pargs.case_prop), str(pargs.sample_size),
@@ -292,7 +294,8 @@ if __name__=="__main__":
                                     pargs.summary_file, config_vars["COLOC_GTEX_DIR"],
                                     config_vars["GTEX_SAMPLE_SIZEF"], config_vars["GTEX_CLASSES"],
                                     config_vars["GTEX_RSID_MATCH"], config_vars["HG19_ENSEMBL_REF_FILE"],
-                                    config_vars["RELEVANT_CLASSES"], str(pargs.rsid_column), str(pargs.pos_column),
+                                    "\'"+config_vars["RELEVANT_CLASSES"]+"\'",
+                                    str(pargs.rsid_column), str(pargs.pos_column),
                                     str(pargs.pval_column), str(pargs.chr_column), str(pargs.allele1_column),
                                     str(pargs.allele2_column), str(pargs.maf_column),
                                     str(pargs.case_prop), str(pargs.sample_size)])
@@ -305,7 +308,8 @@ if __name__=="__main__":
                                     pargs.summary_file, config_vars["COLOC_GTEX_DIR"],
                                     config_vars["GTEX_SAMPLE_SIZEF"], config_vars["GTEX_CLASSES"],
                                     config_vars["GTEX_RSID_MATCH"], config_vars["HG19_ENSEMBL_REF_FILE"],
-                                    config_vars["RELEVANT_CLASSES"], str(pargs.rsid_column), str(pargs.pos_column),
+                                    "\'"+config_vars["RELEVANT_CLASSES"]+"\'",
+                                    str(pargs.rsid_column), str(pargs.pos_column),
                                     str(pargs.pval_column), str(pargs.chr_column), str(pargs.allele1_column),
                                     str(pargs.allele2_column), str(pargs.maf_column),
                                     str(pargs.case_prop), str(pargs.sample_size)])
