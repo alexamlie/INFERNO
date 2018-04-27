@@ -752,6 +752,12 @@ cat(nrow(unique(top_coloc_hits[,c("tissue", "gtex_tissue_class", "eqtl_gene_name
 
 cat(nrow(unique(top_coloc_hits[,c("tissue", "gtex_tissue_class", "eqtl_gene_name", "eqtl_gene_id")])), "unique tissue-target gene comparisons with P(H_4) >=", coloc_h4_thresh, "\n", file=summary_file, append=T)
 
+## if there are no signals, just exit here
+if(nrow(top_coloc_hits) == 0) {
+    cat("No colocalized signals found, exiting!\n")
+    cat("No colocalized signals found, exiting!\n", file=summary_file, append=T)    
+} else {
+
 {
 enh_start_time <- proc.time()
 
@@ -2189,4 +2195,6 @@ if(check_param(param_ref, 'gtex_dir')) {
     dev.off()    
 
     }
+}
+
 }

@@ -119,12 +119,13 @@ rm(all_coloc_results)
 top_lncrna_hits <- merge(top_coloc_hits, gencode_lncrnas[,-9], by.x="eqtl_gene_id", by.y="gene_id")
 
 if(nrow(top_lncrna_hits)==0) {
-    stop("No strongly colocalized lncRNA signals found!\n")
+    cat("No strongly colocalized lncRNA signals found!\n")
+    cat("No strongly colocalized lncRNA signals found!\n", file=summary_file, append=T)
 } else {
     cat(length(unique(top_lncrna_hits$eqtl_gene_name)), "unique lncRNAs across",
         length(unique(top_lncrna_hits$tissue)), "unique GTEx tissues and",
         length(unique(top_lncrna_hits$gtex_tissue_class)), "tissue classes found in data\n")
-}
+
 cat(length(unique(top_lncrna_hits$eqtl_gene_name)), "unique lncRNAs across",
                  length(unique(top_lncrna_hits$tissue)), "unique GTEx tissues and",
                  length(unique(top_lncrna_hits$gtex_tissue_class)), "tissue classes found in data\n", file=summary_file, append=T)
@@ -659,8 +660,8 @@ for(lncrna in names(tissue_spec_lncrna_correlation_dfs)) {
     
 }
 
-cat(nrow(tissue_spec_lncrna_targets), "tissue-specific lncRNA correlations meeting the", cor_thresh, "threshold, representing", length(unique(tissue_spec_lncrna_targets$gene)), "unique target genes and", length(unique(tissue_spec_lncrna_targets$lncRNA)), "unique lncRNAs across", length(unique(tissue_spec_lncrna_targets$tissue_class)), "tissue categories\n")
-cat(nrow(tissue_spec_lncrna_targets), "tissue-specific lncRNA correlations meeting the", cor_thresh, "threshold, representing", length(unique(tissue_spec_lncrna_targets$gene)), "unique target genes and", length(unique(tissue_spec_lncrna_targets$lncRNA)), "unique lncRNAs across", length(unique(tissue_spec_lncrna_targets$tissue_class)), "tissue categories\n", file=summary_file, append=T)
+cat(nrow(tissue_spec_lncrna_targets), "tissue-specific lncRNA correlations met the", cor_thresh, "threshold, representing", length(unique(tissue_spec_lncrna_targets$gene)), "unique target genes and", length(unique(tissue_spec_lncrna_targets$lncRNA)), "unique lncRNAs across", length(unique(tissue_spec_lncrna_targets$tissue_class)), "tissue categories\n")
+cat(nrow(tissue_spec_lncrna_targets), "tissue-specific lncRNA correlations met the", cor_thresh, "threshold, representing", length(unique(tissue_spec_lncrna_targets$gene)), "unique target genes and", length(unique(tissue_spec_lncrna_targets$lncRNA)), "unique lncRNAs across", length(unique(tissue_spec_lncrna_targets$tissue_class)), "tissue categories\n", file=summary_file, append=T)
 
 ## write out the full tissue class-speciifc target file
 write.table(tissue_spec_lncrna_targets, paste0(outdir, '/tables/tissue_class_specific_lncRNA_targets_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=T)
@@ -930,4 +931,4 @@ if(any(!pos_corr)) {
     dev.off()
 }
 
-
+}

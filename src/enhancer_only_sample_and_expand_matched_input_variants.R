@@ -1110,7 +1110,7 @@ collapsed_bh_adj_pvals <- matrix(p.adjust(collapsed_empirical_pvals, "BH"),
 dimnames(collapsed_bh_adj_pvals) <- dimnames(collapsed_empirical_pvals)
 
 cat(sum(collapsed_bh_adj_pvals < sig_thresh), "adjusted tests were significant (", sig_thresh, ") for LD collapsed combined tag region analysis\n")
-cat(sum(collapsed_bh_adj_pvals < sig_thresh), 'adjusted tests were significant (", sig_thresh, ") for LD collapsed combined region analysis\n', file=summary_file, append=T)
+cat(sum(collapsed_bh_adj_pvals < sig_thresh), 'adjusted tests were significant (', sig_thresh, ') for LD collapsed combined region analysis\n', file=summary_file, append=T)
 
 ## --------------
 ## split tag region analysis

@@ -25,7 +25,7 @@ if __name__=="__main__":
     parser.add_argument("--allele1_column", type=int, help="The summary statistics column number containing allele 1, which should correspond to the major allele.")
     parser.add_argument("--allele2_column", type=int, help="The summary statistics column number containing allele 2, which should correspond to the minor allele.")
     parser.add_argument("--maf_column", type=int, help="The summary statistics column number containing the minor allele frequency. Note that if this is ever greater than 0.5 and a beta column is provided, the effect direction will be flipped to be defined relative to the minor allele.")
-    parser.add_argument("--beta_column", type=int, help="The summary statistics column number containing the beta estimate (used for p-value expansion with consistent directions)")        
+    parser.add_argument("--beta_column", type=int, help="The summary statistics column number containing the beta estimate (used for p-value expansion with consistent directions). Providing this means that the p-value expansion witll consider effect direction.")        
     ## for p-value expansion and pruning
     parser.add_argument("--run_pval_expansion", action='store_true', help="If you want to do expansion by p-values when you have summary statistics, provide this flag. Otherwise, the top SNP file will be directly expanded.")
     parser.add_argument("--sig_mult", type=float, help="The multiplier range for significance of the p-value expanded variant set (e.g. a value of 10 means one order of magnitude)")
