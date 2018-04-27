@@ -61,7 +61,8 @@ if(length(args)==1) {
     ## datadir <- "~/Dropbox/wang_lab/psp_enhancer_snps/PSP_H1H2_tag_variant/analysis_results/updated_brain_blood_lncRNA_041018/"
     ## datadir <- "~/Dropbox/wang_lab/psp_enhancer_snps/PSP_H1H2_tag_variant/analysis_results/KANSL1_and_MAPT_AS1_041018/"
     ## datadir <- "~/Dropbox/wang_lab/psp_enhancer_snps/PSP_H1H2_tag_variant/analysis_results/KANSL1_041318/"    
-    datadir <- "~/Dropbox/wang_lab/psp_enhancer_snps/PSP_H1H2_tag_variant/analysis_results/MAPT_AS1_041318/"    
+    ## datadir <- "~/Dropbox/wang_lab/psp_enhancer_snps/PSP_H1H2_tag_variant/analysis_results/MAPT_AS1_041318/"    
+    datadir <- "~/Dropbox/wang_lab/psp_enhancer_snps/PSP_H1H2_tag_variant/analysis_results/non_brain_blood_lncRNA_correlation_analysis/"    
     
     ## define parameters for the pathway analysis
     min_pathway_num <- 5
