@@ -173,7 +173,7 @@ for(this_chr in sort(unique(top_lncrna_hits$V1))) {
         ## now also have to filter to get genes that are expressed in this tissue
         tiss_nonexpressed_genes <- apply(gene_expression_mat[sample_match,], 2, function(x) {all(x==0)})
         cat(sum(tiss_nonexpressed_genes), "genes are never expressed in", tissue_class, "and are filtered out.\n")
-        cat(sum(tiss_nonexpressed_genes), "genes are never expressed in", tissue_class, "and are filtered out.\n", file=summary_file, append=T)        
+        ## cat(sum(tiss_nonexpressed_genes), "genes are never expressed in", tissue_class, "and are filtered out.\n", file=summary_file, append=T)        
 
         this_tiss_expr_mat <- gene_expression_mat[sample_match,!tiss_nonexpressed_genes]
         
@@ -223,7 +223,7 @@ for(chr_file in sort(list.files(gtex_expr_dir, 'chr.*_gtex_expression.txt', full
     ## filter out genes that are never expressed
     nonexpressed_genes <- apply(gene_expression_mat, 2, function(x) {all(x==0)})
     cat(sum(nonexpressed_genes), "genes are never expressed in", this_chr, "and are filtered out.\n")
-    cat(sum(nonexpressed_genes), "genes are never expressed in", this_chr, "and are filtered out.\n", file=summary_file, append=T)
+    ## cat(sum(nonexpressed_genes), "genes are never expressed in", this_chr, "and are filtered out.\n", file=summary_file, append=T)
 
     ## remove duplicated genes
     gene_expression_mat <- gene_expression_mat[,!nonexpressed_genes & !duplicated(colnames(gene_expression_mat))]
@@ -664,19 +664,22 @@ cat(nrow(tissue_spec_lncrna_targets), "tissue-specific lncRNA correlations met t
 cat(nrow(tissue_spec_lncrna_targets), "tissue-specific lncRNA correlations met the", cor_thresh, "threshold, representing", length(unique(tissue_spec_lncrna_targets$gene)), "unique target genes and", length(unique(tissue_spec_lncrna_targets$lncRNA)), "unique lncRNAs across", length(unique(tissue_spec_lncrna_targets$tissue_class)), "tissue categories\n", file=summary_file, append=T)
 
 ## write out the full tissue class-speciifc target file
-write.table(tissue_spec_lncrna_targets, paste0(outdir, '/tables/tissue_class_specific_lncRNA_targets_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=T)
-save(tissue_spec_lncrna_correlation_dfs, file=paste0(outdir, '/full_correlation_tables/tissue_class_spec_lncRNA_correlation_df_list.Rdata'))
+if(nrow(tissue_spec_lncrna_targets) > 0) {
+    write.table(tissue_spec_lncrna_targets, paste0(outdir, '/tables/tissue_class_specific_lncRNA_targets_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=T)
+    save(tissue_spec_lncrna_correlation_dfs, file=paste0(outdir, '/full_correlation_tables/tissue_class_spec_lncRNA_correlation_df_list.Rdata'))
 
-## also write out class-specific gene lists for ease of pathway analysis
-## note that we know that the lncRNAs and target genes match up in terms of classes here
-dir.create(paste0(outdir, '/tables/class_specific_gene_lists/'), F, T)
-for(gtex_class in unique(tissue_spec_lncrna_targets$tissue_class)) {
-    write.table(sort(unique(tissue_spec_lncrna_targets$gene[tissue_spec_lncrna_targets$tissue_class==gtex_class])), paste0(outdir, '/tables/class_specific_gene_lists/', gtex_class, '_lncRNA_genes_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=F)
+    ## also write out class-specific gene lists for ease of pathway analysis
+    ## note that we know that the lncRNAs and target genes match up in terms of classes here
+    dir.create(paste0(outdir, '/tables/class_specific_gene_lists/'), F, T)
+    for(gtex_class in unique(tissue_spec_lncrna_targets$tissue_class)) {
+        write.table(sort(unique(tissue_spec_lncrna_targets$gene[tissue_spec_lncrna_targets$tissue_class==gtex_class])), paste0(outdir, '/tables/class_specific_gene_lists/', gtex_class, '_lncRNA_genes_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=F)
+    }
 }
 
 ## -----------------------------------------------------------------------------
 ## 6. Summarize correlation patterns across all lncRNAs and tissues
 ## -----------------------------------------------------------------------------
+if(nrow(all_lncrna_targets) > 0) {
 ## make this a factor so that we have counts for all lncRNAs
 all_lncrna_targets$lncRNA <- factor(all_lncrna_targets$lncRNA, levels=names(lncrna_correlation_dfs))
 
@@ -851,10 +854,12 @@ print(ggplot(all_lncrna_targets, aes(x=pearson_cor, y=spearman_cor)) +
             axis.text.y = element_text(size=20), title=element_text(size=20),
             plot.title = element_text(hjust = 0.5), legend.text = element_text(size=15)))
 dev.off()
+}
 
 ## -----------------------------------------------------------------------------
 ## 7. Summarize correlation patterns for class-specific correlation analysis
 ## -----------------------------------------------------------------------------
+if(nrow(tissue_spec_lncrna_targets) > 0) {
 tissue_spec_lncrna_targets$lncRNA <- factor(tissue_spec_lncrna_targets$lncRNA, levels=names(tissue_spec_lncrna_correlation_dfs))
 
 ## look at correlation patterns by lncRNA
@@ -929,6 +934,7 @@ if(any(!pos_corr)) {
                 plot.title = element_text(hjust = 0.5),
                 legend.text = element_text(size=20)))    
     dev.off()
+}
 }
 
 }

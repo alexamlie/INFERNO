@@ -282,7 +282,7 @@ for(this_chr in unique(top_snps$chr)) {
         this_tag_gtex_id <-
             paste(gsub("chr", "", this_chr), this_tag_gwas_data[,pos_col],
                   toupper(this_tag_gwas_data[,allele1_col]),
-                  toupper(this_tag_gwas_data[,allele2_col]), "b37", sep="_")         
+                  toupper(this_tag_gwas_data[,allele2_col]), "b37", sep="_")
         
         ## now we have to loop through each GTEx tissue and define the gene sets to perform
         ## colocalization analysis on. first loop through the top-level tissues and then pull
@@ -319,11 +319,32 @@ for(this_chr in unique(top_snps$chr)) {
                 
                 all_genes <- system2("zcat", paste0(gtex_file, " | ", awk_call, " | sort -u"), stdout=TRUE)
 
-                ## if this is still 0, just continue
+                ## if this is still 0, try looking for all the SNPs in LD
                 if(length(all_genes)==0) {
-                    cat("No genes found for", this_tag_gwas_data[,rsid_col], this_tag, "in tissue",
-                        gtex_tiss_match, "!\n")
-                    next
+                    cat("No genes found for tag variant", this_tag_gwas_data[,rsid_col], "in the", this_tag, "region in tissue",
+                        gtex_tiss_match, "! Looking for genes tested with LD SNPs\n")
+                    
+                    ld_snps_gtex_ids_1 <- this_region_gwas_snps$gtex_id1[this_region_gwas_snps[,rsid_col] %in% ld_stats_df$rsID[ld_stats_df$tag_name==this_tag]]
+
+                    ld_snps_gtex_ids_2 <- this_region_gwas_snps$gtex_id1[this_region_gwas_snps[,rsid_col] %in% ld_stats_df$rsID[ld_stats_df$tag_name==this_tag]]
+
+                    ## if we only have the tag variant, which we tried already, just continue
+                    if(length(ld_snps_gtex_ids_1) <= 1) {
+                        cat("Only found tag variant\n")
+                        next
+                    }
+                    
+                    tag_id_1s <- paste0("$2==\"", paste(ld_snps_gtex_ids_1, collapse="\" || $2==\""))
+                    tag_id_2s <- paste0("$2==\"", paste(ld_snps_gtex_ids_2, collapse="\" || $2==\""))
+                    
+                    awk_call <- paste0("awk -F$'\t' 'BEGIN{SNP_OBS=\"\"} {if(", tag_id_1s, "\" || ", tag_id_2s, "\") {SNP_OBS=\"Yes\"; print $1} else if(SNP_OBS) {exit;}}'")
+                    
+                    all_genes <- system2("zcat", paste0(gtex_file, " | ", awk_call, " | sort -u"), stdout=TRUE)                    
+                    ## if we still don't find anything, move on!
+                    if(length(all_genes)==0) {
+                        cat("Still found no genes tested with any LD SNP!\n")
+                        next
+                    } 
                 }
             }
 
