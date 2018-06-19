@@ -86,6 +86,10 @@ def expand_ld_snps(input_snp_list, kg_pop, kg_dir, ld_threshold, ld_check_area, 
                 cur_snp_data = cur_snp.strip().split("\t")
                 cur_snp_chr = cur_snp_data[0]
                 cur_snp_id = cur_snp_data[1]
+                ## replace any ':' in the input with dashes
+                cur_snp_data[1] = cur_snp_id.replace(":", "-")
+                ## also do this for the name even though it's less important
+                cur_snp_data[2] = cur_snp_data[2].replace(":", "-")
                 cur_snp_name = cur_snp_data[2]
                 cur_snp_pos = cur_snp_data[3]
                 ## if we have '.' rsID, replace with a more informative name (in the line,
@@ -112,9 +116,12 @@ def expand_ld_snps(input_snp_list, kg_pop, kg_dir, ld_threshold, ld_check_area, 
                 else:
                     ## if we had been previously looking at a chromosome:
                     if this_chr:
-                        ## TODO: make this less hard-coded / allow for other references
                         kg_file = kg_dir+"/"+kg_pop+"/"+this_chr+".phase1_release_v3.20101123.snps_indels_svs.genotypes.refpanel."+kg_pop+".vcf.gz"
-
+                        ## check if this chromosome actually exists
+                        if not os.path.isfile(kg_file):
+                            logging_function("Chromosome %s does not have 1,000 genomes data, skipping." % (this_chr))
+                            next
+                        
                         ## loop through each SNP and open its neighboring SNP file (if we are
                         ## performing LD expansion)
                         if ld_check_area != 0 or ld_threshold != 1.0:
@@ -386,254 +393,256 @@ def expand_ld_snps(input_snp_list, kg_pop, kg_dir, ld_threshold, ld_check_area, 
             else:
                 logging_function("Analyzing SNPs from chromosome %s, buffer number %s" % (this_chr, str(buffer_snp_ctr/buffer_size)))
 
-            ## todo: make this less hard-coded / allow for other references
             kg_file = kg_dir+"/"+kg_pop+"/"+this_chr+".phase1_release_v3.20101123.snps_indels_svs.genotypes.refpanel."+kg_pop+".vcf.gz"
-
-            ## loop through each SNP and open its neighboring SNP file
-            if ld_check_area != 0 or ld_threshold != 1.0:
-                neighbor_snp_files = {}
-            ## this contains a bunch of information for each SNP for matching neighbors
-            snp_match_info = {}
-            ## finally, we want a dict to store all the alleles for this chromosome
-            allele_dict = {}
-
-            for snp_key in this_chr_snps:
-                snp_data = this_chr_snps[snp_key]
-                snp_chr = snp_data[0]
-                snp_id = snp_data[1]
-                snp_name = snp_data[2]
-                snp_pos = int(snp_data[3])
-
-                analyzed_snps += 1
-                if not sparse_output:
-                    logging_function("Analyzing SNP number %s - %s at position %s:%s, region %s" % (analyzed_snps, snp_id, snp_chr, str(snp_pos), snp_name))
-                ## if we have a buffer size, use that
-                elif buffer_size and analyzed_snps % (buffer_size / 10)==0:
-                    logging_function("Analyzing SNP number %s - %s at position %s:%s, region %s" % (analyzed_snps, snp_id, snp_chr, str(snp_pos), snp_name))
-                ## otherwise, just use a generic approach
-                elif analyzed_snps % 50000==0:
-                    logging_function("Analyzing SNP number %s - %s at position %s:%s, region %s" % (analyzed_snps, snp_id, snp_chr, str(snp_pos), snp_name))
-
-                ## only analyze the neighboring SNPs if this is a unique ID (although the ID
-                ## contains name, position, and tag region info, so they should always be
-                ## unique..)
-                if snp_key not in snp_match_info:
-                    ## each SNP is indexed by ID and position
-                    allele_key = ":".join([snp_id, str(snp_pos)])
-                    neighboring_snps_file = outdir+"/ld_expansion/snp_data/"+allele_key+"/"+allele_key+"_"+str(ld_check_area)+"_bp_neighboring_snps.vcf"
-                    
-                    if ld_check_area != 0 or ld_threshold != 1.0:
-                        try:
-                            os.makedirs(outdir+"/ld_expansion/snp_data/"+allele_key)
-                        except OSError:
-                            pass
-                        neighbor_snp_files[snp_key] = open(neighboring_snps_file, 'wb')                        
-                    ## track the SNP ID to use for searching
-                    search_rsID = snp_id
-                    ## also we need to track whether we find a match for this SNP
-                    this_snp_found = False
-                    ## store all this information for future reference (also by rsID)
-                    snp_match_info[snp_key] = [search_rsID, this_snp_found, neighboring_snps_file, snp_pos]
-                    
-            ## we also want to store a list of the SNPs that we need to find the
-            ## neighbors for
-            cur_search_snps = snp_match_info.keys()
-            
-            ## now read through the reference file
-            with gzip.open(kg_file, 'r') as kg_data:
-                for line in kg_data:
-                    ## figure out if it's a header line
-                    if line[0]=="#":
-                        if ld_check_area != 0 or ld_threshold != 1.0:
-                            for snp_key in cur_search_snps:
-                                ## write the header line for all SNPs
-                                neighbor_snp_files[snp_key].write(line)
-                    else:
-                        ## if it's not a header, only loop through the SNPs if it's
-                        ## a single nucleotide variant and we have any search SNPs left
-                        line_data = line.strip().split("\t")
-                        this_pos = int(line_data[1])
-                        this_rsID = line_data[2]
-                        this_maj_allele = line_data[3]
-                        this_min_allele = line_data[4]
-                        if len(this_maj_allele)==1 and len(this_min_allele)==1:
-                            ## store the SNPs we will remove at this line
-                            removed_snps = []
-                            for snp_key in cur_search_snps:
-                                ## get the original id of the SNP, for comparison purposes
-                                orig_snp_id = snp_key.split(":")[0]
-                                ## get the position and matching rsID for this SNP
-                                snp_id = snp_match_info[snp_key][0]
-                                snp_pos = snp_match_info[snp_key][3]
-                                allele_key = ":".join([snp_id, str(snp_pos)])
-                                start_pos = snp_pos - ld_check_area
-                                end_pos = snp_pos + ld_check_area
-                                ## check the position 
-                                if this_pos >= start_pos and this_pos <= end_pos:
-                                    ## if it has a "." rsID, replace it in the line:
-                                    if this_rsID == ".":
-                                        ## this can't be a ':' or it messes up later analysis
-                                        line_data[2] = this_chr+"-"+str(this_pos)
-                                        this_rsID = this_chr+"-"+str(this_pos)
-                                    ## store the alleles of the reference SNP!
-                                    allele_key = ":".join([this_rsID, str(this_pos)])
-
-                                    ## store the reference and alt alleles
-                                    if allele_key not in allele_dict:
-                                        ## store the reference and alt alleles in the allele
-                                        ## dict, using the rsID and pos as key
-                                        allele_dict[allele_key] = line_data[3:5]
-
-                                    ## check if it's the search SNP by position
-                                    if this_pos == snp_pos:
-                                        ## check if this SNP matches the input SNP ID
-                                        if orig_snp_id != this_rsID:
-                                            logging_function("SNP %s does not match 1000 genomes rsID. Using ID %s for this input SNP" % (orig_snp_id, this_rsID))
-                                            ## set the search rsID for PLINK
-                                            snp_match_info[snp_key][0] = this_rsID
-                                            ## in this case, we also want to store the alleles
-                                            ## using the input SNP id
-                                            orig_allele_key = ":".join([orig_snp_id, str(this_pos)])
-                                            if orig_allele_key not in allele_dict:
-                                                allele_dict[orig_allele_key] = line_data[3:5]
-                                            
-                                        ## set the boolean that this SNP was found
-                                        snp_match_info[snp_key][1] = True
-                                    if ld_check_area != 0 or ld_threshold != 1.0:
-                                        ## write the line to the neighboring SNP file
-                                        neighbor_snp_files[snp_key].write("\t".join(line_data)+"\n")
-                                        
-                                # if we've passed the end position, stop looking at
-                                # this SNP (mark it for removal and close the file)
-                                elif this_pos > end_pos:
-                                    removed_snps.append(snp_key)
-                                    if ld_check_area != 0 or ld_threshold != 1.0:
-                                        neighbor_snp_files[snp_key].close()
-                                        
-                            ## now remove the SNPs we marked as having passed                    
-                            [cur_search_snps.remove(x) for x in removed_snps]
-                            ## if we closed the last file, stop looking
-                            if len(cur_search_snps) == 0:
-                                break
-                                
-                ## after looping through the reference, close any files that may
-                ## happen to be open still (will only happen if the window around a
-                ## SNP extends past the chromosome end)
+            ## check if this chromosome actually exists
+            if not os.path.isfile(kg_file):
+                logging_function("Chromosome %s does not have 1,000 genomes data, skipping." % (this_chr))
+            else:            
+                ## loop through each SNP and open its neighboring SNP file
                 if ld_check_area != 0 or ld_threshold != 1.0:
-                    for snp_key in cur_search_snps:
-                        neighbor_snp_files[snp_key].close()
+                    neighbor_snp_files = {}
+                ## this contains a bunch of information for each SNP for matching neighbors
+                snp_match_info = {}
+                ## finally, we want a dict to store all the alleles for this chromosome
+                allele_dict = {}
 
-            ## now, we can run plink for each SNP. note that we are now running
-            ## this loop on all combinations of SNPs and regions, but if it was
-            ## already run, we just skip the LD expansion
-            for snp_key in this_chr_snps:
-                ## get the information for this snp
-                snp_data = this_chr_snps[snp_key]
-                snp_chr = snp_data[0]
-                ## this is the input rsID
-                snp_id = snp_data[1]
-                snp_name = snp_data[2]
-                snp_pos = str(snp_data[3])
-                allele_key = ":".join([snp_id, str(snp_pos)])
+                for snp_key in this_chr_snps:
+                    snp_data = this_chr_snps[snp_key]
+                    snp_chr = snp_data[0]
+                    snp_id = snp_data[1]
+                    snp_name = snp_data[2]
+                    snp_pos = int(snp_data[3])
 
-                this_snp_info = snp_match_info[snp_key]
-                search_rsID = this_snp_info[0]
-                this_snp_found = this_snp_info[1]
-                neighboring_snps_file = this_snp_info[2]
+                    analyzed_snps += 1
+                    if not sparse_output:
+                        logging_function("Analyzing SNP number %s - %s at position %s:%s, region %s" % (analyzed_snps, snp_id, snp_chr, str(snp_pos), snp_name))
+                    ## if we have a buffer size, use that
+                    elif buffer_size and analyzed_snps % (buffer_size / 10)==0:
+                        logging_function("Analyzing SNP number %s - %s at position %s:%s, region %s" % (analyzed_snps, snp_id, snp_chr, str(snp_pos), snp_name))
+                    ## otherwise, just use a generic approach
+                    elif analyzed_snps % 50000==0:
+                        logging_function("Analyzing SNP number %s - %s at position %s:%s, region %s" % (analyzed_snps, snp_id, snp_chr, str(snp_pos), snp_name))
 
-                ## if we are skipping the LD expansion, just write it out directly
-                ## for now, skip the MAF calculation
-                if ld_check_area == 0 and ld_threshold == 1.0:
-                    if this_snp_found:
-                        outf.write("\t".join([snp_chr, snp_id, snp_pos]+allele_dict[allele_key]+
-                                             ["NA", snp_id, snp_pos, "NA", snp_name, "1.0", "1.0"])+"\n")
+                    ## only analyze the neighboring SNPs if this is a unique ID (although the ID
+                    ## contains name, position, and tag region info, so they should always be
+                    ## unique..)
+                    if snp_key not in snp_match_info:
+                        ## each SNP is indexed by ID and position
+                        allele_key = ":".join([snp_id, str(snp_pos)])
+                        neighboring_snps_file = outdir+"/ld_expansion/snp_data/"+allele_key+"/"+allele_key+"_"+str(ld_check_area)+"_bp_neighboring_snps.vcf"
+
+                        if ld_check_area != 0 or ld_threshold != 1.0:
+                            try:
+                                os.makedirs(outdir+"/ld_expansion/snp_data/"+allele_key)
+                            except OSError:
+                                pass
+                            neighbor_snp_files[snp_key] = open(neighboring_snps_file, 'wb')                        
+                        ## track the SNP ID to use for searching
+                        search_rsID = snp_id
+                        ## also we need to track whether we find a match for this SNP
+                        this_snp_found = False
+                        ## store all this information for future reference (also by rsID)
+                        snp_match_info[snp_key] = [search_rsID, this_snp_found, neighboring_snps_file, snp_pos]
+
+                ## we also want to store a list of the SNPs that we need to find the
+                ## neighbors for
+                cur_search_snps = snp_match_info.keys()
+
+                ## now read through the reference file
+                with gzip.open(kg_file, 'r') as kg_data:
+                    for line in kg_data:
+                        ## figure out if it's a header line
+                        if line[0]=="#":
+                            if ld_check_area != 0 or ld_threshold != 1.0:
+                                for snp_key in cur_search_snps:
+                                    ## write the header line for all SNPs
+                                    neighbor_snp_files[snp_key].write(line)
+                        else:
+                            ## if it's not a header, only loop through the SNPs if it's
+                            ## a single nucleotide variant and we have any search SNPs left
+                            line_data = line.strip().split("\t")
+                            this_pos = int(line_data[1])
+                            this_rsID = line_data[2]
+                            this_maj_allele = line_data[3]
+                            this_min_allele = line_data[4]
+                            if len(this_maj_allele)==1 and len(this_min_allele)==1:
+                                ## store the SNPs we will remove at this line
+                                removed_snps = []
+                                for snp_key in cur_search_snps:
+                                    ## get the original id of the SNP, for comparison purposes
+                                    orig_snp_id = snp_key.split(":")[0]
+                                    ## get the position and matching rsID for this SNP
+                                    snp_id = snp_match_info[snp_key][0]
+                                    snp_pos = snp_match_info[snp_key][3]
+                                    allele_key = ":".join([snp_id, str(snp_pos)])
+                                    start_pos = snp_pos - ld_check_area
+                                    end_pos = snp_pos + ld_check_area
+                                    ## check the position 
+                                    if this_pos >= start_pos and this_pos <= end_pos:
+                                        ## if it has a "." rsID, replace it in the line:
+                                        if this_rsID == ".":
+                                            ## this can't be a ':' or it messes up later analysis
+                                            line_data[2] = this_chr+"-"+str(this_pos)
+                                            this_rsID = this_chr+"-"+str(this_pos)
+                                        ## store the alleles of the reference SNP!
+                                        allele_key = ":".join([this_rsID, str(this_pos)])
+
+                                        ## store the reference and alt alleles
+                                        if allele_key not in allele_dict:
+                                            ## store the reference and alt alleles in the allele
+                                            ## dict, using the rsID and pos as key
+                                            allele_dict[allele_key] = line_data[3:5]
+
+                                        ## check if it's the search SNP by position
+                                        if this_pos == snp_pos:
+                                            ## check if this SNP matches the input SNP ID
+                                            if orig_snp_id != this_rsID:
+                                                logging_function("SNP %s does not match 1000 genomes rsID. Using ID %s for this input SNP" % (orig_snp_id, this_rsID))
+                                                ## set the search rsID for PLINK
+                                                snp_match_info[snp_key][0] = this_rsID
+                                                ## in this case, we also want to store the alleles
+                                                ## using the input SNP id
+                                                orig_allele_key = ":".join([orig_snp_id, str(this_pos)])
+                                                if orig_allele_key not in allele_dict:
+                                                    allele_dict[orig_allele_key] = line_data[3:5]
+
+                                            ## set the boolean that this SNP was found
+                                            snp_match_info[snp_key][1] = True
+                                        if ld_check_area != 0 or ld_threshold != 1.0:
+                                            ## write the line to the neighboring SNP file
+                                            neighbor_snp_files[snp_key].write("\t".join(line_data)+"\n")
+
+                                    # if we've passed the end position, stop looking at
+                                    # this SNP (mark it for removal and close the file)
+                                    elif this_pos > end_pos:
+                                        removed_snps.append(snp_key)
+                                        if ld_check_area != 0 or ld_threshold != 1.0:
+                                            neighbor_snp_files[snp_key].close()
+
+                                ## now remove the SNPs we marked as having passed                    
+                                [cur_search_snps.remove(x) for x in removed_snps]
+                                ## if we closed the last file, stop looking
+                                if len(cur_search_snps) == 0:
+                                    break
+
+                    ## after looping through the reference, close any files that may
+                    ## happen to be open still (will only happen if the window around a
+                    ## SNP extends past the chromosome end)
+                    if ld_check_area != 0 or ld_threshold != 1.0:
+                        for snp_key in cur_search_snps:
+                            neighbor_snp_files[snp_key].close()
+
+                ## now, we can run plink for each SNP. note that we are now running
+                ## this loop on all combinations of SNPs and regions, but if it was
+                ## already run, we just skip the LD expansion
+                for snp_key in this_chr_snps:
+                    ## get the information for this snp
+                    snp_data = this_chr_snps[snp_key]
+                    snp_chr = snp_data[0]
+                    ## this is the input rsID
+                    snp_id = snp_data[1]
+                    snp_name = snp_data[2]
+                    snp_pos = str(snp_data[3])
+                    allele_key = ":".join([snp_id, str(snp_pos)])
+
+                    this_snp_info = snp_match_info[snp_key]
+                    search_rsID = this_snp_info[0]
+                    this_snp_found = this_snp_info[1]
+                    neighboring_snps_file = this_snp_info[2]
+
+                    ## if we are skipping the LD expansion, just write it out directly
+                    ## for now, skip the MAF calculation
+                    if ld_check_area == 0 and ld_threshold == 1.0:
+                        if this_snp_found:
+                            outf.write("\t".join([snp_chr, snp_id, snp_pos]+allele_dict[allele_key]+
+                                                 ["NA", snp_id, snp_pos, "NA", snp_name, "1.0", "1.0"])+"\n")
+                        else:
+                            logging_function("SNP %s not found in 1,000 genomes by ID or by position. No allele information is being written for this SNP!" % (snp_id))
+                            outf.write("\t".join([snp_chr, snp_id, snp_pos, "NA", "NA",
+                                                  "NA", snp_id, snp_pos, "NA",
+                                                  snp_name, "1.0", "1.0"])+"\n")
                     else:
-                        logging_function("SNP %s not found in 1,000 genomes by ID or by position. No allele information is being written for this SNP!" % (snp_id))
-                        outf.write("\t".join([snp_chr, snp_id, snp_pos, "NA", "NA",
-                                              "NA", snp_id, snp_pos, "NA",
-                                              snp_name, "1.0", "1.0"])+"\n")
-                else:
-                    ## convert the LD checking area to kb
-                    ld_kb_check_area = ld_check_area / 1000
-                    ## output prefix
-                    plink_prefix = (outdir+"/ld_expansion/snp_data/"+allele_key+"/"+
-                                    "_".join([allele_key, str(ld_check_area), "bp", str(ld_threshold), "cutoff", "snps"]))
-                    ## only run analysis if we found the SNP and haven't done this
-                    ## analysis yet (even if we are forcing recalculation, this is
-                    ## because of potential duplicated IDs and SNPs belonging to more
-                    ## than one tag region):
-                    if not plink_path and this_snp_found and not os.path.isfile(plink_prefix+".ld"):
-                        with open(plink_prefix+"_pipeline.log", 'wb') as plink_log:
-                            subprocess.call(["plink", "--allow-no-sex", "--vcf", neighboring_snps_file,
-                                            "--r2", "with-freqs", "dprime",
-                                            "--ld-snp", search_rsID,
-                                            "--ld-window", "99999",
-                                            "--ld-window-kb", str(ld_kb_check_area),
-                                            "--ld-window-r2",
-                                            str(ld_threshold), 
-                                            "--out", plink_prefix],
-                                            stdout=plink_log)
-                    elif plink_path and this_snp_found and not os.path.isfile(plink_prefix+".ld"):
-                        with open(plink_prefix+"_pipeline.log", 'wb') as plink_log:
-                            subprocess.call([plink_path, "--allow-no-sex", "--vcf", neighboring_snps_file,
-                                            "--r2", "with-freqs", "dprime",
-                                            "--ld-snp", search_rsID,
-                                            "--ld-window", "99999",
-                                            "--ld-window-kb", str(ld_kb_check_area),
-                                            "--ld-window-r2",
-                                            str(ld_threshold),
-                                            "--out", plink_prefix],
-                                            stdout=plink_log)
-                    elif os.path.isfile(plink_prefix+".ld"):
-                        logging_function("No need to recompute LD SNPs for SNP ID %s" % (snp_id))
-                    elif not this_snp_found:
-                        logging_function("SNP %s not found in 1,000 genomes by ID or by position. Skipping!" % (snp_id))
+                        ## convert the LD checking area to kb
+                        ld_kb_check_area = ld_check_area / 1000
+                        ## output prefix
+                        plink_prefix = (outdir+"/ld_expansion/snp_data/"+allele_key+"/"+
+                                        "_".join([allele_key, str(ld_check_area), "bp", str(ld_threshold), "cutoff", "snps"]))
+                        ## only run analysis if we found the SNP and haven't done this
+                        ## analysis yet (even if we are forcing recalculation, this is
+                        ## because of potential duplicated IDs and SNPs belonging to more
+                        ## than one tag region):
+                        if not plink_path and this_snp_found and not os.path.isfile(plink_prefix+".ld"):
+                            with open(plink_prefix+"_pipeline.log", 'wb') as plink_log:
+                                subprocess.call(["plink", "--allow-no-sex", "--vcf", neighboring_snps_file,
+                                                "--r2", "with-freqs", "dprime",
+                                                "--ld-snp", search_rsID,
+                                                "--ld-window", "99999",
+                                                "--ld-window-kb", str(ld_kb_check_area),
+                                                "--ld-window-r2",
+                                                str(ld_threshold), 
+                                                "--out", plink_prefix],
+                                                stdout=plink_log)
+                        elif plink_path and this_snp_found and not os.path.isfile(plink_prefix+".ld"):
+                            with open(plink_prefix+"_pipeline.log", 'wb') as plink_log:
+                                subprocess.call([plink_path, "--allow-no-sex", "--vcf", neighboring_snps_file,
+                                                "--r2", "with-freqs", "dprime",
+                                                "--ld-snp", search_rsID,
+                                                "--ld-window", "99999",
+                                                "--ld-window-kb", str(ld_kb_check_area),
+                                                "--ld-window-r2",
+                                                str(ld_threshold),
+                                                "--out", plink_prefix],
+                                                stdout=plink_log)
+                        elif os.path.isfile(plink_prefix+".ld"):
+                            logging_function("No need to recompute LD SNPs for SNP ID %s" % (snp_id))
+                        elif not this_snp_found:
+                            logging_function("SNP %s not found in 1,000 genomes by ID or by position. Skipping!" % (snp_id))
 
-                    ## now output to the master file, if it exists and we found the SNP
-                    if os.path.isfile(plink_prefix+".ld") and this_snp_found:
-                        with open(plink_prefix+".ld", 'rb') as plinkout:
-                            # read in the header, make an index
-                            plink_header = re.sub("\s+", "\t", next(plinkout).strip()).split("\t")
-                            plink_idx = {plink_header[x]:x for x in range(len(plink_header))}
-                            for ld_line in plinkout:
-                                ld_data = re.sub("\s+", "\t", ld_line.strip()).split("\t")
-                                ## check if we found the search rsID (replace with tag snp ID)
-                                if ld_data[plink_idx['SNP_B']]==search_rsID:
-                                    outf.write("\t".join(["chr"+ld_data[plink_idx['CHR_A']], snp_id,
-                                                          ld_data[plink_idx['BP_B']]]+
-                                                          allele_dict[allele_key]+
-                                                          [ld_data[plink_idx['MAF_B']],
-                                                           snp_id, ld_data[plink_idx['BP_A']],
-                                                           ld_data[plink_idx['MAF_A']],
-                                                           snp_name, ld_data[plink_idx['R2']],
-                                                           ld_data[plink_idx['DP']]])+'\n')
-                                else:
-                                    ld_snp_key = ":".join([ld_data[plink_idx['SNP_B']],
-                                                           ld_data[plink_idx['BP_B']]])
-                                    if ld_snp_key in allele_dict:
-                                        outf.write("\t".join(["chr"+ld_data[plink_idx['CHR_A']],
-                                                          ld_data[plink_idx['SNP_B']],
-                                                          ld_data[plink_idx['BP_B']]]+
-                                                          allele_dict[ld_snp_key]+
-                                                          [ld_data[plink_idx['MAF_B']],
-                                                           snp_id, ld_data[plink_idx['BP_A']],
-                                                           ld_data[plink_idx['MAF_A']],
-                                                           snp_name, ld_data[plink_idx['R2']],
-                                                           ld_data[plink_idx['DP']]])+'\n')
+                        ## now output to the master file, if it exists and we found the SNP
+                        if os.path.isfile(plink_prefix+".ld") and this_snp_found:
+                            with open(plink_prefix+".ld", 'rb') as plinkout:
+                                # read in the header, make an index
+                                plink_header = re.sub("\s+", "\t", next(plinkout).strip()).split("\t")
+                                plink_idx = {plink_header[x]:x for x in range(len(plink_header))}
+                                for ld_line in plinkout:
+                                    ld_data = re.sub("\s+", "\t", ld_line.strip()).split("\t")
+                                    ## check if we found the search rsID (replace with tag snp ID)
+                                    if ld_data[plink_idx['SNP_B']]==search_rsID:
+                                        outf.write("\t".join(["chr"+ld_data[plink_idx['CHR_A']], snp_id,
+                                                              ld_data[plink_idx['BP_B']]]+
+                                                              allele_dict[allele_key]+
+                                                              [ld_data[plink_idx['MAF_B']],
+                                                               snp_id, ld_data[plink_idx['BP_A']],
+                                                               ld_data[plink_idx['MAF_A']],
+                                                               snp_name, ld_data[plink_idx['R2']],
+                                                               ld_data[plink_idx['DP']]])+'\n')
                                     else:
-                                        logging_function("SNP %s not in allele dict" % (ld_snp_key))
-                                        outf.write("\t".join(["chr"+ld_data[plink_idx['CHR_A']],
-                                                          ld_data[plink_idx['SNP_B']],
-                                                          ld_data[plink_idx['BP_B']]]+
-                                                          ["NA", "NA"]+
-                                                          [ld_data[plink_idx['MAF_B']],
-                                                           snp_id, ld_data[plink_idx['BP_A']],
-                                                           ld_data[plink_idx['MAF_A']],
-                                                           snp_name, ld_data[plink_idx['R2']],
-                                                           ld_data[plink_idx['DP']]])+'\n')
-                                        
-                    else:
-                        logging_function("Plink failed to generate an LD file for snp %s (search ID %s)!" % (snp_id, search_rsID))
+                                        ld_snp_key = ":".join([ld_data[plink_idx['SNP_B']],
+                                                               ld_data[plink_idx['BP_B']]])
+                                        if ld_snp_key in allele_dict:
+                                            outf.write("\t".join(["chr"+ld_data[plink_idx['CHR_A']],
+                                                              ld_data[plink_idx['SNP_B']],
+                                                              ld_data[plink_idx['BP_B']]]+
+                                                              allele_dict[ld_snp_key]+
+                                                              [ld_data[plink_idx['MAF_B']],
+                                                               snp_id, ld_data[plink_idx['BP_A']],
+                                                               ld_data[plink_idx['MAF_A']],
+                                                               snp_name, ld_data[plink_idx['R2']],
+                                                               ld_data[plink_idx['DP']]])+'\n')
+                                        else:
+                                            logging_function("SNP %s not in allele dict" % (ld_snp_key))
+                                            outf.write("\t".join(["chr"+ld_data[plink_idx['CHR_A']],
+                                                              ld_data[plink_idx['SNP_B']],
+                                                              ld_data[plink_idx['BP_B']]]+
+                                                              ["NA", "NA"]+
+                                                              [ld_data[plink_idx['MAF_B']],
+                                                               snp_id, ld_data[plink_idx['BP_A']],
+                                                               ld_data[plink_idx['MAF_A']],
+                                                               snp_name, ld_data[plink_idx['R2']],
+                                                               ld_data[plink_idx['DP']]])+'\n')
+
+                        else:
+                            logging_function("Plink failed to generate an LD file for snp %s (search ID %s)!" % (snp_id, search_rsID))
 
         ## sort the output (chromosome, position, rsID, region name, tag rsID)
         ## first get the sort strings

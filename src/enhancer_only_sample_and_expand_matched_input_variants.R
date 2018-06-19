@@ -156,10 +156,11 @@ if(nrow(mismatch_snps) > 0) {
         if(nrow(mismatch_merge_snps)==nrow(mismatch_snps)) {
             annot_input_snps <- rbind(annot_input_snps, mismatch_merge_snps[,c("chr", "rsID", "pos", "tag_name", "tss_dist", "MAF", "num_ld_partners")])
         } else {
-            stop("Did not match the same number of variants!\n")
+            cat("Warning: Did not match the same number of variants! Using only the matching ones.\n")
+            annot_input_snps <- rbind(annot_input_snps, mismatch_merge_snps[,c("chr", "rsID", "pos", "tag_name", "tss_dist", "MAF", "num_ld_partners")])
         }
     } else {
-        stop("Could not match rsIDS! :( \n")
+        cat("Warning: could not match any rsIDS! :( Using only matching data.\n")
     }
 }
 

@@ -15,7 +15,7 @@ sessionInfo()
 
 ## 0. Table of Contents
 ## 1. Function Definitions
-## 2. Read in data, compute tissue-specific PCs
+## 2. Read in data
 ## 3. Identify colocalized lncRNAs, pull out their expression vectors
 ## 4. Compute correlation of all lncRNAs with all GTEx genes
 ## 5. Analyze correlation patterns and GTEx expression of individual lncRNAs
@@ -38,11 +38,12 @@ make_graphic <- function(filename, width_ratio=1, height_ratio=1, type='pdf') {
 }
 
 ## -----------------------------------------------------------------------------
-## 2. Read in data, compute tissue-specific PCs
+## 2. Read in data
 ## -----------------------------------------------------------------------------
 args <- commandArgs(trailingOnly=TRUE)
 cat(args, '\n')
 
+## original implementation, one correlation threshold for both spearman and pearson
 if(length(args)==10) {
     outdir <- args[1]
     coloc_result_file <- args[2]   
@@ -53,7 +54,41 @@ if(length(args)==10) {
     gtex_class_file <- args[7]
     roadmap_class_file <- args[8]
     coloc_h4_thresh <- as.numeric(args[9])
-    cor_thresh <- as.numeric(args[10])
+    SEPARATE_CORS <- FALSE
+    ## just set the individual thresholds to the single value
+    pearson_thresh <- as.numeric(args[10])
+    spearman_thresh <- as.numeric(args[10])
+    num_PCs <- 10 ## use the default value
+} ## implementation with separate correlation thresholds
+else if(length(args)==11) {
+    outdir <- args[1]
+    coloc_result_file <- args[2]   
+    gtex_expr_dir <- args[3] 
+    sample_info_file <- args[4]
+    gencode_lncrna_file <- args[5]    
+    fantom5_class_file <- args[6]
+    gtex_class_file <- args[7]
+    roadmap_class_file <- args[8]
+    coloc_h4_thresh <- as.numeric(args[9])
+    pearson_thresh <- as.numeric(args[10])
+    spearman_thresh <- as.numeric(args[11])
+    SEPARATE_CORS <- TRUE
+    num_PCs <- 10 ## use the default value
+} ## implementation with separate correlation thresholds and explicit number of PCs to use
+else if(length(args)==12) {
+    outdir <- args[1]
+    coloc_result_file <- args[2]   
+    gtex_expr_dir <- args[3] 
+    sample_info_file <- args[4]
+    gencode_lncrna_file <- args[5]    
+    fantom5_class_file <- args[6]
+    gtex_class_file <- args[7]
+    roadmap_class_file <- args[8]
+    coloc_h4_thresh <- as.numeric(args[9])
+    pearson_thresh <- as.numeric(args[10])
+    spearman_thresh <- as.numeric(args[11])
+    SEPARATE_CORS <- TRUE
+    num_PCs <- as.numeric(args[12])
 } else {
     stop("Incorrect number of arguments. Should be: <outdir> <coloc_result_file> <gtex_expression_dir> <gtex_sample_info> <gencode lncRNA annotation table> <fantom5_class_file> <gtex_class_file> <roadmap_class_file> <P(H_4) threshold> <correlation value threshold>\n")
 }
@@ -289,7 +324,7 @@ for(chr_file in sort(list.files(gtex_expr_dir, 'chr.*_gtex_expression.txt', full
         
         ## this is not a very nice solution because i cbind the gene vector with the PCs
         residual_expr_data <- apply(this_tiss_expr_mat, 2, function(gene_vec) {
-            f <- paste("y ~", paste0("PC", 1:10, collapse=" + "))
+            f <- paste("y ~", paste0("PC", 1:num_PCs, collapse=" + "))
             return(residuals(lm(f, data=cbind(y=gene_vec, this_tiss_PCs)))) })
         
         ## now loop through the lncRNAs that are colocalized in this tissue class
@@ -357,16 +392,16 @@ for(lncrna in names(lncrna_correlation_dfs)) {
     ## now get rid of the entry for the lncRNA itself
     lncrna_correlation_dfs[[lncrna]] <- lncrna_correlation_dfs[[lncrna]][lncrna_correlation_dfs[[lncrna]]$gene!=lncrna,]   
     
-    ## also write out all the genes meeting a 0.5 correlation threshold
-    corr_thresh_vec <- abs(lncrna_correlation_dfs[[lncrna]]$pearson_cor) > cor_thresh & abs(lncrna_correlation_dfs[[lncrna]]$spearman_cor) > cor_thresh
-    cat(sum(corr_thresh_vec), 'genes met a', cor_thresh, 'correlation threshold\n')
-    cat(sum(corr_thresh_vec), 'genes met a', cor_thresh, 'correlation threshold\n', file=summary_file, append=T)
-    
+    ## also write out all the genes meeting the correlation thresholds
+    corr_thresh_vec <- abs(lncrna_correlation_dfs[[lncrna]]$pearson_cor) > pearson_thresh & abs(lncrna_correlation_dfs[[lncrna]]$spearman_cor) > spearman_thresh
+    cat(sum(corr_thresh_vec), 'genes met a', pearson_thresh, 'Pearson and', spearman_thresh, 'Spearman correlation threshold\n')
+    cat(sum(corr_thresh_vec), 'genes met a', pearson_thresh, 'Pearson and', spearman_thresh, 'Spearman correlation threshold\n', file=summary_file, append=T)
+        
     if(sum(corr_thresh_vec) > 0) {
         write.table(lncrna_correlation_dfs[[lncrna]][corr_thresh_vec,],
-                    paste0(outdir, '/tables/', lncrna, '_correlated_genes_over_', cor_thresh, '_spearman_pearson.txt'),
+                    paste0(outdir, '/tables/', lncrna, '_correlated_genes_over_', pearson_thresh, '_pearson_', spearman_thresh, '_spearman.txt'),
                     quote=F, sep="\t", row.names=F, col.names=T)
-
+    
         ## save this to the master data frame with only the main correlation numbers
         ## also save the tissues
         all_lncrna_targets <- rbind(all_lncrna_targets,
@@ -394,10 +429,10 @@ for(lncrna in names(lncrna_correlation_dfs)) {
                              breaks=seq(-1, 1, by=0.1)) +
           scale_y_continuous(limits=range(lncrna_correlation_dfs[[lncrna]]$spearman_cor)*1.1, expand = c(0.05, 0),
                              breaks=seq(-1, 1, by=0.1)) +
-          geom_hline(yintercept=cor_thresh, linetype=3) +
-          geom_vline(xintercept=cor_thresh, linetype=3) +
-          geom_hline(yintercept=-cor_thresh, linetype=3) +
-          geom_vline(xintercept=-cor_thresh, linetype=3) +
+          geom_hline(yintercept=spearman_thresh, linetype=3) +
+          geom_vline(xintercept=pearson_thresh, linetype=3) +
+          geom_hline(yintercept=-spearman_thresh, linetype=3) +
+          geom_vline(xintercept=-pearson_thresh, linetype=3) +
           xlab("Pearson correlation") + ylab("Spearman correlation") +
           ggtitle(paste("Correlation values of GTEx genes with", lncrna)) +
           theme(legend.position="none", axis.text.x = element_text(size=20),
@@ -415,10 +450,10 @@ for(lncrna in names(lncrna_correlation_dfs)) {
                              breaks=seq(-1, 1, by=0.1)) +
           scale_y_continuous(limits=range(lncrna_correlation_dfs[[lncrna]]$spearman_partial_cor), expand = c(0.05, 0),
                              breaks=seq(-1, 1, by=0.1)) +
-          geom_hline(yintercept=cor_thresh, linetype=3) +
-          geom_vline(xintercept=cor_thresh, linetype=3) +
-          geom_hline(yintercept=-cor_thresh, linetype=3) +
-          geom_vline(xintercept=-cor_thresh, linetype=3) +          
+          geom_hline(yintercept=spearman_thresh, linetype=3) +
+          geom_vline(xintercept=pearson_thresh, linetype=3) +
+          geom_hline(yintercept=-spearman_thresh, linetype=3) +
+          geom_vline(xintercept=-pearson_thresh, linetype=3) +          
           xlab("Pearson partial correlation") + ylab("Spearman partial correlation") +
           ggtitle(paste("Partial correlation values of all genes with", lncrna, "\nAdjusted for tissues")) +
           theme(legend.position="none", axis.text.x = element_text(size=20),
@@ -434,8 +469,8 @@ for(lncrna in names(lncrna_correlation_dfs)) {
           scale_y_continuous(trans="log1p", breaks=c(1, 10, 100, 500, 1000, 2000, 4000, 6000)) + 
           scale_x_continuous(breaks=seq(-1, 1, by=0.1)) + 
           theme_bw() +
-          geom_vline(xintercept=cor_thresh, linetype=3) +
-          geom_vline(xintercept=-cor_thresh, linetype=3) +          
+          geom_vline(xintercept=pearson_thresh, linetype=3) +
+          geom_vline(xintercept=-pearson_thresh, linetype=3) +          
           xlab("Pearson correlation") + ylab("Number of genes") + 
           ggtitle(paste("Histogram of Pearson correlation of all genes with", lncrna)) +
           theme(legend.position="none", axis.text.x = element_text(size=20),
@@ -448,8 +483,8 @@ for(lncrna in names(lncrna_correlation_dfs)) {
           scale_y_continuous(trans="log1p", breaks=c(1, 10, 100, 500, 1000, 2000, 4000, 6000)) + 
           scale_x_continuous(breaks=seq(-1, 1, by=0.1)) + 
           theme_bw() +
-          geom_vline(xintercept=cor_thresh, linetype=3) +
-          geom_vline(xintercept=-cor_thresh, linetype=3) +                    
+          geom_vline(xintercept=pearson_thresh, linetype=3) +
+          geom_vline(xintercept=-pearson_thresh, linetype=3) +                    
           xlab("Pearson partial correlation") + ylab("Number of genes") + 
           ggtitle(paste("Histogram of Pearson partial correlation of all genes with", lncrna, "\nAdjusted for tissue")) +
           theme(legend.position="none", axis.text.x = element_text(size=20),
@@ -462,8 +497,8 @@ for(lncrna in names(lncrna_correlation_dfs)) {
           scale_y_continuous(trans="log1p", breaks=c(1, 10, 100, 500, 1000, 2000, 4000, 6000)) + 
           scale_x_continuous(breaks=seq(-1, 1, by=0.1)) + 
           theme_bw() +
-          geom_vline(xintercept=cor_thresh, linetype=3) +
-          geom_vline(xintercept=-cor_thresh, linetype=3) +                    
+          geom_vline(xintercept=spearman_thresh, linetype=3) +
+          geom_vline(xintercept=-spearman_thresh, linetype=3) +                    
           xlab("Spearman correlation") + ylab("Number of genes") + 
           ggtitle(paste("Histogram of Spearman correlation of all genes with", lncrna)) +
           theme(legend.position="none", axis.text.x = element_text(size=20),
@@ -476,8 +511,8 @@ for(lncrna in names(lncrna_correlation_dfs)) {
           scale_y_continuous(trans="log1p", breaks=c(1, 10, 100, 500, 1000, 2000, 4000, 6000)) + 
           scale_x_continuous(breaks=seq(-1, 1, by=0.1)) + 
           theme_bw() +
-          geom_vline(xintercept=cor_thresh, linetype=3) +
-          geom_vline(xintercept=-cor_thresh, linetype=3) +                    
+          geom_vline(xintercept=spearman_thresh, linetype=3) +
+          geom_vline(xintercept=-spearman_thresh, linetype=3) +                    
           xlab("Spearman partial correlation") + ylab("Number of genes") + 
           ggtitle(paste("Histogram of Spearman partial correlation of all genes with", lncrna, "\nAdjusted for tissue")) +
           theme(legend.position="none", axis.text.x = element_text(size=20),
@@ -506,32 +541,15 @@ for(lncrna in names(lncrna_correlation_dfs)) {
     
 }
 
-cat(nrow(all_lncrna_targets), "total genes met the", cor_thresh, "correlation threshold, representing", length(unique(all_lncrna_targets$target_gene)), "unique genes and", length(unique(all_lncrna_targets$lncRNA)), "unique lncRNAs across", length(unique(unlist(strsplit(as.character(all_lncrna_targets$tissues), ";")))), "GTEx tissues and", length(unique(unlist(strsplit(as.character(all_lncrna_targets$classes), ";")))), "tissue classes\n")
-cat(nrow(all_lncrna_targets), "total genes met the", cor_thresh, "correlation threshold, representing", length(unique(all_lncrna_targets$target_gene)), "unique genes and", length(unique(all_lncrna_targets$lncRNA)), "unique lncRNAs across", length(unique(unlist(strsplit(as.character(all_lncrna_targets$tissues), ";")))), "GTEx tissues and", length(unique(unlist(strsplit(as.character(all_lncrna_targets$classes), ";")))), "tissue classes\n", file=summary_file, append=T)
+cat(nrow(all_lncrna_targets), "total genes met the", pearson_thresh, "Pearson and", spearman_thresh, "Spearman correlation thresholds, representing", length(unique(all_lncrna_targets$target_gene)), "unique genes and", length(unique(all_lncrna_targets$lncRNA)), "unique lncRNAs across", length(unique(unlist(strsplit(as.character(all_lncrna_targets$tissues), ";")))), "GTEx tissues and", length(unique(unlist(strsplit(as.character(all_lncrna_targets$classes), ";")))), "tissue classes\n")
+cat(nrow(all_lncrna_targets), "total genes met the", pearson_thresh, "Pearson and", spearman_thresh, "Spearman correlation thresholds, representing", length(unique(all_lncrna_targets$target_gene)), "unique genes and", length(unique(all_lncrna_targets$lncRNA)), "unique lncRNAs across", length(unique(unlist(strsplit(as.character(all_lncrna_targets$tissues), ";")))), "GTEx tissues and", length(unique(unlist(strsplit(as.character(all_lncrna_targets$classes), ";")))), "tissue classes\n", file=summary_file, append=T)
 
 ## now write the full target file
-write.table(all_lncrna_targets, paste0(outdir, '/tables/all_lncRNA_targets_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=T)
+write.table(all_lncrna_targets, paste0(outdir, '/tables/all_lncRNA_targets_', pearson_thresh, '_pearson_', spearman_thresh, '_spearman_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=T)
 ## also write all the target genes together, for pathway analysis
-write.table(sort(unique(all_lncrna_targets$target_gene)), paste0(outdir, '/tables/all_lncRNA_genes_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=F)
+write.table(sort(unique(all_lncrna_targets$target_gene)), paste0(outdir, '/tables/all_lncRNA_genes_', pearson_thresh, '_pearson_', spearman_thresh, '_spearman_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=F)
 ## save an Rdata file of the list of correlation DFs
 save(lncrna_correlation_dfs, file=paste0(outdir, '/full_correlation_tables/full_lncRNA_correlation_df_list.Rdata'))
-
-## now write out tissue-specific lists of target genes
-## NOTE: this is deprecated by the tissue-specific correlation analysis so i don't output this
-## dir.create(paste0(outdir, '/tables/tissue_specific_gene_lists/'), F, T)
-## for(gtex_tissue in unique(unlist(strsplit(as.character(all_lncrna_targets$tissues), ";")))) {
-##     write.table(sort(unique(all_lncrna_targets$target_gene[grep(gtex_tissue, all_lncrna_targets$tissues)])), paste0(outdir, '/tables/tissue_specific_gene_lists/', gtex_tissue, '_lncRNA_genes_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=F)
-## }
-
-## dir.create(paste0(outdir, '/tables/class_specific_gene_lists/'), F, T)
-## for(gtex_class in unique(unlist(strsplit(as.character(all_lncrna_targets$classes), ";")))) {
-##     write.table(sort(unique(all_lncrna_targets$target_gene[grep(gtex_class, all_lncrna_targets$classes)])), paste0(outdir, '/tables/class_specific_gene_lists/', gtex_class, '_lncRNA_genes_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=F)
-## }
-
-## ## to read the target file back in
-## all_lncrna_targets <- read.table(paste0(outdir, '/tables/all_lncRNA_targets_', cor_thresh, '_correlation_threshold.txt'), header=T, sep="\t", quote="", as.is=T)
-## ## to read the correlations back in
-## load(file=paste0(outdir, '/full_correlation_tables/full_lncRNA_correlation_df_list.Rdata'))
 
 ## now do the same analysis for the tissue-specific data
 tissue_spec_lncrna_targets <- data.frame(stringsAsFactors = FALSE)
@@ -558,20 +576,20 @@ for(lncrna in names(tissue_spec_lncrna_correlation_dfs)) {
     ## remove all the entries for the lncRNA itself
     tissue_spec_lncrna_correlation_dfs[[lncrna]] <- tissue_spec_lncrna_correlation_dfs[[lncrna]][tissue_spec_lncrna_correlation_dfs[[lncrna]]$gene!=lncrna,]
     
-    ## also write out all the genes meeting a 0.5 correlation threshold
-    corr_thresh_vec <- abs(tissue_spec_lncrna_correlation_dfs[[lncrna]]$pearson_cor) > cor_thresh & abs(tissue_spec_lncrna_correlation_dfs[[lncrna]]$spearman_cor) > cor_thresh
+    ## also write out all the genes meeting a 0.5 correlation threshold    
+    corr_thresh_vec <- abs(tissue_spec_lncrna_correlation_dfs[[lncrna]]$pearson_cor) > pearson_thresh & abs(tissue_spec_lncrna_correlation_dfs[[lncrna]]$spearman_cor) > spearman_thresh
     ## get the unique tissue categories with correlations
     correlated_tiss_cats <- unique(tissue_spec_lncrna_correlation_dfs[[lncrna]]$tissue_class[corr_thresh_vec])
     
-    cat(sum(corr_thresh_vec), 'genes met a', cor_thresh, 'tissue-specific correlation threshold across', length(correlated_tiss_cats), 'tissue categories\n')
-    cat(sum(corr_thresh_vec), 'genes met a', cor_thresh, 'tissue-specific correlation threshold across', length(correlated_tiss_cats), 'tissue categories\n', file=summary_file, append=T)
+    cat(sum(corr_thresh_vec), 'genes met a', pearson_thresh, 'Pearson and', spearman_thresh, 'Spearman tissue-specific correlation threshold using', num_PCs, 'principal components across', length(correlated_tiss_cats), 'tissue categories\n')
+    cat(sum(corr_thresh_vec), 'genes met a', pearson_thresh, 'Pearson and', spearman_thresh, 'Spearman tissue-specific correlation threshold using', num_PCs, 'principal components across', length(correlated_tiss_cats), 'tissue categories\n', file=summary_file, append=T)
 
     lncrna_out <- gsub("/", "_", lncrna, fixed=T)
     
     if(sum(corr_thresh_vec) > 0) {
         ## write out the full list of tissue specific correlated genes
         write.table(tissue_spec_lncrna_correlation_dfs[[lncrna]][corr_thresh_vec,],
-                    paste0(outdir, '/tables/', lncrna, '_tissue_specific_correlated_genes_over_', cor_thresh, '_spearman_pearson.txt'),
+                    paste0(outdir, '/tables/', lncrna, '_tissue_specific_correlated_genes_over_', pearson_thresh, '_pearson_', spearman_thresh, '_spearman.txt'),
                     quote=F, sep="\t", row.names=F, col.names=T)
 
         ## save this in the tissue-specific summary DF
@@ -587,7 +605,7 @@ for(lncrna in names(tissue_spec_lncrna_correlation_dfs)) {
         for(tissue in correlated_tiss_cats) {
             tiss_vec <- tissue_spec_lncrna_correlation_dfs[[lncrna]]$tissue_class==tissue
             write.table(tissue_spec_lncrna_correlation_dfs[[lncrna]][corr_thresh_vec & tiss_vec,],
-                        paste0(outdir, '/tables/', lncrna_out, '_tiss_specific/', lncrna_out, '_', tissue, '_correlated_genes_over_', cor_thresh, '_spearman_pearson.txt'),
+                        paste0(outdir, '/tables/', lncrna_out, '_tiss_specific/', lncrna_out, '_', tissue, '_correlated_genes_over_', pearson_thresh, '_pearson_', spearman_thresh, '_spearman.txt'),
                         quote=F, sep="\t", row.names=F, col.names=T)
         }
 
@@ -605,10 +623,10 @@ for(lncrna in names(tissue_spec_lncrna_correlation_dfs)) {
               scale_y_continuous(limits=c(-1, 1), expand = c(0.05, 0),
                                  breaks=seq(-1, 1, by=0.2)) +
               facet_wrap(~ tissue_class) + 
-              geom_hline(yintercept=cor_thresh, linetype=3) +
-              geom_vline(xintercept=cor_thresh, linetype=3) +
-              geom_hline(yintercept=-cor_thresh, linetype=3) +
-              geom_vline(xintercept=-cor_thresh, linetype=3) +
+              geom_hline(yintercept=spearman_thresh, linetype=3) +
+              geom_vline(xintercept=pearson_thresh, linetype=3) +
+              geom_hline(yintercept=-spearman_thresh, linetype=3) +
+              geom_vline(xintercept=-pearson_thresh, linetype=3) +
               xlab("Pearson correlation") + ylab("Spearman correlation") +
               ggtitle(paste("Tissue-specific correlation values of GTEx genes with", lncrna)) +
               theme(legend.position="bottom",
@@ -627,8 +645,8 @@ for(lncrna in names(tissue_spec_lncrna_correlation_dfs)) {
               scale_x_continuous(limits=c(-1, 1), expand = c(0.05, 0),
                                  breaks=seq(-1, 1, by=0.1)) +
               cat_col_scale + 
-              geom_vline(xintercept=cor_thresh, linetype=3) +
-              geom_vline(xintercept=-cor_thresh, linetype=3) +
+              geom_vline(xintercept=pearson_thresh, linetype=3) +
+              geom_vline(xintercept=-pearson_thresh, linetype=3) +
               xlab("Pearson correlation") + ylab("Density") +
               ggtitle(paste("Tissue-specific Pearson correlation density of GTEx genes with", lncrna)) +
               theme(legend.position="bottom",
@@ -646,8 +664,8 @@ for(lncrna in names(tissue_spec_lncrna_correlation_dfs)) {
               scale_x_continuous(limits=c(-1, 1), expand = c(0.05, 0),
                                  breaks=seq(-1, 1, by=0.1)) +
               cat_col_scale + 
-              geom_vline(xintercept=cor_thresh, linetype=3) +
-              geom_vline(xintercept=-cor_thresh, linetype=3) +
+              geom_vline(xintercept=spearman_thresh, linetype=3) +
+              geom_vline(xintercept=-spearman_thresh, linetype=3) +
               xlab("Pearson correlation") + ylab("Density") +
               ggtitle(paste("Tissue-specific Spearman correlation density of GTEx genes with", lncrna)) +
               theme(legend.position="bottom",
@@ -660,19 +678,19 @@ for(lncrna in names(tissue_spec_lncrna_correlation_dfs)) {
     
 }
 
-cat(nrow(tissue_spec_lncrna_targets), "tissue-specific lncRNA correlations met the", cor_thresh, "threshold, representing", length(unique(tissue_spec_lncrna_targets$gene)), "unique target genes and", length(unique(tissue_spec_lncrna_targets$lncRNA)), "unique lncRNAs across", length(unique(tissue_spec_lncrna_targets$tissue_class)), "tissue categories\n")
-cat(nrow(tissue_spec_lncrna_targets), "tissue-specific lncRNA correlations met the", cor_thresh, "threshold, representing", length(unique(tissue_spec_lncrna_targets$gene)), "unique target genes and", length(unique(tissue_spec_lncrna_targets$lncRNA)), "unique lncRNAs across", length(unique(tissue_spec_lncrna_targets$tissue_class)), "tissue categories\n", file=summary_file, append=T)
+cat(nrow(tissue_spec_lncrna_targets), "tissue-specific lncRNA correlations met the", pearson_thresh, "Pearson and", spearman_thresh, "Spearman correlation thresholds, representing", length(unique(tissue_spec_lncrna_targets$gene)), "unique target genes and", length(unique(tissue_spec_lncrna_targets$lncRNA)), "unique lncRNAs across", length(unique(tissue_spec_lncrna_targets$tissue_class)), "tissue categories\n")
+cat(nrow(tissue_spec_lncrna_targets), "tissue-specific lncRNA correlations met the", pearson_thresh, "Pearson and", spearman_thresh, "Spearman correlation thresholds, representing", length(unique(tissue_spec_lncrna_targets$gene)), "unique target genes and", length(unique(tissue_spec_lncrna_targets$lncRNA)), "unique lncRNAs across", length(unique(tissue_spec_lncrna_targets$tissue_class)), "tissue categories\n", file=summary_file, append=T)
 
 ## write out the full tissue class-speciifc target file
 if(nrow(tissue_spec_lncrna_targets) > 0) {
-    write.table(tissue_spec_lncrna_targets, paste0(outdir, '/tables/tissue_class_specific_lncRNA_targets_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=T)
+    write.table(tissue_spec_lncrna_targets, paste0(outdir, '/tables/tissue_class_specific_lncRNA_targets_', pearson_thresh, '_pearson_', spearman_thresh, '_spearman_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=T)
     save(tissue_spec_lncrna_correlation_dfs, file=paste0(outdir, '/full_correlation_tables/tissue_class_spec_lncRNA_correlation_df_list.Rdata'))
 
     ## also write out class-specific gene lists for ease of pathway analysis
     ## note that we know that the lncRNAs and target genes match up in terms of classes here
     dir.create(paste0(outdir, '/tables/class_specific_gene_lists/'), F, T)
     for(gtex_class in unique(tissue_spec_lncrna_targets$tissue_class)) {
-        write.table(sort(unique(tissue_spec_lncrna_targets$gene[tissue_spec_lncrna_targets$tissue_class==gtex_class])), paste0(outdir, '/tables/class_specific_gene_lists/', gtex_class, '_lncRNA_genes_', cor_thresh, '_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=F)
+        write.table(sort(unique(tissue_spec_lncrna_targets$gene[tissue_spec_lncrna_targets$tissue_class==gtex_class])), paste0(outdir, '/tables/class_specific_gene_lists/', gtex_class, '_lncRNA_genes_', pearson_thresh, '_pearson_', spearman_thresh, '_spearman__correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=F)
     }
 }
 
@@ -825,10 +843,10 @@ make_graphic(paste0(outdir, '/plots/', outprefix, '_all_target_correlation_scatt
 print(ggplot(all_lncrna_targets, aes(x=pearson_cor, y=spearman_cor, fill=lncRNA)) +
       geom_point(aes(color=lncRNA), alpha=0.5, shape=5) + scale_color_hue(h=c(0, 360)) + 
       theme_bw() +
-      ## geom_hline(yintercept=cor_thresh, linetype=3) +
-      ## geom_vline(xintercept=cor_thresh, linetype=3) +
-      ## geom_hline(yintercept=-cor_thresh, linetype=3) +
-      ## geom_vline(xintercept=-cor_thresh, linetype=3) +
+      ## geom_hline(yintercept=spearman_thresh, linetype=3) +
+      ## geom_vline(xintercept=pearson_thresh, linetype=3) +
+      ## geom_hline(yintercept=-spearman_thresh, linetype=3) +
+      ## geom_vline(xintercept=-pearson_thresh, linetype=3) +
       xlab("Pearson correlation") + ylab("Spearman correlation") +
       ggtitle("Correlation values of top lncRNA - mRNA pairs") +
       theme(legend.position="bottom", axis.text.x = element_text(size=20),
@@ -843,10 +861,10 @@ print(ggplot(all_lncrna_targets, aes(x=pearson_cor, y=spearman_cor)) +
       stat_binhex(bins=50) + 
 #      geom_point(aes(color=lncRNA), alpha=0.5, shape=5) + scale_color_hue(h=c(0, 360)) + 
       theme_bw() +
-      ## geom_hline(yintercept=cor_thresh, linetype=3) +
-      ## geom_vline(xintercept=cor_thresh, linetype=3) +
-      ## geom_hline(yintercept=-cor_thresh, linetype=3) +
-      ## geom_vline(xintercept=-cor_thresh, linetype=3) +
+      ## geom_hline(yintercept=spearman_thresh, linetype=3) +
+      ## geom_vline(xintercept=pearson_thresh, linetype=3) +
+      ## geom_hline(yintercept=-spearman_thresh, linetype=3) +
+      ## geom_vline(xintercept=-pearson_thresh, linetype=3) +
       xlab("Pearson correlation") + ylab("Spearman correlation") +
       ggtitle("Correlation values of top lncRNA - mRNA pairs") +
       theme(legend.position="bottom", axis.text.x = element_text(size=20),
@@ -907,8 +925,8 @@ if(any(pos_corr)) {
           geom_point(aes(color=tissue_class), alpha=0.8, shape=5) +
           scale_color_manual(name="Tissue Category", values=category_colors) + 
           theme_bw() +
-          geom_hline(yintercept=cor_thresh, linetype=3) +
-          geom_vline(xintercept=cor_thresh, linetype=3) +
+          geom_hline(yintercept=spearman_thresh, linetype=3) +
+          geom_vline(xintercept=pearson_thresh, linetype=3) +
           xlab("Pearson correlation") + ylab("Spearman correlation") +
           ggtitle("Tissue class-specific (positive) correlation values of top lncRNA - mRNA pairs") +
           theme(legend.position="bottom", axis.text.x = element_text(size=20),
@@ -925,8 +943,8 @@ if(any(!pos_corr)) {
           geom_point(aes(color=tissue_class), alpha=0.8, shape=5) +
           scale_color_manual(name="Tissue Category", values=category_colors) +          
           theme_bw() +
-          geom_hline(yintercept=-cor_thresh, linetype=3) +
-          geom_vline(xintercept=-cor_thresh, linetype=3) +
+          geom_hline(yintercept=-spearman_thresh, linetype=3) +
+          geom_vline(xintercept=-pearson_thresh, linetype=3) +
           xlab("Pearson correlation") + ylab("Spearman correlation") +
           ggtitle("Tissue class-specific (negative) correlation values of top lncRNA - mRNA pairs") +
           theme(legend.position="bottom", axis.text.x = element_text(size=20),
