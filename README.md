@@ -2,6 +2,7 @@
 ## INFERring the molecular mechanisms of NOncoding genetic variants
 
 ### Method description:
+TEST UPDATE
 The majority of variants identified by genome-wide association studies (GWAS) reside in the
 noncoding genome, where they affect regulatory elements including transcriptional enhancers. We
 propose INFERNO (INFERring the molecular mechanisms of NOncoding genetic variants), a novel
