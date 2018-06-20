@@ -404,6 +404,13 @@ in the above example):
       these gene lists, if you want to do pathway analysis using
       [WebGestalt](http://webgestalt.org), use the 'genesymbol' option.
 
+* metaXcan_GTEx_v7/: The results of the MetaXcan analysis on GTEx v7 data containing the
+  MetaXcan csv file outputs.
+    * metaxcan_analysis/: plots and tables summarizing the metaXcan results.
+
+* LD_score_regression/: The results of the LD score regression output, which follows the
+  default organization provided by the tool. 
+
 ### Data sources and pre-processing steps:
 #### 1,000 genomes data:
 Files downloaded from http://csg.sph.umich.edu/abecasis/mach/download/1000G.2012-03-14.html for
