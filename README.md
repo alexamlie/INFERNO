@@ -566,10 +566,10 @@ Once this is set up, INFERNO takes care of running the MetaXcan analysis using t
 "--run_metaXcan" flag.
 
 #### LD score regression implementation:
-INFERNO implements partitioned heritability (LD score
-regression)[https://github.com/bulik/ldsc] analysis using the baseline model LD scores,
-regression weights, and allele frequencies, as described in the (partitioned heritability
-wiki)[https://github.com/bulik/ldsc/wiki/Partitioned-Heritability]. The following steps were
+INFERNO implements partitioned heritability [LD score
+regression](https://github.com/bulik/ldsc) analysis using the baseline model LD scores,
+regression weights, and allele frequencies, as described in the [partitioned heritability
+wiki](https://github.com/bulik/ldsc/wiki/Partitioned-Heritability). The following steps were
 taken to download and process these annotations:
 
 ```bash
