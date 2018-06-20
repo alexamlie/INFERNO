@@ -77,11 +77,13 @@ dir.create(paste0(outdir, "/full_correlation_tables/"), F, T)
 
 {
     pearson_start <- proc.time()
-    pearson_cor <- corr.test(all_chr_gene_expression, method="pearson", ci=FALSE)
+    ## pearson_cor <- corr.test(all_chr_gene_expression, method="pearson", ci=FALSE)
+    pearson_cor <- cor(all_chr_gene_expression, method="pearson")
     cat("Computing Pearson took", (proc.time() - pearson_start)[['elapsed']], 'seconds\n')
 
     spearman_start <- proc.time()
-    spearman_cor <- corr.test(all_chr_gene_expression, method="spearman", ci=FALSE)
+    ## spearman_cor <- corr.test(all_chr_gene_expression, method="spearman", ci=FALSE)
+    spearman_cor <- cor(all_chr_gene_expression, method="spearman")
     cat("Computing Spearman took", (proc.time() - spearman_start)[['elapsed']], 'seconds\n')
 
 }

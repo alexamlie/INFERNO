@@ -131,8 +131,6 @@ full_input_snps <- read.table(input_snp_f, header=F, sep="\t", quote="",
                          col.names=c("chr", "rsID", "tag_name", "pos"), comment.char="", as.is=T)
 ## get only unique SNPs (this should almost never be necessary)
 input_snps <- unique(full_input_snps)
-## count the number of regions (this comes in handy throughout the script)
-num_regions <- length(unique(input_snps$tag_name))
 rm(full_input_snps)
 
 ## annotate the input SNPs with the relevant information
@@ -789,7 +787,8 @@ bootstrap_count_mat <- matrix(data=0, nrow=nrow(input_annot_mat), ncol=ncol(inpu
                               dimnames=dimnames(input_annot_mat))
 ## make a 3d array for the region-specific counting
 bootstrap_region_count_arr <- array(data=0, dim=c(nrow(input_region_annot_arr),
-                                                  ncol(input_region_annot_arr), num_regions),
+                                                ncol(input_region_annot_arr),
+                                                dim(input_region_annot_arr)[3]),
                                     dimnames=dimnames(input_region_annot_arr))
 
 ## LD-collapsed bootstrap analysis
@@ -799,7 +798,8 @@ collapsed_bootstrap_count_mat <- matrix(data=0, nrow=nrow(input_annot_mat), ncol
                                         dimnames=dimnames(input_annot_mat))
 ## make a 3d array for the region-specific counting
 collapsed_bootstrap_region_count_arr <- array(data=0, dim=c(nrow(input_region_annot_arr),
-                                                  ncol(input_region_annot_arr), num_regions),
+                                                          ncol(input_region_annot_arr),
+                                                          dim(input_region_annot_arr)[3]),
                                               dimnames=dimnames(input_region_annot_arr))
 
 ## make a large data frame to save the results of each sample count
@@ -822,7 +822,8 @@ manual_input_annot_mat <- matrix(data=0, nrow=length(all_classes), ncol=length(a
                                  dimnames=dimnames(input_annot_mat))
 ## make a 3d array for the tag region analysis
 manual_input_region_annot_arr <- array(data=0, dim=c(nrow(input_region_annot_arr),
-                                                   ncol(input_region_annot_arr), num_regions),
+                                                   ncol(input_region_annot_arr),
+                                                   dim(input_region_annot_arr)[3]),
                                        dimnames=dimnames(input_region_annot_arr))
 
 ## we only want to use the unique expanded variants to avoid double counting, so define a
@@ -908,7 +909,8 @@ for(s in seq(num_samples)) {
                              dimnames=dimnames(input_annot_mat))
     ## make a 3d array for the tag region analysis
     this_region_annot_arr <- array(data=0, dim=c(nrow(input_region_annot_arr),
-                                              ncol(input_region_annot_arr), num_regions),
+                                               ncol(input_region_annot_arr),
+                                               dim(input_region_annot_arr)[3]),
                                     dimnames=dimnames(input_region_annot_arr))
 
     ## same as for the input, we only want to use unique variants
@@ -965,7 +967,8 @@ for(s in seq(num_samples)) {
                                           dimnames=dimnames(input_annot_mat))
     ## make a 3d array for the tag region analysis
     this_ld_collapsed_region_annot_arr <- array(data=0, dim=c(nrow(input_region_annot_arr),
-                                                  ncol(input_region_annot_arr), num_regions),
+                                                            ncol(input_region_annot_arr),
+                                                            dim(input_region_annot_arr)[3]),
                                                 dimnames=dimnames(input_region_annot_arr))
     
     ## multiple hits in a single LD block only count once (per region), and only unique ones

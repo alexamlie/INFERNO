@@ -142,6 +142,12 @@ if (length(args)==21) {
     sample_size <- as.numeric(args[21])
     ## for locuszoom analysis, set the path to the binary:
     locuszoom <- args[22]
+    ## check that it isn't set to "NONE"
+    if(locuszoom="NONE") {
+        ## if it is, delete this variable so it doesn't try to run
+        ## this is just so that i can keep a bash log with tee
+        rm(locuszoom)
+    }
 } else {
     ## TODO: fill in and make sure to mention that GTEx files MUST be sorted
     stop("Requires 21 or 22 arguments")    
@@ -232,13 +238,21 @@ for(this_chr in unique(top_snps$chr)) {
     cat("Parsing", this_chr, "\n")
 
     ## read in the summary data from this chromosome
-    this_gwas_data <- read.table(pipe(paste0("awk -F$'\t' '$", chr_col, "==\"", this_chr, "\" || $", chr_col, "==\"", gsub("chr", "", this_chr), "\"' ", gwas_summary_file)), header=F, sep="\t", quote="", as.is=T)
+    this_gwas_data <- try(read.table(pipe(paste0("awk -F$'\t' '$", chr_col, "==\"", this_chr, "\" || $", chr_col, "==\"", gsub("chr", "", this_chr), "\"' ", gwas_summary_file)), header=F, sep="\t", quote="", as.is=T), silent=TRUE)
+    if(inherits(this_gwas_data, "try-error")) {
+        cat("No GWAS data available for", this_chr, "so skipping this\n")
+        next
+    }
     
     ## read in the GTEx rsID matches for this chromosome    
-    this_chr_gtex_rsid_match <- read.table(pipe(paste0("awk -F$'\t' '$1==\"Chr\" || $1==",
-                                                       gsub("chr", "", this_chr),
-                                                       "' ", gtex_rsid_match)),
-                                                header=T, sep="\t", quote="", as.is=T)
+    this_chr_gtex_rsid_match <- try(read.table(pipe(paste0("awk -F$'\t' '$1==\"Chr\" || $1==",
+                                                           gsub("chr", "", this_chr),
+                                                           "' ", gtex_rsid_match)),
+                                               header=T, sep="\t", quote="", as.is=T), silent=TRUE)
+    if(inherits(this_chr_gtex_rsid_match, "try-error")) {
+        cat("No GTEx ID match available for", this_chr, "so skipping this\n")
+        next
+    }
     
     ## now analyze each tag region
     for(this_tag in unique(top_snps$region[top_snps$chr==this_chr])) {
@@ -294,6 +308,12 @@ for(this_chr in unique(top_snps$chr)) {
             gtex_file <- paste0(gtex_dir, "/", gtex_tiss, "/", gtex_tiss,
                                 "_Analysis.v6p.all_snpgene_pairs.", this_chr, ".txt.gz")
 
+            ## check that it exists
+            if(!file.exists(gtex_file)) {
+                cat("No GTEx file exists for", gtex_tiss, "in", this_chr, "so skipping this!\n")
+                next
+            }
+            
             ## try to find all the genes tested with this tag SNP
             ## first set up a fast awk call
             ## note that this relies on the data being sorted by position
@@ -397,7 +417,9 @@ for(this_chr in unique(top_snps$chr)) {
                 ## we use this matching a lot so save it 
                 gtex_id1_parsed_match <- this_region_gwas_snps.parsed$gtex_id1 %in% this_eqtl_data$variant_id
                 this_region_gwas_snps.parsed$gtex_id <- ifelse(gtex_id1_parsed_match, this_region_gwas_snps.parsed$gtex_id1, this_region_gwas_snps.parsed$gtex_id2)
-
+                ## get only unique SNPs by rsID
+                this_region_gwas_snps.parsed <- this_region_gwas_snps.parsed[!duplicated(this_region_gwas_snps.parsed[,rsid_col]),]
+                
                 ## TODO: if we're using odds ratios, flip the effect directions if necessary
                 
                 ## also parse the eQTL data

@@ -139,7 +139,8 @@ if __name__=="__main__":
                                     config_vars["LD_PARTNER_THRESHOLD"],
                                     config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/snp_maf_tss_ld_summary/snp_maf_tss_dist_"+config_vars["LD_THRESH"]+"_ld_info.txt",
                                     config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/precomputed_ld_sets/", 
-                                    config_vars["REF_SUMMARY_DIR"], param_file])
+                                    config_vars["REF_SUMMARY_DIR"], param_file,
+                                    pargs.outdir+"/logs/"+pargs.outprefix+".enh_bootstrapping.bash.log"])
                 
     ## only run summary stats-based analyses if there is a summary file
     elif not pargs.skip_annotation:
@@ -238,7 +239,8 @@ if __name__=="__main__":
                                     config_vars["LD_PARTNER_THRESHOLD"],
                                     config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/snp_maf_tss_ld_summary/snp_maf_tss_dist_"+config_vars["LD_THRESH"]+"_ld_info.txt", 
                                     config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/precomputed_ld_sets/", 
-                                    config_vars["REF_SUMMARY_DIR"], param_file])
+                                    config_vars["REF_SUMMARY_DIR"], param_file,
+                                    pargs.outdir+"/logs/"+pargs.outprefix+".enh_bootstrapping.bash.log"])
         
         ## submit a job for COLOC-based colocalization analysis
         ## first check that all the required arguments are present
@@ -284,7 +286,8 @@ if __name__=="__main__":
                                     str(pargs.pval_column), str(pargs.chr_column), str(pargs.allele1_column),
                                     str(pargs.allele2_column), str(pargs.maf_column),
                                     str(pargs.case_prop), str(pargs.sample_size),
-                                    config_vars["LOCUSZOOM_PATH"]])
+                                    config_vars["LOCUSZOOM_PATH"],
+                                    pargs.outdir+"/logs/"+pargs.outprefix+".gtex_coloc.bash.log"])
             else:
                 if pargs.cluster_system=="bsub":
                     subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+".gtex_colocalization",
@@ -316,10 +319,12 @@ if __name__=="__main__":
                                     str(pargs.rsid_column), str(pargs.pos_column),
                                     str(pargs.pval_column), str(pargs.chr_column), str(pargs.allele1_column),
                                     str(pargs.allele2_column), str(pargs.maf_column),
-                                    str(pargs.case_prop), str(pargs.sample_size)])
+                                    str(pargs.case_prop), str(pargs.sample_size),
+                                    ## set the locuszoom path to "NONE" just to work around the arg number-based approach
+                                    "NONE", pargs.outdir+"/logs/"+pargs.outprefix+".gtex_coloc.bash.log"])
                     
             if pargs.run_lncrna_correlation:
-                print "Submitting lncRNA correlation analysis job"
+                print "Running lncRNA correlation analysis"
                 ## build up the arguments depending on what we have
                 lncRNA_arguments = [pargs.outdir+"/gtex_lncRNA_correlation_analysis/",
                                     pargs.outdir+"/gtex_gwas_colocalization_analysis/tables/"+pargs.outprefix+"_gtex_coloc_summaries.txt",
@@ -344,8 +349,9 @@ if __name__=="__main__":
                                     "./bsub_wrappers/gtex_lncRNA_corr_bsub_wrapper.sh",
                                     "./src/lncRNA_gtex_correlation.R"] + lncRNA_arguments)
                 else:
-                    subprocess.call(["./bsub_wrappers/gtex_lncRNA_corr_bsub_wrapper.sh",
-                                    "./src/lncRNA_gtex_correlation.R"] + lncRNA_arguments)
+                    subprocess.call(["./bsub_wrappers/gtex_lncRNA_corr_bash_wrapper.sh",
+                                    "./src/lncRNA_gtex_correlation.R",
+                                    pargs.outdir+"/logs/"+pargs.outprefix+".gtex_lncRNA_corr.bash.log"] + lncRNA_arguments)
 
                     if pargs.run_pathway_analysis:
                         if "MIN_PATHWAY_NUM" in config_vars and "MAX_PATHWAY_NUM" in config_vars and "FDR_THRESH" in config_vars:
@@ -386,7 +392,8 @@ if __name__=="__main__":
                                 str(pargs.pval_column), str(pargs.chr_column),
                                 str(pargs.allele1_column), str(pargs.allele2_column),
                                 str(pargs.maf_column), str(pargs.beta_column),
-                                str(pargs.summary_has_header)])
+                                str(pargs.summary_has_header),
+                                pargs.outdir+"/logs/"+pargs.outprefix+".metaXcan.bash.log"])
 
         else:
             print "Incorrect arguments to run MetaXcan. Need MetaXcan code directory, GTEx v7 database directory, and column indices for rsID, position, p-value, chromosome, allele1, allele2, MAF, and beta."
@@ -420,7 +427,8 @@ if __name__=="__main__":
                                 str(pargs.maf_column), str(pargs.beta_column),
                                 str(pargs.summary_has_header), config_vars["LDSC_BASELINE_DIR"],
                                 config_vars["LDSC_WEIGHTS_DIR"], config_vars["LDSC_FRQ_DIR"],
-                                pargs.outprefix, pargs.sample_size])
+                                pargs.outprefix, pargs.sample_size,
+                                pargs.outdir+"/logs/"+pargs.outprefix+".LDSC.bash.log"])
 
         else:
             print "Incorrect arguments to run LD score regression. Need LD score code directory, SNP list for munging, and directories for baseline, weights, and frequency from LD score regression."
