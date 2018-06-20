@@ -559,7 +559,9 @@ $ time tar -C GTEx_v7_dbs/ -xzvf GTEx-V7_HapMap-2017-11-29.tar.gz
 ```
 
 Then, the parameters in the config file are set as follows:
+
 METAXCAN_DIR="/path/to/code/MetaXcan/software/"
+
 GTEX_V7_DBDIR="/path/to/PredictDB/GTEx_v7_dbs/"
 
 Once this is set up, INFERNO takes care of running the MetaXcan analysis using the
@@ -589,10 +591,15 @@ $ time for f in *tgz; do tar -xzf $f; done
 ```
 
 Then, the parameters in the config file are set as follows:
+
 LDSC_CODE_DIR="/path/to/code/ldsc/"
+
 MUNGE_SNPLIST="/path/to/ldsc_annotations/w_hm3.snplist"
+
 LDSC_BASELINE_DIR="/path/to/ldsc_annotations/baseline/"
+
 LDSC_WEIGHTS_DIR="/path/to/ldsc_annotations/weights_hm3_no_hla/"
+
 LDSC_FRQ_DIR="/path/to/ldsc_annotations/1000G_frq/"
 
 Once these are set up, INFERNO will run LD score regression using the "--run_LDSC" flag.
