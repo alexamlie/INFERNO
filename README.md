@@ -2,7 +2,6 @@
 ## INFERring the molecular mechanisms of NOncoding genetic variants
 
 ### Method description:
-TEST UPDATE
 The majority of variants identified by genome-wide association studies (GWAS) reside in the
 noncoding genome, where they affect regulatory elements including transcriptional enhancers. We
 propose INFERNO (INFERring the molecular mechanisms of NOncoding genetic variants), a novel
@@ -78,7 +77,18 @@ RELEVANT_CLASSES	 | The set of tissue categories that you especially care about,
 GTEX_EXPR_DIR	 | The directory containing the parsed RNAseq data (see below)
 SAMPLE_INFO_FILE | The file containing the GTEx sample attributes to match IDs with tissues
 GENCODE_LNCRNA_FILE    | The file containing the GENCODE lncRNA annotations, used to detect lncRNA eQTL targets
-COR_THRESH	       | The absolute value threshold on Pearson and Spearman correlation to define strong lncRNA targets (Default = 0.5)
+SPEARMAN_THRESH	       | The absolute value threshold on Spearman correlation to define strong lncRNA targets (Default = 0.5)
+PEARSON_THRESH	       | The absolute value threshold on Pearson correlation to define strong lncRNA targets (Default = 0.5)
+NUM_PCS		       | The number of principal components to regress out for the tissue-specific analysis
+**Parameters for metaXcan analysis** |
+METAXCAN_DIR |	 The code directory containing the software for MetaXcan (i.e. ~/code/MetaXcan/software/)
+GTEX_V7_DBDIR	 |   The directory containing the GTEx v7 databases for PredictDB
+**Parameter for LD score regression**	      |
+LDSC_CODE_DIR	| The code directory for LD score regression (i.e. ~/code/ldsc)
+MUNGE_SNPLIST	| The HapMap3 list of SNPs from MetaXcan (w_hm3.snplist)
+LDSC_BASELINE_DIR | The directory containing the extracted baseline annotations from metaXcan
+LDSC_WEIGHTS_DIR  | The directory containing the HapMap3 weights for metaXcan
+LDSC_FRQ_DIR 	  | The directory containing the 1,000 Genomes frequency information
 
 
 #### Dependencies and requirements
@@ -169,26 +179,26 @@ INFERNO pipeline using the INFERNO.py script:
 
 ```bash
 $ python INFERNO.py -h
-usage: INFERNO.py [-h] [--skip_ld_expansion] [--rsid_column RSID_COLUMN] [--pos_column POS_COLUMN] [--pval_column PVAL_COLUMN] [--chr_column CHR_COLUMN]
+usage: INFERNO.py [-h] [--skip_ld_expansion] [--skip_annotation] [--rsid_column RSID_COLUMN] [--pos_column POS_COLUMN] [--pval_column PVAL_COLUMN] [--chr_column CHR_COLUMN]
                   [--allele1_column ALLELE1_COLUMN] [--allele2_column ALLELE2_COLUMN] [--maf_column MAF_COLUMN] [--beta_column BETA_COLUMN] [--run_pval_expansion]
-                  [--sig_mult SIG_MULT] [--case_prop CASE_PROP] [--sample_size SAMPLE_SIZE] [--summary_file SUMMARY_FILE] [--run_enhancer_sampling] [--run_gtex_coloc]
-                  [--run_lncrna_correlation]
-                  top_snpf cfg_file outdir outprefix
+		  [--consistent_direction] [--sig_mult SIG_MULT] [--case_prop CASE_PROP] [--sample_size SAMPLE_SIZE] [--summary_file SUMMARY_FILE] [--run_enhancer_sampling]
+		  [--run_gtex_coloc] [--run_lncrna_correlation] [--run_metaXcan] [--summary_has_header] [--run_LDSC] [--run_pathway_analysis] [--cluster_system {bsub,shell}]
+		  top_snpf cfg_file outdir outprefix
 
 Driver script for the INFERNO pipeline
 
 positional arguments:
-  top_snpf              The tab separated file of the tag SNPs you want to analyze. Should be formatted with four columns: chromosome, rsID, region naming information, and
-                        position (in that order). IMPORTANT: Note that SNPs without dbSNP rsIDs should use 'chr-pos' naming format, not 'chr:pos', which is incompatible with
-                        this pipeline!
-  cfg_file              The configuration file containing paths to all the required functional annotation files. Should be formatted as a bash configuration file i.e.
-                        VARIABLE=DEFINTIION on each line.
+  top_snpf              The tab separated file of the tag SNPs you want to analyze. Should be formatted with four columns: chromosome, rsID, region naming information, and position (in that order). IMPORTANT:
+                        Note that SNPs without dbSNP rsIDs should use 'chr-pos' naming format, not 'chr:pos', which is incompatible with this pipeline!
+  cfg_file              The configuration file containing paths to all the required functional annotation files. Should be formatted as a bash configuration file i.e. VARIABLE=DEFINTIION on each line.
   outdir                The directory to write all the results to.
   outprefix             The desired prefix for all the output file names
 
 optional arguments:
   -h, --help            show this help message and exit
   --skip_ld_expansion   Give this flag to skip any LD (and p-value-based) expansion and just run analysis directly on the provided list of input variants.
+  --skip_annotation     Give this flag to skip all the annotation, enhancer sampling, and co-localization steps. Used if you just want to run MetaXcan or LD score regression with summary stats. You still need
+                        to give a top SNP file, but it can be a spoof file since it won't get used for anything.
   --rsid_column RSID_COLUMN
                         The summary statistics column number containing the rsIDs
   --pos_column POS_COLUMN
@@ -202,14 +212,17 @@ optional arguments:
   --allele2_column ALLELE2_COLUMN
                         The summary statistics column number containing allele 2, which should correspond to the minor allele.
   --maf_column MAF_COLUMN
-                        The summary statistics column number containing the minor allele frequency. Note that if this is ever greater than 0.5 and a beta column is provided,
-                        the effect direction will be flipped to be defined relative to the minor allele.
+                        The summary statistics column number containing the minor allele frequency. Note that if this is ever greater than 0.5 and a beta column is provided, the effect direction will be
+                        flipped to be defined relative to the minor allele.
   --beta_column BETA_COLUMN
-                        The summary statistics column number containing the beta estimate (used for p-value expansion with consistent directions)
+                        The summary statistics column number containing the beta estimate (used for p-value expansion with consistent directions). Providing this means that the p-value expansion will consider
+                        effect direction given the --consistent_direction flag. This is also required for MetaXcan analysis.
   --run_pval_expansion  If you want to do expansion by p-values when you have summary statistics, provide this flag. Otherwise, the top SNP file will be directly expanded.
+  --consistent_direction
+                        If you want to do expansion by p-values and also consider effect direction when you have summary statistics, provide this flag. --beta_column is also required for this.
   --sig_mult SIG_MULT   The multiplier range for significance of the p-value expanded variant set (e.g. a value of 10 means one order of magnitude)
   --case_prop CASE_PROP
-                        The proportion of cases in the GWAS, for colocalization.
+                        The proportion of cases in the GWAS, for colocalization. If the GWAS is quantitative, set this to 'QUANT' or 'NA'.
   --sample_size SAMPLE_SIZE
                         The total number of samples in the GWAS, for colocalization.
   --summary_file SUMMARY_FILE
@@ -218,8 +231,16 @@ optional arguments:
                         If you want to run the enhancer bootstrapping analysis, provide this flag.
   --run_gtex_coloc      If you want to run COLOC analysis of your summary statistics against GTEx eQTLs from 44 tissues (requires summary statistics)
   --run_lncrna_correlation
-                        If you want to analyze expression correlation of any lncRNAs identified by COLOC analysis (--run_gtex_coloc flag) against all other RNAseq-based GTEx
-                        genes to find lncRNA targets.
+                        If you want to analyze expression correlation of any lncRNAs identified by COLOC analysis (--run_gtex_coloc flag) against all other RNAseq-based GTEx genes to find lncRNA targets.
+  --run_metaXcan        If you want to run MetaXcan analysis of your summary statistics against GTEx v7 eQTLs from 48 tissues (requires summary statistics)
+  --summary_has_header  If you want to run metaXcan or LD score regression, this flag says whether your summary statistics file has a header or not. If not, one will be appended for use with these tools
+  --run_LDSC            If you want to run partitioned LD score regression analysis on your summary statistics against the 53 default LD score regression annotations.
+  --run_pathway_analysis
+                        If you want to run pathway analysis (only applies if you also run lncRNA correlation). Note that the WebGestaltR package must be installed for this, and your environment must have
+                        internet access for that package to work, so this will only run if you're directly running the pipeline (i.e. --cluster_system='shell').
+  --cluster_system {bsub,shell}
+                        If running enhancer sampling, GTEx co-localization, and/or lncRNA correlation, this flag describes how those computationally intensive jobs will be run. The bsub option submits them as
+                        separate bsub jobs, while the shell option just runs them sequentially from the same shell as the other INFERNO.py analyses
 ```
 
 For example, the full pipeline call for the schizophrenia analysis in the method manuscript
@@ -522,3 +543,56 @@ Finally, the sample sizes for each GTEx tissue were also
 [downloaded](http://www.gtexportal.org/home/tissueSummaryPage#sampleCountsPerTissue) as a csv
 from http://www.gtexportal.org/home/tissueSummaryPage#sampleCountsPerTissue.
 
+#### MetaXcan implementation:
+INFERNO implements [MetaXcan](https://github.com/hakyimlab/MetaXcan) analysis using the
+MetaMany script and GTEx v7 databases from the [PredictDB site](http://predictdb.org/). The
+following steps were taken to download and process these annotations:
+
+```bash
+$ cd /path/to/code/
+$ git clone https://github.com/hakyimlab/MetaXcan
+$ cd /path/to/PredictDB/
+$ wget https://s3.amazonaws.com/predictdb2/GTEx-V7_HapMap-2017-11-29.tar.gz
+$ wget https://s3.amazonaws.com/predictdb2/GTEx-V7_HapMap-2017-11-29_README.txt
+$ mkdir GTEx_v7_dbs
+$ time tar -C GTEx_v7_dbs/ -xzvf GTEx-V7_HapMap-2017-11-29.tar.gz
+```
+
+Then, the parameters in the config file are set as follows:
+METAXCAN_DIR="/path/to/code/MetaXcan/software/"
+GTEX_V7_DBDIR="/path/to/PredictDB/GTEx_v7_dbs/"
+
+Once this is set up, INFERNO takes care of running the MetaXcan analysis using the
+"--run_metaXcan" flag.
+
+#### LD score regression implementation:
+INFERNO implements partitioned heritability (LD score
+regression)[https://github.com/bulik/ldsc] analysis using the baseline model LD scores,
+regression weights, and allele frequencies, as described in the (partitioned heritability
+wiki)[https://github.com/bulik/ldsc/wiki/Partitioned-Heritability]. The following steps were
+taken to download and process these annotations:
+
+```bash
+$ cd /path/to/code/
+$ git clone https://github.com/bulik/ldsc.git
+$ module load anaconda/3 ## on a module-based server; otherwise, just have anaconda in your $PATH
+$ cd ldsc/
+$ conda env create --file environment.yml
+$ cd /path/to/ldsc_annotations/
+$ wget https://data.broadinstitute.org/alkesgroup/LDSCORE/1000G_Phase1_baseline_ldscores.tgz \
+  https://data.broadinstitute.org/alkesgroup/LDSCORE/weights_hm3_no_hla.tgz \
+  https://data.broadinstitute.org/alkesgroup/LDSCORE/1000G_Phase1_frq.tgz \
+  https://data.broadinstitute.org/alkesgroup/LDSCORE/1000G_Phase3_cell_type_groups.tgz
+$ wget https://data.broadinstitute.org/alkesgroup/LDSCORE/w_hm3.snplist.bz2
+$ bzip2 -d w_hm3.snplist.bz2
+$ time for f in *tgz; do tar -xzf $f; done
+```
+
+Then, the parameters in the config file are set as follows:
+LDSC_CODE_DIR="/path/to/code/ldsc/"
+MUNGE_SNPLIST="/path/to/ldsc_annotations/w_hm3.snplist"
+LDSC_BASELINE_DIR="/path/to/ldsc_annotations/baseline/"
+LDSC_WEIGHTS_DIR="/path/to/ldsc_annotations/weights_hm3_no_hla/"
+LDSC_FRQ_DIR="/path/to/ldsc_annotations/1000G_frq/"
+
+Once these are set up, INFERNO will run LD score regression using the "--run_LDSC" flag.
