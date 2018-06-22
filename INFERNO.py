@@ -27,6 +27,7 @@ if __name__=="__main__":
     parser.add_argument("--allele2_column", type=int, help="The summary statistics column number containing allele 2, which should correspond to the minor allele.")
     parser.add_argument("--maf_column", type=int, help="The summary statistics column number containing the minor allele frequency. Note that if this is ever greater than 0.5 and a beta column is provided, the effect direction will be flipped to be defined relative to the minor allele.")
     parser.add_argument("--beta_column", type=int, help="The summary statistics column number containing the beta estimate (used for p-value expansion with consistent directions). Providing this means that the p-value expansion will consider effect direction given the --consistent_direction flag. This is also required for MetaXcan analysis.")
+    parser.add_argument("--OR_column", type=int, help="The summary statistics column number containing the odds ratio. Can be used for LD score regression or for MetaXcan analysis; if both this and the beta column are given, the beta column will be used instead of this one.")
     ## for p-value expansion and pruning
     parser.add_argument("--run_pval_expansion", action='store_true', help="If you want to do expansion by p-values when you have summary statistics, provide this flag. Otherwise, the top SNP file will be directly expanded.")
     parser.add_argument("--consistent_direction", action='store_true', help="If you want to do expansion by p-values and also consider effect direction when you have summary statistics, provide this flag. --beta_column is also required for this.")
@@ -118,8 +119,8 @@ if __name__=="__main__":
         ## finally submit a job to run bootstrapping, if we want to
         if pargs.run_enhancer_sampling:
             ## TODO: check that the config file has the right variables
-            print "Submitting job for enhancer bootstrapping analysis"
             if pargs.cluster_system=="bsub":
+                print "Submitting job for enhancer bootstrapping analysis"
                 subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+".enh_bootstrapping", "-o",
                                     pargs.outdir+"/logs/"+pargs.outprefix+".enh_bootstrapping.o%J", "-e",
                                     pargs.outdir+"/logs/"+pargs.outprefix+".enh_bootstrapping.e%J",
@@ -132,6 +133,7 @@ if __name__=="__main__":
                                     config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/precomputed_ld_sets/", 
                                     config_vars["REF_SUMMARY_DIR"], param_file])
             else:
+                print "Running enhancer bootstrapping analysis"    
                 subprocess.call(["./bsub_wrappers/enhancer_bootstrap_bsub_wrapper.sh",
                                     "./src/enhancer_only_sample_and_expand_matched_input_variants.R",
                                     config_vars["NUM_SAMPLES"], config_vars["MAF_BIN_SIZE"],
@@ -218,8 +220,8 @@ if __name__=="__main__":
         ## submit a job to run bootstrapping
         if pargs.run_enhancer_sampling:
             ## TODO: check config
-            print "Submitting job for enhancer bootstrapping analysis"
             if pargs.cluster_system=="bsub":
+                print "Submitting job for enhancer bootstrapping analysis"
                 subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+".enh_bootstrapping", "-o",
                                     pargs.outdir+"/logs/"+pargs.outprefix+".enh_bootstrapping.o%J", "-e",
                                     pargs.outdir+"/logs/"+pargs.outprefix+".enh_bootstrapping.e%J",
@@ -232,6 +234,7 @@ if __name__=="__main__":
                                     config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/precomputed_ld_sets/", 
                                     config_vars["REF_SUMMARY_DIR"], param_file])
             else:
+                print "Running enhancer bootstrapping analysis"
                 subprocess.call(["./bsub_wrappers/enhancer_bootstrap_bsub_wrapper.sh",
                                     "./src/enhancer_only_sample_and_expand_matched_input_variants.R",
                                     config_vars["NUM_SAMPLES"], config_vars["MAF_BIN_SIZE"],
@@ -246,7 +249,6 @@ if __name__=="__main__":
         ## first check that all the required arguments are present
         if pargs.run_gtex_coloc and pargs.rsid_column and pargs.pos_column and pargs.pval_column and pargs.chr_column and pargs.allele1_column and pargs.allele2_column and pargs.maf_column and pargs.case_prop and pargs.sample_size:
             ## TODO: check config
-            print "Submitting co-localization analysis job"
             ## need to define the correct input file to use
             if pargs.run_pval_expansion:
                 coloc_input_f = pargs.outdir+"/"+pargs.outprefix+"_pruning/pruned_set_pipeline_input.txt"
@@ -255,6 +257,7 @@ if __name__=="__main__":
 
             if "LOCUSZOOM_PATH" in config_vars:
                 if pargs.cluster_system=="bsub":
+                    print "Submitting job for co-localization analysis"
                     subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+".gtex_colocalization",
                                  "-o", pargs.outdir+"/logs/"+pargs.outprefix+".gtex_coloc.o%J",
                                  "-e", pargs.outdir+"/logs/"+pargs.outprefix+".gtex_coloc.e%J",
@@ -273,6 +276,7 @@ if __name__=="__main__":
                                  str(pargs.case_prop), str(pargs.sample_size),
                                  config_vars["LOCUSZOOM_PATH"]])
                 else:
+                    print "Running co-localization analysis"
                     subprocess.call(["./bsub_wrappers/gtex_coloc_bsub_wrapper.sh",
                                     "./src/gtex_gwas_colocalization_analysis.R",
                                     pargs.outdir+"/gtex_gwas_colocalization_analysis/",
@@ -290,6 +294,7 @@ if __name__=="__main__":
                                     pargs.outdir+"/logs/"+pargs.outprefix+".gtex_coloc.bash.log"])
             else:
                 if pargs.cluster_system=="bsub":
+                    print "Submitting job for co-localization analysis"
                     subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+".gtex_colocalization",
                                         "-o", pargs.outdir+"/logs/"+pargs.outprefix+".gtex_coloc.o%J",
                                         "-e", pargs.outdir+"/logs/"+pargs.outprefix+".gtex_coloc.e%J",
@@ -307,6 +312,7 @@ if __name__=="__main__":
                                     str(pargs.allele2_column), str(pargs.maf_column),
                                     str(pargs.case_prop), str(pargs.sample_size)])
                 else:
+                    print "Running co-localization analysis"                    
                     subprocess.call(["./bsub_wrappers/gtex_coloc_bsub_wrapper.sh",
                                     "./src/gtex_gwas_colocalization_analysis.R",
                                     pargs.outdir+"/gtex_gwas_colocalization_analysis/",
@@ -324,7 +330,6 @@ if __name__=="__main__":
                                     "NONE", pargs.outdir+"/logs/"+pargs.outprefix+".gtex_coloc.bash.log"])
                     
             if pargs.run_lncrna_correlation:
-                print "Running lncRNA correlation analysis"
                 ## build up the arguments depending on what we have
                 lncRNA_arguments = [pargs.outdir+"/gtex_lncRNA_correlation_analysis/",
                                     pargs.outdir+"/gtex_gwas_colocalization_analysis/tables/"+pargs.outprefix+"_gtex_coloc_summaries.txt",
@@ -334,14 +339,15 @@ if __name__=="__main__":
                                     config_vars["COLOC_H4_THRESH"]]
                 
                 if "PEARSON_THRESH" in config_vars and "SPEARMAN_THRESH" in config_vars:
-                    lncRNA_arguments += config_vars["PEARSON_THRESH"]
-                    lncRNA_arguments += config_vars["SPEARMAN_THRESH"]
+                    lncRNA_arguments.append(config_vars["PEARSON_THRESH"])
+                    lncRNA_arguments.append(config_vars["SPEARMAN_THRESH"])
                     if "NUM_PCS" in config_vars:
-                        lncRNA_arguments += config_vars["NUM_PCS"]
+                        lncRNA_arguments.append(config_vars["NUM_PCS"])
                 else:
-                    lncRNA_arguments += config_vars["COR_THRESH"]    
-                                                        
+                    lncRNA_arguments.append(config_vars["COR_THRESH"])
+                                                                            
                 if pargs.cluster_system=="bsub":
+                    print "Submitting job for lncRNA correlation analysis"
                     subprocess.call(["bsub", "-M", "40000", "-J", pargs.outprefix+".lncRNA_correlation",
                                     "-o", pargs.outdir+"/logs/"+pargs.outprefix+".gtex_lncRNA_corr.o%J",
                                     "-e", pargs.outdir+"/logs/"+pargs.outprefix+".gtex_lncRNA_corr.e%J",
@@ -349,6 +355,7 @@ if __name__=="__main__":
                                     "./bsub_wrappers/gtex_lncRNA_corr_bsub_wrapper.sh",
                                     "./src/lncRNA_gtex_correlation.R"] + lncRNA_arguments)
                 else:
+                    print "Running lncRNA correlation analysis"
                     subprocess.call(["./bsub_wrappers/gtex_lncRNA_corr_bash_wrapper.sh",
                                     "./src/lncRNA_gtex_correlation.R",
                                     pargs.outdir+"/logs/"+pargs.outprefix+".gtex_lncRNA_corr.bash.log"] + lncRNA_arguments)
@@ -367,7 +374,14 @@ if __name__=="__main__":
 
     ## run MetaXcan analysis
     ## first check that all the required arguments are present
-    if pargs.summary_file and pargs.run_metaXcan and pargs.rsid_column and pargs.pos_column and pargs.pval_column and pargs.chr_column and pargs.allele1_column and pargs.allele2_column and pargs.maf_column and pargs.beta_column:
+    if pargs.summary_file and pargs.run_metaXcan and pargs.rsid_column and pargs.pos_column and pargs.pval_column and pargs.chr_column and pargs.allele1_column and pargs.allele2_column and pargs.maf_column and (pargs.beta_column or pargs.OR_column):
+        if pargs.beta_column:
+            effect_col = pargs.beta_column
+            use_beta=True
+        elif pargs.OR_column:
+            effect_col=pargs.OR_column
+            use_beta=False
+        
         if "METAXCAN_DIR" in config_vars and "GTEX_V7_DBDIR" in config_vars:
             if pargs.cluster_system=="bsub":
                 print "Submitting metaXcan analysis job"
@@ -381,9 +395,10 @@ if __name__=="__main__":
                                 str(pargs.rsid_column), str(pargs.pos_column),
                                 str(pargs.pval_column), str(pargs.chr_column),
                                 str(pargs.allele1_column), str(pargs.allele2_column),
-                                str(pargs.maf_column), str(pargs.beta_column),
-                                str(pargs.summary_has_header)])
+                                str(pargs.maf_column), str(effect_col),
+                                str(pargs.summary_has_header), str(use_beta)])
             else:
+                print "Running metaXcan analysis"
                 subprocess.call(["./src/run_GTEx_v7_MetaMany.sh",
                                 config_vars["METAXCAN_DIR"],
                                 pargs.outdir+"/metaXcan_GTEx_v7/",
@@ -391,8 +406,8 @@ if __name__=="__main__":
                                 str(pargs.rsid_column), str(pargs.pos_column),
                                 str(pargs.pval_column), str(pargs.chr_column),
                                 str(pargs.allele1_column), str(pargs.allele2_column),
-                                str(pargs.maf_column), str(pargs.beta_column),
-                                str(pargs.summary_has_header),
+                                str(pargs.maf_column), str(effect_col),
+                                str(pargs.summary_has_header), str(use_beta),
                                 pargs.outdir+"/logs/"+pargs.outprefix+".metaXcan.bash.log"])
 
         else:
@@ -400,7 +415,14 @@ if __name__=="__main__":
                 
     ## run LD score regression analysis
     ## first check that all the required arguments are present
-    if pargs.summary_file and pargs.run_LDSC and pargs.rsid_column and pargs.pval_column and pargs.allele1_column and pargs.allele2_column and pargs.maf_column and pargs.beta_column and pargs.sample_size:
+    if pargs.summary_file and pargs.run_LDSC and pargs.rsid_column and pargs.pval_column and pargs.allele1_column and pargs.allele2_column and pargs.maf_column and (pargs.beta_column or pargs.OR_column) and pargs.sample_size:
+        if pargs.beta_column:
+            effect_col = pargs.beta_column
+            use_beta=True
+        elif pargs.OR_column:
+            effect_col=pargs.OR_column
+            use_beta=False
+
         if "LDSC_CODE_DIR" in config_vars and "MUNGE_SNPLIST" in config_vars and "LDSC_BASELINE_DIR" in config_vars and "LDSC_WEIGHTS_DIR" in config_vars and "LDSC_FRQ_DIR" in config_vars:
             if pargs.cluster_system=="bsub":
                 print "Submitting LD score regression analysis job"
@@ -413,21 +435,22 @@ if __name__=="__main__":
                                 pargs.summary_file, config_vars["MUNGE_SNPLIST"],
                                 str(pargs.rsid_column), str(pargs.pval_column), 
                                 str(pargs.allele1_column), str(pargs.allele2_column),
-                                str(pargs.maf_column), str(pargs.beta_column),
+                                str(pargs.maf_column), str(effect_col),
                                 str(pargs.summary_has_header), config_vars["LDSC_BASELINE_DIR"],
                                 config_vars["LDSC_WEIGHTS_DIR"], config_vars["LDSC_FRQ_DIR"],
-                                pargs.outprefix, pargs.sample_size])
+                                pargs.outprefix, str(pargs.sample_size), str(use_beta)])
             else:
+                print "Running LD score regression"
                 subprocess.call(["./src/run_ld_score_regression.sh",
                                 config_vars["LDSC_CODE_DIR"],
                                 pargs.outdir+"/LD_score_regression/",
                                 pargs.summary_file, config_vars["MUNGE_SNPLIST"],
                                 str(pargs.rsid_column), str(pargs.pval_column), 
                                 str(pargs.allele1_column), str(pargs.allele2_column),
-                                str(pargs.maf_column), str(pargs.beta_column),
+                                str(pargs.maf_column), str(effect_col),
                                 str(pargs.summary_has_header), config_vars["LDSC_BASELINE_DIR"],
                                 config_vars["LDSC_WEIGHTS_DIR"], config_vars["LDSC_FRQ_DIR"],
-                                pargs.outprefix, pargs.sample_size,
+                                pargs.outprefix, str(pargs.sample_size), str(use_beta),
                                 pargs.outdir+"/logs/"+pargs.outprefix+".LDSC.bash.log"])
 
         else:

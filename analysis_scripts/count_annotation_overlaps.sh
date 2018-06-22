@@ -74,11 +74,11 @@ else
 	     ${OUTDIR}/all_classes.txt - | sort -t$'\t' -k1,1 -k2,2 > ${OUTDIR}/all_classes_tag_regions_${PREFIX}.txt
 
     ## finally, make one that has all the tag regions
-    tail -n +2 ${DATADIR}/ld_expansion/${PREFIX}_${LD_THRESH}_ld_cutoff_snps_within_${DIST_THRESH}.txt | cut -f10 | sort -u  > ${OUTDIR}/all_tag_regions_${PREFIX}.txt    
+    tail -n +2 ${DATADIR}/ld_expansion/${PREFIX}_${LD_THRESH}_ld_cutoff_snps_within_${DIST_THRESH}.txt | cut -f10 | sort -u  > ${OUTDIR}/all_tag_regions_${PREFIX}.txt
     
     ## count the total number of SNPs
     UNIQ_SNPS=`tail -n +2 ${DATADIR}/ld_expansion/${PREFIX}_${LD_THRESH}_ld_cutoff_snps_within_${DIST_THRESH}.txt | cut -f2 | sort -u | wc -l`
-    echo "${UNIQ_SNPS} unique SNPs found by LD expansion" | tee -a ${OUTDIR}/${PREFIX}_annotation_overlap_summary.txt
+    echo "${UNIQ_SNPS} unique SNPs found by LD expansion" | tee ${OUTDIR}/${PREFIX}_annotation_overlap_summary.txt
 
     ## count the number in each tag region (don't need to refer to the tag region because they
     ## will all be in this file)

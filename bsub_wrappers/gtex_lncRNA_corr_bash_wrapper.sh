@@ -62,6 +62,6 @@ elif [ $# == 14 ]; then
 	${GENCODE_LNCRNA_FILE} ${FANTOM5_CLASS_FILE} ${GTEX_CLASS_FILE} ${ROADMAP_CLASS_FILE} \
 	${COLOC_H4_THRESH} ${PEARSON_THRESH} ${SPEARMAN_THRESH} ${NUM_PCS} 2>&1 | tee ${LOGFILE}
 else
-    echo "Usage: $0 <correlation script> <outdir> <coloc result file> <GTEx expression dir> <GTEx sample info file> <gencode lncRNA file> <FANTOM5 class file> <GTEx class file> <Roadmap class file> <COLOC P(H_4) threshold> .."
+    echo "Usage: $0 <correlation script> <log file> <outdir> <coloc result file> <GTEx expression dir> <GTEx sample info file> <gencode lncRNA file> <FANTOM5 class file> <GTEx class file> <Roadmap class file> <COLOC P(H_4) threshold> .."
     echo "Last arguments can be threshold on both correlation measures, Pearson and Spearman thresholds (in that order), or Pearson and Spearman thresholds and number of PCs to use for regression"
 fi

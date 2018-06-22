@@ -59,8 +59,8 @@ if(length(args)==10) {
     pearson_thresh <- as.numeric(args[10])
     spearman_thresh <- as.numeric(args[10])
     num_PCs <- 10 ## use the default value
-} ## implementation with separate correlation thresholds
-else if(length(args)==11) {
+} else if(length(args)==11) {
+    ## implementation with separate correlation thresholds
     outdir <- args[1]
     coloc_result_file <- args[2]   
     gtex_expr_dir <- args[3] 
@@ -74,8 +74,8 @@ else if(length(args)==11) {
     spearman_thresh <- as.numeric(args[11])
     SEPARATE_CORS <- TRUE
     num_PCs <- 10 ## use the default value
-} ## implementation with separate correlation thresholds and explicit number of PCs to use
-else if(length(args)==12) {
+} else if(length(args)==12) {
+    ## implementation with separate correlation thresholds and explicit number of PCs to use
     outdir <- args[1]
     coloc_result_file <- args[2]   
     gtex_expr_dir <- args[3] 

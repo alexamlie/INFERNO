@@ -143,7 +143,7 @@ if (length(args)==21) {
     ## for locuszoom analysis, set the path to the binary:
     locuszoom <- args[22]
     ## check that it isn't set to "NONE"
-    if(locuszoom="NONE") {
+    if(locuszoom=="NONE") {
         ## if it is, delete this variable so it doesn't try to run
         ## this is just so that i can keep a bash log with tee
         rm(locuszoom)
