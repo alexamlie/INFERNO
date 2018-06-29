@@ -78,7 +78,9 @@ else
     
     ## count the total number of SNPs
     UNIQ_SNPS=`tail -n +2 ${DATADIR}/ld_expansion/${PREFIX}_${LD_THRESH}_ld_cutoff_snps_within_${DIST_THRESH}.txt | cut -f2 | sort -u | wc -l`
-    echo "${UNIQ_SNPS} unique SNPs found by LD expansion" | tee ${OUTDIR}/${PREFIX}_annotation_overlap_summary.txt
+    ## also number of tag regions
+    UNIQ_REGIONS=`tail -n +2 ${DATADIR}/ld_expansion/${PREFIX}_${LD_THRESH}_ld_cutoff_snps_within_${DIST_THRESH}.txt | cut -f10 | sort -u | wc -l`
+    echo "${UNIQ_SNPS} unique SNPs in ${UNIQ_REGIONS} unique tag regions (by name) found by LD expansion" | tee ${OUTDIR}/${PREFIX}_annotation_overlap_summary.txt
 
     ## count the number in each tag region (don't need to refer to the tag region because they
     ## will all be in this file)

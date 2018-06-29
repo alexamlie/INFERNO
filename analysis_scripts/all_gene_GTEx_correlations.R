@@ -3,6 +3,7 @@
 ## analyzing correlation distribution of all genes in the genome
 
 library(ggplot2)
+library(scales)
 library(reshape2)
 library(plyr)
 library(psych)
@@ -85,5 +86,86 @@ dir.create(paste0(outdir, "/full_correlation_tables/"), F, T)
     ## spearman_cor <- corr.test(all_chr_gene_expression, method="spearman", ci=FALSE)
     spearman_cor <- cor(all_chr_gene_expression, method="spearman")
     cat("Computing Spearman took", (proc.time() - spearman_start)[['elapsed']], 'seconds\n')
+
+}
+
+save(pearson_cor, spearman_cor, file=paste0(outdir, "/full_correlation_tables/pearson_and_spearman_matrices.Rdata"))
+
+## load(paste0(outdir, "/full_correlation_tables/pearson_and_spearman_matrices.Rdata"))
+
+summary(pearson_cor[upper.tri(pearson_cor)])
+summary(spearman_cor[upper.tri(spearman_cor)])
+
+## {
+## pearson_cor[lower.tri(pearson_cor)] <- NA
+## spearman_cor[lower.tri(spearman_cor)] <- NA
+## }
+
+## {
+##     melt_start <- proc.time()
+##     ## visualize the correlation patterns
+##     pearson_correlation_melt <- melt(pearson_cor, na.rm=TRUE, as.is=TRUE)
+##     cat("Melting Pearson took", (proc.time() - melt_start)[['elapsed']], 'seconds\n')
+
+##     melt_start <- proc.time()
+##     spearman_correlation_melt <- melt(spearman_cor, na.rm=TRUE, as.is=TRUE)
+##     cat("Melting Spearman took", (proc.time() - melt_start)[['elapsed']], 'seconds\n')    
+## }
+
+{
+    combn_start <- proc.time()
+    pearson_vec <- c(pearson_cor[upper.tri(pearson_cor)])
+    rm(pearson_cor)
+    cat("Pearson vectorization took", (proc.time() - combn_start)[['elapsed']], 'seconds\n')
+
+    combn_start <- proc.time()
+    spearman_vec <- c(spearman_cor[upper.tri(spearman_cor)])
+    rm(spearman_cor)
+    cat("Spearman vectorization took", (proc.time() - combn_start)[['elapsed']], 'seconds\n')
+
+}
+
+sum(rownames(pearson_cor) != rownames(spearman_cor))
+sum(colnames(pearson_cor) != colnames(spearman_cor))
+
+## {
+##     merge_start <- proc.time()
+##     combined_correlation_melt <- merge(pearson_correlation_melt, spearman_correlation_melt, by=c("gene_a", "gene_b"), suffixes=c(".pearson", ".spearman"))
+##     cat("Merging took", (proc.time() - merge_start)[['elapsed']], "seconds\n")
+## }
+
+summary(spearman_vec)
+
+## get an index for subsampling the vectors for this
+{
+## num_pairs <- length(pearson_vec)    
+## vec_sample <- seq(1, num_pairs, by=2)
+## correlation_df <- data.frame(pearson=pearson_vec[vec_sample], spearman=spearman_vec[vec_sample])
+correlation_df <- data.frame(pearson=pearson_vec, spearman=spearman_vec)
+}
+
+{
+make_graphic(paste0(outdir, '/plots/GTEx_v6p_all_correlation_distribution'), height_ratio=2.0, width_ratio=2.0)
+print(ggplot(correlation_df, aes(x=pearson, y=spearman)) + 
+      stat_binhex(bins=75) +
+      scale_fill_gradientn(colors=c("lightgray", "cyan", "cyan1", "cyan2", "cyan3", "cyan4",
+                               "darkcyan", "blue", "blue1", "blue2", "blue3", "blue4", "darkblue"),
+                          name="Number of gene-gene pairs", labels=comma) +
+      theme_bw() +
+      geom_hline(yintercept=0.5, linetype=3) +
+      geom_vline(xintercept=0.5, linetype=3) +
+      geom_hline(yintercept=-0.5, linetype=3) +
+      geom_vline(xintercept=-0.5, linetype=3) +    
+      scale_x_continuous(limits=c(-1, 1), expand = c(0.05, 0),
+                         breaks=seq(-1, 1, by=0.2)) +
+      scale_y_continuous(limits=c(-1, 1), expand = c(0.05, 0),
+                         breaks=seq(-1, 1, by=0.2)) +
+      xlab("Pearson correlation") + ylab("Spearman correlation") +
+      ggtitle("Correlation distribution of all transcript pairs") +
+      theme(legend.position="bottom", axis.text.x = element_text(size=20),
+            legend.key.width=unit(3,"cm"),
+            axis.text.y = element_text(size=20), title=element_text(size=20),
+            plot.title = element_text(hjust = 0.5), legend.text = element_text(size=15)))
+dev.off()
 
 }

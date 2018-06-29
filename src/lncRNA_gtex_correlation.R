@@ -690,7 +690,7 @@ if(nrow(tissue_spec_lncrna_targets) > 0) {
     ## note that we know that the lncRNAs and target genes match up in terms of classes here
     dir.create(paste0(outdir, '/tables/class_specific_gene_lists/'), F, T)
     for(gtex_class in unique(tissue_spec_lncrna_targets$tissue_class)) {
-        write.table(sort(unique(tissue_spec_lncrna_targets$gene[tissue_spec_lncrna_targets$tissue_class==gtex_class])), paste0(outdir, '/tables/class_specific_gene_lists/', gtex_class, '_lncRNA_genes_', pearson_thresh, '_pearson_', spearman_thresh, '_spearman__correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=F)
+        write.table(sort(unique(tissue_spec_lncrna_targets$gene[tissue_spec_lncrna_targets$tissue_class==gtex_class])), paste0(outdir, '/tables/class_specific_gene_lists/', gtex_class, '_lncRNA_genes_', pearson_thresh, '_pearson_', spearman_thresh, '_spearman_correlation_threshold.txt'), quote=F, sep="\t", row.names=F, col.names=F)
     }
 }
 
