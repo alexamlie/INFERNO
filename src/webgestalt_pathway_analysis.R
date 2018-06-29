@@ -62,7 +62,8 @@ if(length(args)==1) {
     ## datadir <- "~/Dropbox/wang_lab/psp_enhancer_snps/PSP_H1H2_tag_variant/analysis_results/KANSL1_and_MAPT_AS1_041018/"
     ## datadir <- "~/Dropbox/wang_lab/psp_enhancer_snps/PSP_H1H2_tag_variant/analysis_results/KANSL1_041318/"    
     ## datadir <- "~/Dropbox/wang_lab/psp_enhancer_snps/PSP_H1H2_tag_variant/analysis_results/MAPT_AS1_041318/"    
-    datadir <- "~/Dropbox/wang_lab/psp_enhancer_snps/PSP_H1H2_tag_variant/analysis_results/non_brain_blood_lncRNA_correlation_analysis/"    
+    ## datadir <- "~/Dropbox/wang_lab/psp_enhancer_snps/PSP_H1H2_tag_variant/analysis_results/non_brain_blood_lncRNA_correlation_analysis/"    
+    datadir <- "~/Dropbox/wang_lab/ad_enhancers/INFERNO_same_dir_IGAP.050218/"    
     
     ## define parameters for the pathway analysis
     min_pathway_num <- 5
@@ -70,9 +71,10 @@ if(length(args)==1) {
     fdr_thresh <- 0.05
 }
 
-dir.create(paste0(datadir, '/pathway_analysis/'), F, T)
+dir.create(paste0(datadir, '/pathway_analysis/plots/'), F, T)
+dir.create(paste0(datadir, '/pathway_analysis/tables/'), F, T)
 
-summary_file <- paste0(datadir, "/pathway_analysis/webgestalt_pathway_summary.txt")
+summary_file <- paste0(datadir, "/pathway_analysis/tables/webgestalt_pathway_summary.txt")
 
 coloc_gene_list <- read.table(list.files(paste0(datadir, '/gtex_gwas_colocalization_analysis/tables/'), pattern="*all_top_genes*", full.names=T), header=F, sep="\t", col.names=c("gene"))
 
@@ -166,7 +168,7 @@ if(!is.null(coloc_KEGG_enrichment)) {
 
 ## write this out
 if(nrow(all_coloc_gene_enrichment) > 0) {
-    write.table(all_coloc_gene_enrichment, paste0(datadir, '/pathway_analysis/all_coloc_target_pathway_enrichments.txt'), quote=F, sep="\t", row.names=F)
+    write.table(all_coloc_gene_enrichment, paste0(datadir, '/pathway_analysis/tables/all_coloc_target_pathway_enrichments.txt'), quote=F, sep="\t", row.names=F)
 }
 
 ## -----------------------------------------------------------------------------
@@ -269,7 +271,7 @@ if(nrow(all_class_pathway_enrichment) > 0) {
     all_class_pathway_enrichment$desc_with_pathway <- paste0(all_class_pathway_enrichment$pathway_type, ": ", all_class_pathway_enrichment$clean_desc)
     all_class_pathway_enrichment$desc_with_pathway <- factor(all_class_pathway_enrichment$desc_with_pathway, ordered=T, levels=sort(unique(all_class_pathway_enrichment$desc_with_pathway), decreasing=T))
     
-    write.table(all_class_pathway_enrichment, paste0(datadir, '/pathway_analysis/coloc_target_class_specific_pathway_enrichments.txt'), quote=F, sep="\t", row.names=F)
+    write.table(all_class_pathway_enrichment, paste0(datadir, '/pathway_analysis/tables/all_coloc_target_class_specific_pathway_enrichments.txt'), quote=F, sep="\t", row.names=F)
 }
     
 ## -----------------------------------------------------------------------------
@@ -278,13 +280,13 @@ if(nrow(all_class_pathway_enrichment) > 0) {
 {
 lncrna_cross_tissue_start_time <- proc.time()
 ## start with the full target analysis
-num_lncRNA_targets <- nrow(read.table(paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/all_lncRNA_genes_0.5_correlation_threshold.txt'), sep="\t", col.names=c("gene")))
+num_lncRNA_targets <- nrow(read.table(paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/all_lncRNA_genes_0.5_pearson_0.5_spearman_correlation_threshold.txt'), sep="\t", col.names=c("gene")))
 
 cross_tissue_lncRNA_target_enrichment <- data.frame(stringsAsFactors = FALSE)
 
 all_lncRNA_target_GO_BP_enrichment <- WebGestaltR(enrichMethod="ORA", organism="hsapiens",
                                        enrichDatabase="geneontology_Biological_Process_noRedundant",
-                                      interestGeneFile=paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/all_lncRNA_genes_0.5_correlation_threshold.txt'),
+                                      interestGeneFile=paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/all_lncRNA_genes_0.5_pearson_0.5_spearman_correlation_threshold.txt'),
                                       interestGeneType="genesymbol",
                                       referenceSet="genome",
                                       sigMethod="fdr", fdrThr=fdr_thresh, minNum=min_pathway_num,
@@ -304,7 +306,7 @@ if(!is.null(all_lncRNA_target_GO_BP_enrichment)) {
 
 all_lncRNA_target_GO_CC_enrichment <- WebGestaltR(enrichMethod="ORA", organism="hsapiens",
                                        enrichDatabase="geneontology_Cellular_Component_noRedundant",
-                                      interestGeneFile=paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/all_lncRNA_genes_0.5_correlation_threshold.txt'),
+                                      interestGeneFile=paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/all_lncRNA_genes_0.5_pearson_0.5_spearman_correlation_threshold.txt'),
                                       interestGeneType="genesymbol",
                                       referenceSet="genome",
                                       sigMethod="fdr", fdrThr=fdr_thresh, minNum=min_pathway_num,
@@ -324,7 +326,7 @@ if(!is.null(all_lncRNA_target_GO_CC_enrichment)) {
 
 all_lncRNA_target_GO_MF_enrichment <- WebGestaltR(enrichMethod="ORA", organism="hsapiens",
                                        enrichDatabase="geneontology_Molecular_Function_noRedundant",
-                                      interestGeneFile=paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/all_lncRNA_genes_0.5_correlation_threshold.txt'),
+                                      interestGeneFile=paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/all_lncRNA_genes_0.5_pearson_0.5_spearman_correlation_threshold.txt'),
                                       interestGeneType="genesymbol",
                                       referenceSet="genome",
                                       sigMethod="fdr", fdrThr=fdr_thresh, minNum=min_pathway_num,
@@ -344,7 +346,7 @@ if(!is.null(all_lncRNA_target_GO_MF_enrichment)) {
 
 all_lncRNA_target_KEGG_enrichment <- WebGestaltR(enrichMethod="ORA", organism="hsapiens",
                                        enrichDatabase="pathway_KEGG",
-                                      interestGeneFile=paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/all_lncRNA_genes_0.5_correlation_threshold.txt'),
+                                      interestGeneFile=paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/all_lncRNA_genes_0.5_pearson_0.5_spearman_correlation_threshold.txt'),
                                       interestGeneType="genesymbol",
                                       referenceSet="genome",
                                       sigMethod="fdr", fdrThr=fdr_thresh, minNum=min_pathway_num,
@@ -365,9 +367,9 @@ if(!is.null(all_lncRNA_target_KEGG_enrichment)) {
 ## write out the summary table
 if(nrow(cross_tissue_lncRNA_target_enrichment) > 0) {
     write.table(cross_tissue_lncRNA_target_enrichment,
-                paste0(datadir, '/pathway_analysis/lncRNA_cross_tissue_target_pathway_enrichments.txt'), quote=F, sep="\t", row.names=F)
+                paste0(datadir, '/pathway_analysis/tables/lncRNA_cross_tissue_target_pathway_enrichments.txt'), quote=F, sep="\t", row.names=F)
     ## ## to read in this data
-    ## cross_tissue_lncRNA_target_enrichment <- read.table(paste0(datadir, '/pathway_analysis/lncRNA_cross_tissue_target_pathway_enrichments.txt'), header=T, sep="\t", quote="", as.is=T)
+    ## cross_tissue_lncRNA_target_enrichment <- read.table(paste0(datadir, '/pathway_analysis/tables/lncRNA_cross_tissue_target_pathway_enrichments.txt'), header=T, sep="\t", quote="", as.is=T)
 }
 cat("Cross-tissue lncRNA target pathway analysis took", (proc.time() - lncrna_cross_tissue_start_time)[["elapsed"]], 'seconds\n')
 }
@@ -464,26 +466,28 @@ for(class_file in sort(list.files(paste0(datadir, '/gtex_lncRNA_correlation_anal
 cat("Tissue-specific lncRNA target pathway analysis took", (proc.time() - lncrna_all_class_start_time)[["elapsed"]], 'seconds\n')
 }
 
-## add a nice factor for visualization
-lncrna_tissue_specific_target_enrichment$clean_desc <- gsub(" - Homo sapiens (human)", "", lncrna_tissue_specific_target_enrichment$description, fixed=T)
-lncrna_tissue_specific_target_enrichment$clean_desc <- factor(lncrna_tissue_specific_target_enrichment$clean_desc, ordered=T, levels=sort(unique(lncrna_tissue_specific_target_enrichment$clean_desc), decreasing=T))
-
-## also add a level to show all the different pathway types
-lncrna_tissue_specific_target_enrichment$desc_with_pathway <- paste0(lncrna_tissue_specific_target_enrichment$pathway_type, ": ", lncrna_tissue_specific_target_enrichment$clean_desc)
-lncrna_tissue_specific_target_enrichment$desc_with_pathway <- factor(lncrna_tissue_specific_target_enrichment$desc_with_pathway, ordered=T, levels=sort(unique(lncrna_tissue_specific_target_enrichment$desc_with_pathway), decreasing=T))
-
 if(nrow(lncrna_tissue_specific_target_enrichment) > 0) {
-    write.table(lncrna_tissue_specific_target_enrichment, paste0(datadir, '/pathway_analysis/lncRNA_tissue_specific_pathway_enrichments.txt'), quote=F, sep="\t", row.names=F)    
+    ## add a nice factor for visualization
+    lncrna_tissue_specific_target_enrichment$clean_desc <- gsub(" - Homo sapiens (human)", "", lncrna_tissue_specific_target_enrichment$description, fixed=T)
+    lncrna_tissue_specific_target_enrichment$clean_desc <- factor(lncrna_tissue_specific_target_enrichment$clean_desc, ordered=T, levels=sort(unique(lncrna_tissue_specific_target_enrichment$clean_desc), decreasing=T))
+    
+    ## also add a level to show all the different pathway types
+    lncrna_tissue_specific_target_enrichment$desc_with_pathway <- paste0(lncrna_tissue_specific_target_enrichment$pathway_type, ": ", lncrna_tissue_specific_target_enrichment$clean_desc)
+    lncrna_tissue_specific_target_enrichment$desc_with_pathway <- factor(lncrna_tissue_specific_target_enrichment$desc_with_pathway, ordered=T, levels=sort(unique(lncrna_tissue_specific_target_enrichment$desc_with_pathway), decreasing=T))
+
+    write.table(lncrna_tissue_specific_target_enrichment, paste0(datadir, '/pathway_analysis/tables/lncRNA_tissue_specific_pathway_enrichments.txt'), quote=F, sep="\t", row.names=F)    
     ## ## to read this in
-    ## lncrna_tissue_specific_target_enrichment <- read.table(paste0(datadir, '/pathway_analysis/lncRNA_tissue_specific_pathway_enrichments.txt'), header=T, sep="\t", quote="", as.is=T)
+    ## lncrna_tissue_specific_target_enrichment <- read.table(paste0(datadir, '/pathway_analysis/tables/lncRNA_tissue_specific_pathway_enrichments.txt'), header=T, sep="\t", quote="", as.is=T)
 }
 
-## finally, do analysis on specific individual lncRNAs (cross-tissue targets only)
+## ----------------------------------------------------------------------------
+## do analysis on specific individual lncRNAs
+## cross-tissue analysis
 {
-indiv_lncrna_start_time <- proc.time()
+indiv_lncrna_xtissue_start_time <- proc.time()
 for(lncrna_file in sort(grep("tissue_specific", list.files(paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/'), pattern="*correlated_genes*"), value=T, invert=T))) {
     this_lncrna_targets <- read.table(paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/', lncrna_file), header=T, sep="\t", as.is=T)
-
+    
     ## if we have enough genes, do pathway analysis
     if(length(unique(this_lncrna_targets$gene)) >= min_pathway_num) {
         this_lncrna <- gsub("_correlated_genes.*", "", lncrna_file)
@@ -501,15 +505,15 @@ for(lncrna_file in sort(grep("tissue_specific", list.files(paste0(datadir, '/gte
                                               is.output=FALSE, maxNum=max_pathway_num)
 
         if(!is.null(lncRNA_target_GO_BP_enrichment) & !any((grepl("ERROR", lncRNA_target_GO_BP_enrichment)))) {
-            cat(nrow(lncRNA_target_GO_BP_enrichment), "enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in", this_class, "in GO BP\n")
-            cat(nrow(lncRNA_target_GO_BP_enrichment), "enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in", this_class, "in GO BP\n", file=summary_file, append=T)
+            cat(nrow(lncRNA_target_GO_BP_enrichment), "enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in GO BP\n")
+            cat(nrow(lncRNA_target_GO_BP_enrichment), "enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in GO BP\n", file=summary_file, append=T)
 
             this_lncrna_enrichment <- rbind(this_lncrna_enrichment,
-                                                  data.frame(class=this_class, pathway_type="GO_BP",
+                                                  data.frame(pathway_type="GO_BP",
                                                              lncRNA_target_GO_BP_enrichment[,c("geneset", "description", "C", "O", "E", "R", "PValue", "FDR", "OverlapGene_UserID")]))
         } else {
-            cat("0 enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in", this_class, "in GO BP\n")
-            cat("0 enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in", this_class, "in GO BP\n", file=summary_file, append=T)
+            cat("0 enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in GO BP\n")
+            cat("0 enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in GO BP\n", file=summary_file, append=T)
         }
 
         lncRNA_target_GO_CC_enrichment <- WebGestaltR(enrichMethod="ORA", organism="hsapiens",
@@ -521,15 +525,15 @@ for(lncrna_file in sort(grep("tissue_specific", list.files(paste0(datadir, '/gte
                                               is.output=FALSE, maxNum=max_pathway_num)
 
         if(!is.null(lncRNA_target_GO_CC_enrichment) & !(any(grepl("ERROR", lncRNA_target_GO_CC_enrichment)))) {
-            cat(nrow(lncRNA_target_GO_CC_enrichment), "enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in", this_class, "in GO CC\n")
-            cat(nrow(lncRNA_target_GO_CC_enrichment), "enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in", this_class, "in GO CC\n", file=summary_file, append=T)
+            cat(nrow(lncRNA_target_GO_CC_enrichment), "enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in GO CC\n")
+            cat(nrow(lncRNA_target_GO_CC_enrichment), "enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in GO CC\n", file=summary_file, append=T)
 
             this_lncrna_enrichment <- rbind(this_lncrna_enrichment,
-                                                  data.frame(class=this_class, pathway_type="GO_CC",
+                                                  data.frame(pathway_type="GO_CC",
                                                              lncRNA_target_GO_CC_enrichment[,c("geneset", "description", "C", "O", "E", "R", "PValue", "FDR", "OverlapGene_UserID")]))         
         } else {
-            cat("0 enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in", this_class, "in GO CC\n")
-            cat("0 enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in", this_class, "in GO CC\n", file=summary_file, append=T)
+            cat("0 enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in GO CC\n")
+            cat("0 enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in GO CC\n", file=summary_file, append=T)
         }
         lncRNA_target_GO_MF_enrichment <- WebGestaltR(enrichMethod="ORA", organism="hsapiens",
                                                enrichDatabase="geneontology_Molecular_Function_noRedundant",
@@ -540,15 +544,15 @@ for(lncrna_file in sort(grep("tissue_specific", list.files(paste0(datadir, '/gte
                                               is.output=FALSE, maxNum=max_pathway_num)
 
         if(!is.null(lncRNA_target_GO_MF_enrichment) & !(any(grepl("ERROR", lncRNA_target_GO_MF_enrichment)))) {
-            cat(nrow(lncRNA_target_GO_MF_enrichment), "enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in", this_class, "in GO MF\n")
-            cat(nrow(lncRNA_target_GO_MF_enrichment), "enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in", this_class, "in GO MF\n", file=summary_file, append=T)
+            cat(nrow(lncRNA_target_GO_MF_enrichment), "enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in GO MF\n")
+            cat(nrow(lncRNA_target_GO_MF_enrichment), "enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in GO MF\n", file=summary_file, append=T)
 
             this_lncrna_enrichment <- rbind(this_lncrna_enrichment,
-                                                  data.frame(class=this_class, pathway_type="GO_MF",
+                                                  data.frame(pathway_type="GO_MF",
                                                              lncRNA_target_GO_MF_enrichment[,c("geneset", "description", "C", "O", "E", "R", "PValue", "FDR", "OverlapGene_UserID")]))                 
         } else {
-            cat("0 enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in", this_class, "in GO MF\n")
-            cat("0 enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in", this_class, "in GO MF\n", file=summary_file, append=T)
+            cat("0 enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in GO MF\n")
+            cat("0 enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in GO MF\n", file=summary_file, append=T)
         }
 
         lncRNA_target_KEGG_enrichment <- WebGestaltR(enrichMethod="ORA", organism="hsapiens",
@@ -560,119 +564,132 @@ for(lncrna_file in sort(grep("tissue_specific", list.files(paste0(datadir, '/gte
                                               is.output=FALSE, maxNum=max_pathway_num)
 
         if(!is.null(lncRNA_target_KEGG_enrichment) & !any((grepl("ERROR", lncRNA_target_KEGG_enrichment)))) {
-            cat(nrow(lncRNA_target_KEGG_enrichment), "enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in", this_class, "in KEGG\n")
-            cat(nrow(lncRNA_target_KEGG_enrichment), "enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in", this_class, "in KEGG\n", file=summary_file, append=T)
+            cat(nrow(lncRNA_target_KEGG_enrichment), "enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in KEGG\n")
+            cat(nrow(lncRNA_target_KEGG_enrichment), "enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in KEGG\n", file=summary_file, append=T)
 
             this_lncrna_enrichment <- rbind(this_lncrna_enrichment,
-                                                  data.frame(class=this_class, pathway_type="KEGG",
+                                                  data.frame(pathway_type="KEGG",
                                                              lncRNA_target_KEGG_enrichment[,c("geneset", "description", "C", "O", "E", "R", "PValue", "FDR", "OverlapGene_UserID")]))
         } else {
-            cat("0 enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in", this_class, "in KEGG\n")
-            cat("0 enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in", this_class, "in KEGG\n", file=summary_file, append=T)
+            cat("0 enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in KEGG\n")
+            cat("0 enriched pathways found for", nrow(this_lncrna_targets), this_lncrna, "target genes in KEGG\n", file=summary_file, append=T)
         }
 
         if(nrow(this_lncrna_enrichment) > 0) {
-            write.table(this_lncrna_enrichment, paste0(datadir, '/pathway_analysis/', this_lncrna, '_cross_tissue_target_pathway_enrichments.txt'), quote=F, sep="\t", row.names=F)
+            write.table(this_lncrna_enrichment, paste0(datadir, '/pathway_analysis/tables/', this_lncrna, '_cross_tissue_target_pathway_enrichments.txt'), quote=F, sep="\t", row.names=F)
         }
     }
 }
-cat("Individual lncRNA target pathway analysis took", (proc.time() - indiv_lncrna_start_time)[["elapsed"]], 'seconds\n')
+
+cat("Individual lncRNA cross-tissue target pathway analysis took", (proc.time() - indiv_lncrna_xtissue_start_time)[["elapsed"]], 'seconds\n')
 }
 
-## start with the full target analysis
-num_lncRNA_targets <- nrow(read.table(paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/all_lncRNA_genes_0.5_correlation_threshold.txt'), sep="\t", col.names=c("gene")))
+## tissue-specific individual lncRNA target analysis
+{
+indiv_lncrna_tissue_spec_start_time <- proc.time()
+for(lncrna_specific_file in sort(grep("tissue_specific", list.files(paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/'), pattern="*correlated_genes*"), value=T))) {
+    this_lncrna_tissue_specific_data <- read.table(paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/', lncrna_specific_file), header=T, sep="\t", as.is=T)
 
-cross_tissue_lncRNA_target_enrichment <- data.frame(stringsAsFactors = FALSE)
+    this_lncrna <- gsub("_tissue_specific_correlated_genes.*", "", lncrna_specific_file)
 
-all_lncRNA_target_GO_BP_enrichment <- WebGestaltR(enrichMethod="ORA", organism="hsapiens",
-                                       enrichDatabase="geneontology_Biological_Process_noRedundant",
-                                      interestGeneFile=paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/all_lncRNA_genes_0.5_correlation_threshold.txt'),
-                                      interestGeneType="genesymbol",
-                                      referenceSet="genome",
-                                      sigMethod="fdr", fdrThr=fdr_thresh, minNum=min_pathway_num,
-                                      is.output=FALSE, maxNum=max_pathway_num)
+    cat("Analyzing individual pathway enrichments for", this_lncrna, "\n")
+    cat("Analyzing individual pathway enrichments for", this_lncrna, "\n", file=summary_file, append=T)
+    this_lncrna_enrichment <- data.frame(stringsAsFactors = FALSE)
+    
+    for(this_class in sort(unique(this_lncrna_tissue_specific_data$tissue_class))) {
+        this_gene_list <- this_lncrna_tissue_specific_data[this_lncrna_tissue_specific_data$tissue_class==this_class,]
+        
+        ## do analysis if we have enough genes
+        if(length(unique(this_gene_list$gene)) >= min_pathway_num) {
+            lncRNA_target_GO_BP_enrichment <- WebGestaltR(enrichMethod="ORA", organism="hsapiens",
+                                                   enrichDatabase="geneontology_Biological_Process_noRedundant",
+                                                  interestGene=this_gene_list$gene,
+                                                  interestGeneType="genesymbol",
+                                                  referenceSet="genome",
+                                                  sigMethod="fdr", fdrThr=fdr_thresh, minNum=min_pathway_num,
+                                                  is.output=FALSE, maxNum=max_pathway_num)
 
-if(!is.null(all_lncRNA_target_GO_BP_enrichment)) {
-    cat(nrow(all_lncRNA_target_GO_BP_enrichment), "enriched pathways found for", num_lncRNA_targets, "lncRNA targets in GO BP\n")
-    cat(nrow(all_lncRNA_target_GO_BP_enrichment), "enriched pathways found for", num_lncRNA_targets, "lncRNA targets in GO BP\n", file=summary_file, append=T)
+            if(!is.null(lncRNA_target_GO_BP_enrichment) & !any((grepl("ERROR", lncRNA_target_GO_BP_enrichment)))) {
+                cat(nrow(lncRNA_target_GO_BP_enrichment), "enriched pathways found for", nrow(this_gene_list), this_lncrna, "target genes in", this_class, "in GO BP\n")
+                cat(nrow(lncRNA_target_GO_BP_enrichment), "enriched pathways found for", nrow(this_gene_list), this_lncrna, "target genes in", this_class, "in GO BP\n", file=summary_file, append=T)
 
-    cross_tissue_lncRNA_target_enrichment <- rbind(cross_tissue_lncRNA_target_enrichment,
-                                                   data.frame(pathway_type="GO_BP",
-                                                              all_lncRNA_target_GO_BP_enrichment[,c("geneset", "description", "C", "O", "E", "R", "PValue", "FDR", "OverlapGene_UserID")]))    
-} else {
-    cat("0 enriched pathways found for", num_lncRNA_targets, "lncRNA targets in GO BP\n")
-    cat("0 enriched pathways found for", num_lncRNA_targets, "lncRNA targets in GO BP\n", file=summary_file, append=T)
+                this_lncrna_enrichment <- rbind(this_lncrna_enrichment,
+                                                data.frame(class=this_class, pathway_type="GO_BP",
+                                                           lncRNA_target_GO_BP_enrichment[,c("geneset", "description", "C", "O", "E", "R", "PValue", "FDR", "OverlapGene_UserID")]))
+            } else {
+                cat("0 enriched pathways found for", nrow(this_gene_list), this_lncrna, "target genes in", this_class, "in GO BP\n")
+                cat("0 enriched pathways found for", nrow(this_gene_list), this_lncrna, "target genes in", this_class, "in GO BP\n", file=summary_file, append=T)
+            }
+
+            lncRNA_target_GO_CC_enrichment <- WebGestaltR(enrichMethod="ORA", organism="hsapiens",
+                                                          enrichDatabase="geneontology_Cellular_Component_noRedundant",
+                                                          interestGene=this_gene_list$gene,
+                                                          interestGeneType="genesymbol",
+                                                          referenceSet="genome",
+                                                          sigMethod="fdr", fdrThr=fdr_thresh, minNum=min_pathway_num,
+                                                          is.output=FALSE, maxNum=max_pathway_num)
+            
+            if(!is.null(lncRNA_target_GO_CC_enrichment) & !(any(grepl("ERROR", lncRNA_target_GO_CC_enrichment)))) {
+                cat(nrow(lncRNA_target_GO_CC_enrichment), "enriched pathways found for", nrow(this_gene_list), this_lncrna, "target genes in", this_class, "in GO CC\n")
+                cat(nrow(lncRNA_target_GO_CC_enrichment), "enriched pathways found for", nrow(this_gene_list), this_lncrna, "target genes in", this_class, "in GO CC\n", file=summary_file, append=T)
+                
+                this_lncrna_enrichment <- rbind(this_lncrna_enrichment,
+                                                data.frame(class=this_class, pathway_type="GO_CC",
+                                                           lncRNA_target_GO_CC_enrichment[,c("geneset", "description", "C", "O", "E", "R", "PValue", "FDR", "OverlapGene_UserID")]))         
+            } else {
+                cat("0 enriched pathways found for", nrow(this_gene_list), this_lncrna, "target genes in", this_class, "in GO CC\n")
+                cat("0 enriched pathways found for", nrow(this_gene_list), this_lncrna, "target genes in", this_class, "in GO CC\n", file=summary_file, append=T)
+            }
+            lncRNA_target_GO_MF_enrichment <- WebGestaltR(enrichMethod="ORA", organism="hsapiens",
+                                                          enrichDatabase="geneontology_Molecular_Function_noRedundant",
+                                                          interestGene=this_gene_list$gene,
+                                                          interestGeneType="genesymbol",
+                                                          referenceSet="genome",
+                                                          sigMethod="fdr", fdrThr=fdr_thresh, minNum=min_pathway_num,
+                                                          is.output=FALSE, maxNum=max_pathway_num)
+
+            if(!is.null(lncRNA_target_GO_MF_enrichment) & !(any(grepl("ERROR", lncRNA_target_GO_MF_enrichment)))) {
+                cat(nrow(lncRNA_target_GO_MF_enrichment), "enriched pathways found for", nrow(this_gene_list), this_lncrna, "target genes in", this_class, "in GO MF\n")
+                cat(nrow(lncRNA_target_GO_MF_enrichment), "enriched pathways found for", nrow(this_gene_list), this_lncrna, "target genes in", this_class, "in GO MF\n", file=summary_file, append=T)
+
+                this_lncrna_enrichment <- rbind(this_lncrna_enrichment,
+                                                data.frame(class=this_class, pathway_type="GO_MF",
+                                                           lncRNA_target_GO_MF_enrichment[,c("geneset", "description", "C", "O", "E", "R", "PValue", "FDR", "OverlapGene_UserID")]))                 
+            } else {
+                cat("0 enriched pathways found for", nrow(this_gene_list), this_lncrna, "target genes in", this_class, "in GO MF\n")
+                cat("0 enriched pathways found for", nrow(this_gene_list), this_lncrna, "target genes in", this_class, "in GO MF\n", file=summary_file, append=T)
+            }
+            
+            lncRNA_target_KEGG_enrichment <- WebGestaltR(enrichMethod="ORA", organism="hsapiens",
+                                                         enrichDatabase="pathway_KEGG",
+                                                         interestGene=this_gene_list$gene,
+                                                         interestGeneType="genesymbol",
+                                                         referenceSet="genome",
+                                                         sigMethod="fdr", fdrThr=fdr_thresh, minNum=min_pathway_num,
+                                                         is.output=FALSE, maxNum=max_pathway_num)
+            
+            if(!is.null(lncRNA_target_KEGG_enrichment) & !any((grepl("ERROR", lncRNA_target_KEGG_enrichment)))) {
+                cat(nrow(lncRNA_target_KEGG_enrichment), "enriched pathways found for", nrow(this_gene_list), this_lncrna, "target genes in", this_class, "in KEGG\n")
+                cat(nrow(lncRNA_target_KEGG_enrichment), "enriched pathways found for", nrow(this_gene_list), this_lncrna, "target genes in", this_class, "in KEGG\n", file=summary_file, append=T)
+
+                this_lncrna_enrichment <- rbind(this_lncrna_enrichment,
+                                                data.frame(class=this_class, pathway_type="KEGG",
+                                                           lncRNA_target_KEGG_enrichment[,c("geneset", "description", "C", "O", "E", "R", "PValue", "FDR", "OverlapGene_UserID")]))
+            } else {
+                cat("0 enriched pathways found for", nrow(this_gene_list), this_lncrna, "target genes in", this_class, "in KEGG\n")
+                cat("0 enriched pathways found for", nrow(this_gene_list), this_lncrna, "target genes in", this_class, "in KEGG\n", file=summary_file, append=T)
+            }
+            
+        }
+    }
+
+    if(nrow(this_lncrna_enrichment) > 0) {
+        write.table(this_lncrna_enrichment, paste0(datadir, '/pathway_analysis/tables/', this_lncrna, '_tissue_specific_target_pathway_enrichments.txt'), quote=F, sep="\t", row.names=F)
+    }    
 }
 
-all_lncRNA_target_GO_CC_enrichment <- WebGestaltR(enrichMethod="ORA", organism="hsapiens",
-                                       enrichDatabase="geneontology_Cellular_Component_noRedundant",
-                                      interestGeneFile=paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/all_lncRNA_genes_0.5_correlation_threshold.txt'),
-                                      interestGeneType="genesymbol",
-                                      referenceSet="genome",
-                                      sigMethod="fdr", fdrThr=fdr_thresh, minNum=min_pathway_num,
-                                      is.output=FALSE, maxNum=max_pathway_num)
-
-if(!is.null(all_lncRNA_target_GO_CC_enrichment)) {
-    cat(nrow(all_lncRNA_target_GO_CC_enrichment), "enriched pathways found for", num_lncRNA_targets, "lncRNA targets in GO CC\n")
-    cat(nrow(all_lncRNA_target_GO_CC_enrichment), "enriched pathways found for", num_lncRNA_targets, "lncRNA targets in GO CC\n", file=summary_file, append=T)
-
-    cross_tissue_lncRNA_target_enrichment <- rbind(cross_tissue_lncRNA_target_enrichment,
-                                                   data.frame(pathway_type="GO_CC",
-                                                              all_lncRNA_target_GO_CC_enrichment[,c("geneset", "description", "C", "O", "E", "R", "PValue", "FDR", "OverlapGene_UserID")]))    
-} else {
-    cat("0 enriched pathways found for", num_lncRNA_targets, "lncRNA targets in GO CC\n")
-    cat("0 enriched pathways found for", num_lncRNA_targets, "lncRNA targets in GO CC\n", file=summary_file, append=T)
-}
-
-all_lncRNA_target_GO_MF_enrichment <- WebGestaltR(enrichMethod="ORA", organism="hsapiens",
-                                       enrichDatabase="geneontology_Molecular_Function_noRedundant",
-                                      interestGeneFile=paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/all_lncRNA_genes_0.5_correlation_threshold.txt'),
-                                      interestGeneType="genesymbol",
-                                      referenceSet="genome",
-                                      sigMethod="fdr", fdrThr=fdr_thresh, minNum=min_pathway_num,
-                                      is.output=FALSE, maxNum=max_pathway_num)
-
-if(!is.null(all_lncRNA_target_GO_MF_enrichment)) {
-    cat(nrow(all_lncRNA_target_GO_MF_enrichment), "enriched pathways found for", num_lncRNA_targets, "lncRNA targets in GO MF\n")
-    cat(nrow(all_lncRNA_target_GO_MF_enrichment), "enriched pathways found for", num_lncRNA_targets, "lncRNA targets in GO MF\n", file=summary_file, append=T)
-
-    cross_tissue_lncRNA_target_enrichment <- rbind(cross_tissue_lncRNA_target_enrichment,
-                                                   data.frame(pathway_type="GO_MF",
-                                                              all_lncRNA_target_GO_MF_enrichment[,c("geneset", "description", "C", "O", "E", "R", "PValue", "FDR", "OverlapGene_UserID")]))    
-} else {
-    cat("0 enriched pathways found for", num_lncRNA_targets, "lncRNA targets in GO MF\n")
-    cat("0 enriched pathways found for", num_lncRNA_targets, "lncRNA targets in GO MF\n", file=summary_file, append=T)
-}
-
-all_lncRNA_target_KEGG_enrichment <- WebGestaltR(enrichMethod="ORA", organism="hsapiens",
-                                       enrichDatabase="pathway_KEGG",
-                                      interestGeneFile=paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/all_lncRNA_genes_0.5_correlation_threshold.txt'),
-                                      interestGeneType="genesymbol",
-                                      referenceSet="genome",
-                                      sigMethod="fdr", fdrThr=fdr_thresh, minNum=min_pathway_num,
-                                      is.output=FALSE, maxNum=max_pathway_num)
-
-if(!is.null(all_lncRNA_target_KEGG_enrichment)) {
-    cat(nrow(all_lncRNA_target_KEGG_enrichment), "enriched pathways found for", num_lncRNA_targets, "lncRNA targets in KEGG\n")
-    cat(nrow(all_lncRNA_target_KEGG_enrichment), "enriched pathways found for", num_lncRNA_targets, "lncRNA targets in KEGG\n", file=summary_file, append=T)
-
-    cross_tissue_lncRNA_target_enrichment <- rbind(cross_tissue_lncRNA_target_enrichment,
-                                                   data.frame(pathway_type="KEGG",
-                                                              all_lncRNA_target_KEGG_enrichment[,c("geneset", "description", "C", "O", "E", "R", "PValue", "FDR", "OverlapGene_UserID")]))    
-} else {
-    cat("0 enriched pathways found for", num_lncRNA_targets, "lncRNA targets in KEGG\n")
-    cat("0 enriched pathways found for", num_lncRNA_targets, "lncRNA targets in KEGG\n", file=summary_file, append=T)
+cat("Individual lncRNA tissue-specific target pathway analysis took", (proc.time() - indiv_lncrna_tissue_spec_start_time)[["elapsed"]], 'seconds\n')
 }    
-
-## write out the summary table
-if(nrow(cross_tissue_lncRNA_target_enrichment) > 0) {
-    write.table(cross_tissue_lncRNA_target_enrichment,
-                paste0(datadir, '/pathway_analysis/lncRNA_cross_tissue_target_pathway_enrichments.txt'), quote=F, sep="\t", row.names=F)
-    ## ## to read in this data
-    ## cross_tissue_lncRNA_target_enrichment <- read.table(paste0(datadir, '/pathway_analysis/lncRNA_cross_tissue_target_pathway_enrichments.txt'), header=T, sep="\t", quote="", as.is=T)
-}
-cat("Cross-tissue lncRNA target pathway analysis took", (proc.time() - lncrna_cross_tissue_start_time)[["elapsed"]], 'seconds\n')
-}
 
 ## -----------------------------------------------------------------------------
 ## 6. Visualize lncRNA target pathway enrichments
@@ -682,7 +699,7 @@ if(nrow(cross_tissue_lncRNA_target_enrichment) > 0) {
     cross_tissue_lncRNA_target_enrichment$clean_desc <- gsub(" - Homo sapiens (human)", "", cross_tissue_lncRNA_target_enrichment$description, fixed=T)
     cross_tissue_lncRNA_target_enrichment$clean_desc <- factor(cross_tissue_lncRNA_target_enrichment$clean_desc, ordered=T, levels=sort(unique(cross_tissue_lncRNA_target_enrichment$clean_desc), decreasing=T))
     
-    make_graphic(paste0(datadir, '/pathway_analysis/lncrna_cross_tissue_pathways_heatmap'), width_ratio=4, height_ratio=2)
+    make_graphic(paste0(datadir, '/pathway_analysis/plots/lncrna_cross_tissue_pathways_heatmap'), width_ratio=4, height_ratio=2)
     print(ggplot(cross_tissue_lncRNA_target_enrichment,
                  aes(x=factor(pathway_type), y=factor(clean_desc))) +
           facet_wrap(~ pathway_type, scales="free", shrink=F) + 
@@ -699,6 +716,7 @@ if(nrow(cross_tissue_lncRNA_target_enrichment) > 0) {
     
 }
 
+## then the tissue specific results
 if(nrow(lncrna_tissue_specific_target_enrichment) > 0) {
     lncrna_all_pathway_combos <- lncrna_tissue_specific_target_enrichment[,c('class', 'desc_with_pathway', 'FDR')]
     lncrna_all_pathway_combos <- merge(expand.grid(class=unique(lncrna_all_pathway_combos$class),
@@ -711,7 +729,7 @@ if(nrow(lncrna_tissue_specific_target_enrichment) > 0) {
 
     lncrna_all_pathway_combos$desc_with_pathway <- factor(lncrna_all_pathway_combos$desc_with_pathway, levels=sort(unique(lncrna_all_pathway_combos$desc_with_pathway), decreasing=T), ordered=T)    
     
-    make_graphic(paste0(datadir, '/pathway_analysis/lncrna_tissue_specific_pathways_heatmap'), width_ratio=4, height_ratio=4)
+    make_graphic(paste0(datadir, '/pathway_analysis/plots/lncrna_tissue_specific_pathways_heatmap'), width_ratio=4, height_ratio=4)
     print(ggplot(lncrna_all_pathway_combos, aes(x=class, y=desc_with_pathway)) +
           geom_tile(aes(fill=FDR), colour="black", size=2) +
           scale_fill_gradient(low="navyblue", high="orchid", guide="colorbar", na.value="white", limits=c(0, fdr_thresh)) + 
@@ -722,7 +740,7 @@ if(nrow(lncrna_tissue_specific_target_enrichment) > 0) {
                 title=element_text(size=30), plot.title = element_text(hjust = 0.5)))
     dev.off()
 
-    make_graphic(paste0(datadir, '/pathway_analysis/lncrna_tissue_specific_pathways_heatmap_facet'), width_ratio=4, height_ratio=4)
+    make_graphic(paste0(datadir, '/pathway_analysis/plots/lncrna_tissue_specific_pathways_heatmap_facet'), width_ratio=4, height_ratio=4)
     print(ggplot(lncrna_all_pathway_combos, aes(x=class, y=pathway_desc)) +
           geom_tile(aes(fill=FDR), colour="black", size=2) +
           facet_wrap(~ pathway_type, scales="free", shrink=F) + 
@@ -742,7 +760,7 @@ if(nrow(lncrna_tissue_specific_target_enrichment) > 0) {
         these_pathways$desc_with_pathway <- factor(these_pathways$desc_with_pathway, ordered=T, levels=sort(unique(these_pathways$desc_with_pathway), decreasing=F))
         ## these_pathways$class <- factor(these_pathways$class, levels=sort(unique(these_pathways$class), decreasing=T), ordered=T)
         
-        make_graphic(paste0(datadir, '/pathway_analysis/lncrna_tissue_specific_', pathway_type, '_pathways_heatmap'), width_ratio=2, height_ratio=1.75 * round_any(length(unique(these_pathways$pathway_desc)), accuracy=100, f=ceiling) / 100)
+        make_graphic(paste0(datadir, '/pathway_analysis/plots/lncrna_tissue_specific_', pathway_type, '_pathways_heatmap'), width_ratio=2, height_ratio=1.75 * round_any(length(unique(these_pathways$pathway_desc)), accuracy=100, f=ceiling) / 100)
         print(ggplot(these_pathways, aes(x=class, y=desc_with_pathway)) +
               geom_tile(aes(fill=FDR), colour="black", size=2) +
               scale_fill_gradient(low="navyblue", high="orchid", guide="colorbar", na.value="white", limits=c(0, fdr_thresh)) + 
@@ -759,7 +777,7 @@ if(nrow(lncrna_tissue_specific_target_enrichment) > 0) {
         present_categories <- as.character(category_info$class[category_info$found_class])
 
         if(length(present_categories) > 0) {
-            make_graphic(paste0(datadir, '/pathway_analysis/lncrna_tissue_specific_', pathway_type, '_pathways_filtered_category_heatmap'), width_ratio=2, height_ratio=1.75 * round_any(length(unique(these_pathways$pathway_desc)), accuracy=100, f=ceiling) / 100)
+            make_graphic(paste0(datadir, '/pathway_analysis/plots/lncrna_tissue_specific_', pathway_type, '_pathways_filtered_category_heatmap'), width_ratio=2, height_ratio=1.75 * round_any(length(unique(these_pathways$pathway_desc)), accuracy=100, f=ceiling) / 100)
             print(ggplot(these_pathways[these_pathways$class %in% present_categories,],
                          aes(x=class, y=desc_with_pathway)) +
                   geom_tile(aes(fill=FDR), colour="black", size=2) +
