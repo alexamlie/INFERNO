@@ -62,7 +62,7 @@ analyze_homer_motif_overlaps <- function(prefix, datadir, outdir, out_subtitle, 
               scale_fill_hue(h=c(180, 270)) +
               scale_colour_hue(h=c(180, 270)) +
               theme(legend.position="none",
-                    axis.text.x=element_text(angle=45, hjust=1, size=AXIS_TEXT_X_SIZE),
+                    axis.text.x=element_text(angle=60, hjust=1, size=AXIS_TEXT_X_SIZE),
                     axis.text.y = element_text(size=AXIS_TEXT_Y_SIZE),
                     title=element_text(size=TITLE_SIZE), plot.title = element_text(hjust = 0.5)) +
               plot_title("Distributions of PWM changes for motif-overlapping variants", r2_thresh, dist_thresh, out_subtitle))
@@ -80,7 +80,7 @@ analyze_homer_motif_overlaps <- function(prefix, datadir, outdir, out_subtitle, 
               geom_histogram(aes(x=delta_pwm), binwidth=0.1, fill=colfunc(n_bins)) +
               scale_fill_gradient(high="blue", low="red") +
               theme(legend.position="none",
-                    axis.text.x=element_text(angle=45, hjust=1, size=AXIS_TEXT_X_SIZE),
+                    axis.text.x=element_text(angle=60, hjust=1, size=AXIS_TEXT_X_SIZE),
                     axis.text.y = element_text(size=AXIS_TEXT_Y_SIZE),
                     title=element_text(size=TITLE_SIZE), plot.title = element_text(hjust = 0.5)) +
               plot_title("Distributions of PWM changes for motif-overlapping variants", r2_thresh, dist_thresh, out_subtitle))

@@ -32,6 +32,8 @@ make_graphic <- function(filename, width_ratio=1, height_ratio=1, type='pdf') {
     } else if(type=='png') {
         ## use type='cairo' for when X11 doesn't work
         png(filename=paste0(filename, ".png"), width=10*width_ratio, height=10*height_ratio, res=300, units='in', type='cairo')
+    } else if(type=="eps") {
+
     } else {
         cat('filetype not supported\n')
     }
@@ -372,7 +374,7 @@ all_lncrna_targets <- data.frame(stringsAsFactors = FALSE)
 
 for(lncrna in names(lncrna_correlation_dfs)) {
     cat("Analyzing", lncrna, "correlation patterns\n")    
-    cat("Analyzing", lncrna, "correlation patterns\n", file=summary_file, append=T)    
+    cat("Analyzing", lncrna, "correlation patterns\n", file=summary_file, append=T)
     
     ## add mean correlation values
     lncrna_correlation_dfs[[lncrna]]$mean_cor <- rowMeans(lncrna_correlation_dfs[[lncrna]][,c("pearson_cor", "spearman_cor")])

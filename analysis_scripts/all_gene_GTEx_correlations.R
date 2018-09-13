@@ -122,8 +122,18 @@ summary(spearman_cor[upper.tri(spearman_cor)])
     spearman_vec <- c(spearman_cor[upper.tri(spearman_cor)])
     rm(spearman_cor)
     cat("Spearman vectorization took", (proc.time() - combn_start)[['elapsed']], 'seconds\n')
-
 }
+
+save(pearson_vec, spearman_vec, file=paste0(outdir, "/full_correlation_tables/pearson_and_spearman_vectors.Rdata"))
+
+## load(paste0(outdir, "/full_correlation_tables/pearson_and_spearman_vectors.Rdata"))
+
+## check the different quantiles
+tab_start <- proc.time()
+
+table(pearson_pos=pearson_vec >= 0.5, spearman_pos=spearman_vec >= 0.5, pearson_neg=pearson_vec <= -0.5, spearman_neg=spearman_vec <= -0.5)
+
+cat("Tables took", (proc.time() - tab_start)[['elapsed']], "seconds\n")
 
 sum(rownames(pearson_cor) != rownames(spearman_cor))
 sum(colnames(pearson_cor) != colnames(spearman_cor))
@@ -148,6 +158,32 @@ correlation_df <- data.frame(pearson=pearson_vec, spearman=spearman_vec)
 make_graphic(paste0(outdir, '/plots/GTEx_v6p_all_correlation_distribution'), height_ratio=2.0, width_ratio=2.0)
 print(ggplot(correlation_df, aes(x=pearson, y=spearman)) + 
       stat_binhex(bins=75) +
+      scale_fill_gradientn(colors=c("lightgray", "cyan", "cyan1", "cyan2", "cyan3", "cyan4",
+                               "darkcyan", "blue", "blue1", "blue2", "blue3", "blue4", "darkblue"),
+                          name="Number of gene-gene pairs", labels=comma) +
+      theme_bw() +
+      geom_hline(yintercept=0.5, linetype=3) +
+      geom_vline(xintercept=0.5, linetype=3) +
+      geom_hline(yintercept=-0.5, linetype=3) +
+      geom_vline(xintercept=-0.5, linetype=3) +    
+      scale_x_continuous(limits=c(-1, 1), expand = c(0.05, 0),
+                         breaks=seq(-1, 1, by=0.2)) +
+      scale_y_continuous(limits=c(-1, 1), expand = c(0.05, 0),
+                         breaks=seq(-1, 1, by=0.2)) +
+      xlab("Pearson correlation") + ylab("Spearman correlation") +
+      ggtitle("Correlation distribution of all transcript pairs") +
+      theme(legend.position="bottom", axis.text.x = element_text(size=20),
+            legend.key.width=unit(3,"cm"),
+            axis.text.y = element_text(size=20), title=element_text(size=20),
+            plot.title = element_text(hjust = 0.5), legend.text = element_text(size=15)))
+dev.off()
+
+}
+
+{
+make_graphic(paste0(outdir, '/plots/GTEx_v6p_all_correlation_distribution_logscale'), height_ratio=2.0, width_ratio=2.0)
+print(ggplot(correlation_df, aes(x=pearson, y=spearman)) + 
+      stat_binhex(bins=75, aes(fill=log(..count..))) +
       scale_fill_gradientn(colors=c("lightgray", "cyan", "cyan1", "cyan2", "cyan3", "cyan4",
                                "darkcyan", "blue", "blue1", "blue2", "blue3", "blue4", "darkblue"),
                           name="Number of gene-gene pairs", labels=comma) +

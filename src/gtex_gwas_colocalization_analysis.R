@@ -616,168 +616,173 @@ write.table(all_summary_data, paste0(outdir, '/tables/', outprefix, '_gtex_coloc
 ## all_summary_data <- read.table(paste0(outdir, '/tables/', outprefix, '_gtex_coloc_summaries.txt'), header=T, sep="\t", quote="")
 
 ## make histograms for each of the different hypotheses by tag region
-make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H0_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
-print(ggplot(all_summary_data, aes(x=PP.H0.abf, fill=tag_region)) +
-    geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
-    facet_wrap(~ tag_region, scales="free_y", ncol=3, drop=FALSE) +
-    ggtitle("Histograms of H0 (no causal variant) probability across tag regions, GTEx") + 
-    theme_bw() + xlab("Probability of H0 (no causal variant)") + ylab("Count") +
-    theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
-          axis.text.y = element_text(size=15), strip.text=element_text(size=25),
-          title=element_text(size=25),
-          plot.title=element_text(hjust=0.5)))
-dev.off()
+## only do this if there aren't too many tag regions
+if(length(unique(all_summary_data$tag_region)) <= 300) {
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H0_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
+    print(ggplot(all_summary_data, aes(x=PP.H0.abf, fill=tag_region)) +
+          geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
+          facet_wrap(~ tag_region, scales="free_y", ncol=3, drop=FALSE) +
+          ggtitle("Histograms of H0 (no causal variant) probability across tag regions, GTEx") + 
+          theme_bw() + xlab("Probability of H0 (no causal variant)") + ylab("Count") +
+          theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
+                axis.text.y = element_text(size=15), strip.text=element_text(size=25),
+                title=element_text(size=25),
+                plot.title=element_text(hjust=0.5)))
+    dev.off()
 
-make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H1_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
-print(ggplot(all_summary_data, aes(x=PP.H1.abf, fill=tag_region)) +
-    geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
-    facet_wrap(~ tag_region, scales="free_y", ncol=3, drop=FALSE) +
-    ggtitle("Histograms of H1 (GWAS causal variant) probability across tag regions, GTEx") + 
-    theme_bw() + xlab("Probability of H1 (GWAS causal variant)") + ylab("Count") +
-    theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
-          axis.text.y = element_text(size=15), strip.text=element_text(size=25),
-          title=element_text(size=25),
-          plot.title=element_text(hjust=0.5)))
-dev.off()
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H1_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
+    print(ggplot(all_summary_data, aes(x=PP.H1.abf, fill=tag_region)) +
+          geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
+          facet_wrap(~ tag_region, scales="free_y", ncol=3, drop=FALSE) +
+          ggtitle("Histograms of H1 (GWAS causal variant) probability across tag regions, GTEx") + 
+          theme_bw() + xlab("Probability of H1 (GWAS causal variant)") + ylab("Count") +
+          theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
+                axis.text.y = element_text(size=15), strip.text=element_text(size=25),
+                title=element_text(size=25),
+                plot.title=element_text(hjust=0.5)))
+    dev.off()
 
-make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H2_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
-print(ggplot(all_summary_data, aes(x=PP.H2.abf, fill=tag_region)) +
-    geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
-    facet_wrap(~ tag_region, scales="free_y", ncol=3, drop=FALSE) +
-    ggtitle("Histograms of H2 (eQTL causal variant) probability across tag regions, GTEx") + 
-    theme_bw() + xlab("Probability of H2 (eQTL causal variant)") + ylab("Count") +
-    theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
-          axis.text.y = element_text(size=15), strip.text=element_text(size=25),
-          title=element_text(size=25),
-          plot.title=element_text(hjust=0.5)))
-dev.off()
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H2_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
+    print(ggplot(all_summary_data, aes(x=PP.H2.abf, fill=tag_region)) +
+          geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
+          facet_wrap(~ tag_region, scales="free_y", ncol=3, drop=FALSE) +
+          ggtitle("Histograms of H2 (eQTL causal variant) probability across tag regions, GTEx") + 
+          theme_bw() + xlab("Probability of H2 (eQTL causal variant)") + ylab("Count") +
+          theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
+                axis.text.y = element_text(size=15), strip.text=element_text(size=25),
+                title=element_text(size=25),
+                plot.title=element_text(hjust=0.5)))
+    dev.off()
 
-make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H3_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
-print(ggplot(all_summary_data, aes(x=PP.H3.abf, fill=tag_region)) +
-    geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
-    facet_wrap(~ tag_region, scales="free_y", ncol=3, drop=FALSE) +
-    ggtitle("Histograms of H3 (unshared causal variant) probability across tag regions, GTEx") + 
-    theme_bw() + xlab("Probability of H3 (unshared causal variant)") + ylab("Count") +
-    theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
-          axis.text.y = element_text(size=15), strip.text=element_text(size=25),
-          title=element_text(size=25),
-          plot.title=element_text(hjust=0.5)))
-dev.off()
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H3_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
+    print(ggplot(all_summary_data, aes(x=PP.H3.abf, fill=tag_region)) +
+          geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
+          facet_wrap(~ tag_region, scales="free_y", ncol=3, drop=FALSE) +
+          ggtitle("Histograms of H3 (unshared causal variant) probability across tag regions, GTEx") + 
+          theme_bw() + xlab("Probability of H3 (unshared causal variant)") + ylab("Count") +
+          theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
+                axis.text.y = element_text(size=15), strip.text=element_text(size=25),
+                title=element_text(size=25),
+                plot.title=element_text(hjust=0.5)))
+    dev.off()
 
-make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H4_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
-print(ggplot(all_summary_data, aes(x=PP.H4.abf, fill=tag_region)) +
-    geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
-    facet_wrap(~ tag_region, scales="free_y", ncol=3, drop=FALSE) +
-    ggtitle("Histograms of H4 (shared causal variant) probability across tag regions, GTEx") + 
-    theme_bw() + xlab("Probability of H4 (shared causal variant)") + ylab("Count") +
-    theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
-          axis.text.y = element_text(size=15), strip.text=element_text(size=25),
-          title=element_text(size=25),
-          plot.title=element_text(hjust=0.5)))
-dev.off()
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H4_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
+    print(ggplot(all_summary_data, aes(x=PP.H4.abf, fill=tag_region)) +
+          geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
+          facet_wrap(~ tag_region, scales="free_y", ncol=3, drop=FALSE) +
+          ggtitle("Histograms of H4 (shared causal variant) probability across tag regions, GTEx") + 
+          theme_bw() + xlab("Probability of H4 (shared causal variant)") + ylab("Count") +
+          theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
+                axis.text.y = element_text(size=15), strip.text=element_text(size=25),
+                title=element_text(size=25),
+                plot.title=element_text(hjust=0.5)))
+    dev.off()
 
-make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H4_highest_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
-print(ggplot(all_summary_data, aes(x=PP.H4.abf, fill=tag_region)) +
-    geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(0.5, 1), breaks=seq(0.5, 1, by=0.05)) +
-    facet_wrap(~ tag_region, scales="free_y", ncol=3, drop=FALSE) +
-    ggtitle("Histograms of H4 (shared causal variant) probability across tag regions, GTEx") + 
-    theme_bw() + xlab("Probability of H4 (shared causal variant)") + ylab("Count") +
-    theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
-          axis.text.y = element_text(size=15), strip.text=element_text(size=25),
-          title=element_text(size=25),
-          plot.title=element_text(hjust=0.5)))
-dev.off()
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H4_highest_prob_hist_by_tag_region'), height_ratio=1.5, width_ratio = 1.5)
+    print(ggplot(all_summary_data, aes(x=PP.H4.abf, fill=tag_region)) +
+          geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(0.5, 1), breaks=seq(0.5, 1, by=0.05)) +
+          facet_wrap(~ tag_region, scales="free_y", ncol=3, drop=FALSE) +
+          ggtitle("Histograms of H4 (shared causal variant) probability across tag regions, GTEx") + 
+          theme_bw() + xlab("Probability of H4 (shared causal variant)") + ylab("Count") +
+          theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
+                axis.text.y = element_text(size=15), strip.text=element_text(size=25),
+                title=element_text(size=25),
+                plot.title=element_text(hjust=0.5)))
+    dev.off()
 
-## also do this split by tissue
-make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H0_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
-print(ggplot(all_summary_data, aes(x=PP.H0.abf, fill=tissue)) +
-    geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
-    facet_wrap(~ tissue, scales="free_y", ncol=5, drop=FALSE) +
-    ggtitle("Histograms of H0 (no causal variant) probability across tissues") + 
-    theme_bw() + xlab("Probability of H0 (no causal variant)") + ylab("Count") +
-    theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
-          axis.text.y = element_text(size=15), strip.text=element_text(size=20),
-          title=element_text(size=25),
-          plot.title=element_text(hjust=0.5)))
-dev.off()
+    ## also do this split by tissue
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H0_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
+    print(ggplot(all_summary_data, aes(x=PP.H0.abf, fill=tissue)) +
+          geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
+          facet_wrap(~ tissue, scales="free_y", ncol=5, drop=FALSE) +
+          ggtitle("Histograms of H0 (no causal variant) probability across tissues") + 
+          theme_bw() + xlab("Probability of H0 (no causal variant)") + ylab("Count") +
+          theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
+                axis.text.y = element_text(size=15), strip.text=element_text(size=20),
+                title=element_text(size=25),
+                plot.title=element_text(hjust=0.5)))
+    dev.off()
 
-make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H1_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
-print(ggplot(all_summary_data, aes(x=PP.H1.abf, fill=tissue)) +
-    geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
-    facet_wrap(~ tissue, scales="free_y", ncol=5, drop=FALSE) +
-    ggtitle("Histograms of H1 (GWAS causal variant) probability across tissues") + 
-    theme_bw() + xlab("Probability of H1 (GWAS causal variant)") + ylab("Count") +
-    theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
-          axis.text.y = element_text(size=15), strip.text=element_text(size=20),
-          title=element_text(size=25),
-          plot.title=element_text(hjust=0.5)))
-dev.off()
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H1_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
+    print(ggplot(all_summary_data, aes(x=PP.H1.abf, fill=tissue)) +
+          geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
+          facet_wrap(~ tissue, scales="free_y", ncol=5, drop=FALSE) +
+          ggtitle("Histograms of H1 (GWAS causal variant) probability across tissues") + 
+          theme_bw() + xlab("Probability of H1 (GWAS causal variant)") + ylab("Count") +
+          theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
+                axis.text.y = element_text(size=15), strip.text=element_text(size=20),
+                title=element_text(size=25),
+                plot.title=element_text(hjust=0.5)))
+    dev.off()
 
-make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H2_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
-print(ggplot(all_summary_data, aes(x=PP.H2.abf, fill=tissue)) +
-    geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
-    facet_wrap(~ tissue, scales="free_y", ncol=5, drop=FALSE) +
-    ggtitle("Histograms of H2 (eQTL causal variant) probability across tissues") + 
-    theme_bw() + xlab("Probability of H2 (eQTL causal variant)") + ylab("Count") +
-    theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
-          axis.text.y = element_text(size=15), strip.text=element_text(size=20),
-          title=element_text(size=25),
-          plot.title=element_text(hjust=0.5)))
-dev.off()
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H2_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
+    print(ggplot(all_summary_data, aes(x=PP.H2.abf, fill=tissue)) +
+          geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
+          facet_wrap(~ tissue, scales="free_y", ncol=5, drop=FALSE) +
+          ggtitle("Histograms of H2 (eQTL causal variant) probability across tissues") + 
+          theme_bw() + xlab("Probability of H2 (eQTL causal variant)") + ylab("Count") +
+          theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
+                axis.text.y = element_text(size=15), strip.text=element_text(size=20),
+                title=element_text(size=25),
+                plot.title=element_text(hjust=0.5)))
+    dev.off()
 
-make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H3_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
-print(ggplot(all_summary_data, aes(x=PP.H3.abf, fill=tissue)) +
-    geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
-    facet_wrap(~ tissue, scales="free_y", ncol=5, drop=FALSE) +
-    ggtitle("Histograms of H3 (unshared causal variant) probability across tissues") + 
-    theme_bw() + xlab("Probability of H3 (unshared causal variant)") + ylab("Count") +
-    theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
-          axis.text.y = element_text(size=15), strip.text=element_text(size=20),
-          title=element_text(size=25),
-          plot.title=element_text(hjust=0.5)))
-dev.off()
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H3_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
+    print(ggplot(all_summary_data, aes(x=PP.H3.abf, fill=tissue)) +
+          geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
+          facet_wrap(~ tissue, scales="free_y", ncol=5, drop=FALSE) +
+          ggtitle("Histograms of H3 (unshared causal variant) probability across tissues") + 
+          theme_bw() + xlab("Probability of H3 (unshared causal variant)") + ylab("Count") +
+          theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
+                axis.text.y = element_text(size=15), strip.text=element_text(size=20),
+                title=element_text(size=25),
+                plot.title=element_text(hjust=0.5)))
+    dev.off()
 
-make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H4_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
-print(ggplot(all_summary_data, aes(x=PP.H4.abf, fill=tissue)) +
-    geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
-    facet_wrap(~ tissue, scales="free_y", ncol=5, drop=FALSE) +
-    ggtitle("Histograms of H4 (shared causal variant) probability across tissues") + 
-    theme_bw() + xlab("Probability of H4 (shared causal variant)") + ylab("Count") +
-    theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
-          axis.text.y = element_text(size=15), strip.text=element_text(size=20),
-          title=element_text(size=25),
-          plot.title=element_text(hjust=0.5)))
-dev.off()
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H4_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
+    print(ggplot(all_summary_data, aes(x=PP.H4.abf, fill=tissue)) +
+          geom_histogram(binwidth=0.01) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
+          facet_wrap(~ tissue, scales="free_y", ncol=5, drop=FALSE) +
+          ggtitle("Histograms of H4 (shared causal variant) probability across tissues") + 
+          theme_bw() + xlab("Probability of H4 (shared causal variant)") + ylab("Count") +
+          theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
+                axis.text.y = element_text(size=15), strip.text=element_text(size=20),
+                title=element_text(size=25),
+                plot.title=element_text(hjust=0.5)))
+    dev.off()
 
-make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H4_highest_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
-print(ggplot(all_summary_data, aes(x=PP.H4.abf, fill=tissue)) +
-    geom_histogram(binwidth=0.01) +
-    scale_x_continuous(limits=c(0.5, 1), breaks=seq(0.5, 1, by=0.05)) +
-    facet_wrap(~ tissue, scales="free_y", ncol=5, drop=FALSE) +
-    ggtitle("Histograms of H4 (shared causal variant) probability across tissues") + 
-    theme_bw() + xlab("Probability of H4 (shared causal variant)") + ylab("Count") +
-    theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
-          axis.text.y = element_text(size=15), strip.text=element_text(size=20),
-          title=element_text(size=25),
-          plot.title=element_text(hjust=0.5)))
-dev.off()
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_H4_highest_prob_hist_by_tissue'), height_ratio=1.5, width_ratio = 2.5)
+    print(ggplot(all_summary_data, aes(x=PP.H4.abf, fill=tissue)) +
+          geom_histogram(binwidth=0.01) +
+          scale_x_continuous(limits=c(0.5, 1), breaks=seq(0.5, 1, by=0.05)) +
+          facet_wrap(~ tissue, scales="free_y", ncol=5, drop=FALSE) +
+          ggtitle("Histograms of H4 (shared causal variant) probability across tissues") + 
+          theme_bw() + xlab("Probability of H4 (shared causal variant)") + ylab("Count") +
+          theme(legend.position="none", axis.text.x=element_text(angle=45, hjust=1, size=15),
+                axis.text.y = element_text(size=15), strip.text=element_text(size=20),
+                title=element_text(size=25),
+                plot.title=element_text(hjust=0.5)))
+    dev.off()
 
-## now make a single histogram looking at the distributions of all hypotheses together
-## need to melt the data to do this
-melted_summary_data <- melt(all_summary_data, id.vars=1:6, variable.name="hypothesis", value.name="probability")
+    ## now make a single histogram looking at the distributions of all hypotheses together
+    ## need to melt the data to do this
+    melted_summary_data <- melt(all_summary_data, id.vars=1:6, variable.name="hypothesis", value.name="probability")
 
-make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_all_hypotheses_prob_density'))
-print(ggplot(melted_summary_data, aes(x=probability, fill=hypothesis, color=hypothesis)) +
-    geom_density(alpha=0.5) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
-    scale_fill_brewer(palette="Set1") +
-    scale_colour_brewer(palette="Set1") + 
-    ggtitle("Combined density plot of all hypotheses, GTEx") + 
-    theme_bw() + xlab("Probability of hypothesis") + ylab("Density") +
-    theme(legend.position="bottom", axis.text.x=element_text(angle=45, hjust=1, size=15),
-          axis.text.y = element_text(size=15),
-          title=element_text(size=25), legend.text=element_text(size=20), 
-          plot.title=element_text(hjust=0.5)))
-dev.off()
+    make_graphic(paste0(outdir, '/plots/', outprefix, '_gtex_all_hypotheses_prob_density'))
+    print(ggplot(melted_summary_data, aes(x=probability, fill=hypothesis, color=hypothesis)) +
+          geom_density(alpha=0.5) + scale_x_continuous(limits=c(-0.02, 1.02), breaks=seq(0, 1, by=0.05)) +
+          scale_fill_brewer(palette="Set1") +
+          scale_colour_brewer(palette="Set1") + 
+          ggtitle("Combined density plot of all hypotheses, GTEx") + 
+          theme_bw() + xlab("Probability of hypothesis") + ylab("Density") +
+          theme(legend.position="bottom", axis.text.x=element_text(angle=45, hjust=1, size=15),
+                axis.text.y = element_text(size=15),
+                title=element_text(size=25), legend.text=element_text(size=20), 
+                plot.title=element_text(hjust=0.5)))
+    dev.off()
+} else {
+    cat("Too many tag regions to generate full colocalization distribution plots without excessive memory usage! Edit line 620 in gtex_gwas_colocalization_analysis.R to change this threshold if you desire.\n")
+}
 
 ## -----------------------------------------------------------------------------
 ## 5. Compare GTEx COLOC hits with top GWAS enhancer overlaps and eQTL effect direction
