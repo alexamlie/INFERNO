@@ -76,16 +76,26 @@ dir.create(paste0(datadir, '/pathway_analysis/tables/'), F, T)
 
 summary_file <- paste0(datadir, "/pathway_analysis/tables/webgestalt_pathway_summary.txt")
 
-coloc_gene_list <- read.table(list.files(paste0(datadir, '/gtex_gwas_colocalization_analysis/tables/'), pattern="*all_top_genes*", full.names=T), header=F, sep="\t", col.names=c("gene"))
+tryCatch(
+    coloc_gene_list <- read.table(list.files(paste0(datadir, '/gtex_gwas_colocalization_analysis/tables/'), pattern="*all_top_genes*", full.names=T), header=F, sep="\t", col.names=c("gene")),
+    error=function(e) {
+        print("No colocalization results found, exiting!");
+        quit()
+    })
 
 ## for tissue-specific analysis, also read in the prioritized colocalization data
-top_coloc_data <- read.table(list.files(paste0(datadir, '/gtex_gwas_colocalization_analysis/tables/'), pattern="*gtex_coloc_top_signals*", full.names=T), header=T, sep="\t", stringsAsFactors = F)
+tryCatch(
+    top_coloc_data <- read.table(list.files(paste0(datadir, '/gtex_gwas_colocalization_analysis/tables/'), pattern="*gtex_coloc_top_signals*", full.names=T), header=T, sep="\t", stringsAsFactors = F),
+    error=function(e) {
+        print("No tissue-specific colocalization results found, exiting!");
+        quit()
+    })
 
 ## -----------------------------------------------------------------------------
 ## 3. Run colocalization target pathway analysis
 ## -----------------------------------------------------------------------------
 all_coloc_gene_enrichment <- data.frame(stringsAsFactors = FALSE)
-
+if(nrow(coloc_gene_list) > 0) {
 coloc_GO_BP_enrichment <- WebGestaltR(enrichMethod="ORA", organism="hsapiens",
                                        enrichDatabase="geneontology_Biological_Process_noRedundant",
                                       interestGeneFile=list.files(paste0(datadir, '/gtex_gwas_colocalization_analysis/tables/'), pattern="*all_top_genes*", full.names=T),
@@ -171,9 +181,13 @@ if(nrow(all_coloc_gene_enrichment) > 0) {
     write.table(all_coloc_gene_enrichment, paste0(datadir, '/pathway_analysis/tables/all_coloc_target_pathway_enrichments.txt'), quote=F, sep="\t", row.names=F)
 }
 
+} else {
+    cat("No colocalized genes!\n")
+}
 ## -----------------------------------------------------------------------------
 ## 4. Run and analyze tissue-specific colocalization target pathway analysis
 ## -----------------------------------------------------------------------------
+if(nrow(top_coloc_data) > 0) {
 cat("Running tissue-specific colocalization target pathway analysis\n")
 {
 all_class_start_time <- proc.time()
@@ -273,7 +287,9 @@ if(nrow(all_class_pathway_enrichment) > 0) {
     
     write.table(all_class_pathway_enrichment, paste0(datadir, '/pathway_analysis/tables/all_coloc_target_class_specific_pathway_enrichments.txt'), quote=F, sep="\t", row.names=F)
 }
-    
+
+}
+
 ## -----------------------------------------------------------------------------
 ## 5. Run lncRNA correlation target pathway analysis
 ## -----------------------------------------------------------------------------
@@ -281,6 +297,7 @@ if(nrow(all_class_pathway_enrichment) > 0) {
 lncrna_cross_tissue_start_time <- proc.time()
 ## start with the full target analysis
 num_lncRNA_targets <- nrow(read.table(paste0(datadir, '/gtex_lncRNA_correlation_analysis/tables/all_lncRNA_genes_0.5_pearson_0.5_spearman_correlation_threshold.txt'), sep="\t", col.names=c("gene")))
+if(num_lncRNA_targets > 0) {
 
 cross_tissue_lncRNA_target_enrichment <- data.frame(stringsAsFactors = FALSE)
 
@@ -373,7 +390,12 @@ if(nrow(cross_tissue_lncRNA_target_enrichment) > 0) {
 }
 cat("Cross-tissue lncRNA target pathway analysis took", (proc.time() - lncrna_cross_tissue_start_time)[["elapsed"]], 'seconds\n')
 }
+else {
+    cat("No lncRNA targets found!\n")
+}
+}
 
+## TODO: UPDATE TO CHECK IF THERE ARE TARGETS..
 ## now do tissue-specific correlation analysis
 {
 lncrna_all_class_start_time <- proc.time()

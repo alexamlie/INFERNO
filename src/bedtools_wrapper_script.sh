@@ -20,9 +20,9 @@ if [ "${BEDTOOLS_BIN_DIR}" == "None" ]; then
 	    module load bedtools > /dev/null 2>&1
 	    ## if this still didn't work
 	    if ! type "bedtools" > /dev/null 2>&1; then
-		module load bedtools2 > /dev/null 2>&1
+		module load bedtools2/2.25.0 > /dev/null 2>&1
 		if ! type "bedtools" > /dev/null 2>&1; then
-		    echo "No bedtools found! Please insall bedtools and put it in your \$PATH, install it as a module, or provide a link to a bin/ directory for bedtools."
+		    echo "No bedtools found! Please install bedtools and put it in your \$PATH, install it as a module, or provide a link to a bin/ directory for bedtools."
 		    exit 1
 		fi
 	    fi

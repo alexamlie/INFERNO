@@ -13,7 +13,7 @@ downstream biological processes affected by functional variants.
 ### Instructions for use:
 #### Obtaining source code and annotations:
 To use INFERNO, pull the source code from [the bitbucket
-repository](https://bitbucket.org/alexamlie/INFERNO/). The full processed annotation datasets
+repository](https://bitbucket.org/wanglab-upenn/INFERNO/). The full processed annotation datasets
 used for the tool are [available for
 download](http://lisanwanglab.org/~alexaml/full_INFERNO_annotations.tar.gz). There
 is also a [web server](http://inferno.lisanwanglab.org) that runs a subset of the INFERNO

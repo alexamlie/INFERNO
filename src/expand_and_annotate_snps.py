@@ -671,10 +671,10 @@ def expand_ld_snps(input_snp_list, kg_pop, kg_dir, ld_threshold, ld_check_area, 
 
             for snpline in snpin:
                 this_data = snpline.strip().split('\t')
-                end_pos = int(this_data[snp_idx['pos']])+1
+                start_pos = int(this_data[snp_idx['pos']])-1
                 bedout.write("\t".join([this_data[snp_idx['chr']],
+                                        str(start_pos),
                                         this_data[snp_idx['pos']],
-                                        str(end_pos),
                                         ":".join([this_data[snp_idx['rsID']],
                                                   this_data[snp_idx['tag_rsID']],
                                                   this_data[snp_idx['tag_name']]])])+'\n')

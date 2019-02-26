@@ -346,7 +346,7 @@ for(this_chr in unique(top_snps$chr)) {
                     
                     ld_snps_gtex_ids_1 <- this_region_gwas_snps$gtex_id1[this_region_gwas_snps[,rsid_col] %in% ld_stats_df$rsID[ld_stats_df$tag_name==this_tag]]
 
-                    ld_snps_gtex_ids_2 <- this_region_gwas_snps$gtex_id1[this_region_gwas_snps[,rsid_col] %in% ld_stats_df$rsID[ld_stats_df$tag_name==this_tag]]
+                    ld_snps_gtex_ids_2 <- this_region_gwas_snps$gtex_id2[this_region_gwas_snps[,rsid_col] %in% ld_stats_df$rsID[ld_stats_df$tag_name==this_tag]]
 
                     ## if we only have the tag variant, which we tried already, just continue
                     if(length(ld_snps_gtex_ids_1) <= 1) {
@@ -607,10 +607,17 @@ cat("Reading in all summaries took", (proc.time() - summ_start)[["elapsed"]], "s
 ## add a tissue class category
 all_summary_data$gtex_tissue_class <- gtex_category_df$Class[match(all_summary_data$tissue, gtex_category_df$coloc_match)]
 ## and reorder
-all_summary_data <- all_summary_data[,c(1,2,11,3:10)]
+tryCatch({
+    all_summary_data <- all_summary_data[,c(1,2,11,3:10)]
 
-## write this out in summarized form
-write.table(all_summary_data, paste0(outdir, '/tables/', outprefix, '_gtex_coloc_summaries.txt'), quote=F, sep="\t", row.names=F)
+    ## write this out in summarized form
+    write.table(all_summary_data, paste0(outdir, '/tables/', outprefix, '_gtex_coloc_summaries.txt'), quote=F, sep="\t", row.names=F)
+},
+    error = function(e) {
+        print("Error reading in summary data, quitting and writing dummy file to show that run got to this point...")
+        file.create(paste0(outdir, '/tables/', outprefix, '_gtex_coloc_summaries.txt'))
+        quit()
+    })
 
 ## ## to read this in directly:
 ## all_summary_data <- read.table(paste0(outdir, '/tables/', outprefix, '_gtex_coloc_summaries.txt'), header=T, sep="\t", quote="")

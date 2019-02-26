@@ -53,7 +53,7 @@ if __name__=="__main__":
     pargs = parser.parse_args()
     
     ## source the variables from the config file
-    config_vars = {}
+   config_vars = {}
     with open(pargs.cfg_file, 'rb') as cfg_file:
         for line in cfg_file:
             if line[0]!="#" and line.strip():
@@ -64,7 +64,11 @@ if __name__=="__main__":
     if not pargs.skip_ld_expansion:
         if "LD_THRESH" not in config_vars or "LD_AREA" not in config_vars:
             sys.exit("Must provide R^2 and distance thresholds for LD expansion")
-            
+    else:
+        ## if we're skipping LD expansion, set these parameters manually
+        config_vars["LD_THRESH"] = 1.0
+        config_vars["LD_AREA"] = 0
+                        
     ## for expand_and_annotate_snps.py script, set up the flag arguments based on what's
     ## defined in the config file. to do this, make a list of the possible flags to the
     ## script. note that the config file variables must exactly match these (uppercase or not)
@@ -131,7 +135,8 @@ if __name__=="__main__":
                                     config_vars["LD_PARTNER_THRESHOLD"],
                                     config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/snp_maf_tss_ld_summary/snp_maf_tss_dist_"+config_vars["LD_THRESH"]+"_ld_info.txt", 
                                     config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/precomputed_ld_sets/", 
-                                    config_vars["REF_SUMMARY_DIR"], param_file])
+                                    config_vars["REF_SUMMARY_DIR"], config_vars["LD_THRESH"],
+                                    config_vars["LD_AREA"], param_file])
             else:
                 print "Running enhancer bootstrapping analysis"    
                 subprocess.call(["./bsub_wrappers/enhancer_bootstrap_bsub_wrapper.sh",
@@ -141,7 +146,8 @@ if __name__=="__main__":
                                     config_vars["LD_PARTNER_THRESHOLD"],
                                     config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/snp_maf_tss_ld_summary/snp_maf_tss_dist_"+config_vars["LD_THRESH"]+"_ld_info.txt",
                                     config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/precomputed_ld_sets/", 
-                                    config_vars["REF_SUMMARY_DIR"], param_file,
+                                    config_vars["REF_SUMMARY_DIR"], config_vars["LD_THRESH"],
+                                    config_vars["LD_AREA"], param_file,
                                     pargs.outdir+"/logs/"+pargs.outprefix+".enh_bootstrapping.bash.log"])
                 
     ## only run summary stats-based analyses if there is a summary file
@@ -232,7 +238,8 @@ if __name__=="__main__":
                                     config_vars["LD_PARTNER_THRESHOLD"],
                                     config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/snp_maf_tss_ld_summary/snp_maf_tss_dist_"+config_vars["LD_THRESH"]+"_ld_info.txt",
                                     config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/precomputed_ld_sets/", 
-                                    config_vars["REF_SUMMARY_DIR"], param_file])
+                                    config_vars["REF_SUMMARY_DIR"], config_vars["LD_THRESH"],
+                                    config_vars["LD_AREA"], param_file])
             else:
                 print "Running enhancer bootstrapping analysis"
                 subprocess.call(["./bsub_wrappers/enhancer_bootstrap_bsub_wrapper.sh",
@@ -242,7 +249,8 @@ if __name__=="__main__":
                                     config_vars["LD_PARTNER_THRESHOLD"],
                                     config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/snp_maf_tss_ld_summary/snp_maf_tss_dist_"+config_vars["LD_THRESH"]+"_ld_info.txt", 
                                     config_vars["KG_DIR"]+"/"+config_vars["KG_POP"]+"/precomputed_ld_sets/", 
-                                    config_vars["REF_SUMMARY_DIR"], param_file,
+                                    config_vars["REF_SUMMARY_DIR"], config_vars["LD_THRESH"],
+                                    config_vars["LD_AREA"], param_file,
                                     pargs.outdir+"/logs/"+pargs.outprefix+".enh_bootstrapping.bash.log"])
         
         ## submit a job for COLOC-based colocalization analysis

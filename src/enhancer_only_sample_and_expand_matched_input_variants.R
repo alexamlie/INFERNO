@@ -61,10 +61,12 @@ full_analysis_start_time <- proc.time()
 ## -----------------------------------------------------------------------------
 args <- commandArgs(trailingOnly=TRUE)
 cat(args, "\n")
+
 ## set the significance threshold
 sig_thresh <- 0.1
 ## stop("Done")
-if (length(args)==9) {
+
+if (length(args)==11) {
     ## sampling parameters
     num_samples <- as.numeric(args[1])
     maf_bin_size <- as.numeric(args[2])
@@ -80,9 +82,13 @@ if (length(args)==9) {
     ld_sets_dir <- args[7]
     ## path to the annotation overlaps for all 1kg SNPs
     ref_summary_dir <- args[8]
+
+    ## R^2 and distance thresholds (input here, so that driver script can deal with them)
+    r2_thresh <- as.numeric(args[9])
+    dist_thresh <- as.numeric(args[10])
     
     ## pipeline parameter file for input
-    parameter_file <- args[9]    
+    parameter_file <- args[11]    
 } else {
     cat(args, '\n')
     stop("Not enough arguments")    
@@ -93,13 +99,14 @@ param_ref <- parameter_tab$value
 names(param_ref) <- parameter_tab$param
 ## define some variables using the param references
 output_dir <- paste0(param_ref[['outdir']], '/background_enh_sampling_match_and_expand/')
-if(check_param(param_ref, "skip_ld_expansion")) {
-    r2_thresh <- "1.0"
-    dist_thresh <- "0"
-} else {
-    r2_thresh <- param_ref[['ld_threshold']]
-    dist_thresh <- param_ref[['ld_check_area']]
-}
+## OLD CODE: this is now taken care of in the driver script
+## if(check_param(param_ref, "skip_ld_expansion")) {
+##     r2_thresh <- "1.0"
+##     dist_thresh <- "0"
+## } else {
+##     r2_thresh <- param_ref[['ld_threshold']]
+##     dist_thresh <- param_ref[['ld_check_area']]
+## }
 
 ## check that the background SNP info is a real file
 if (!file.exists(bg_snp_info_f)) {
@@ -638,14 +645,14 @@ write.table(expanded_input_blocks, paste0(output_dir, "/samples/", param_ref[['o
                                           "_expanded_input_blocks.txt"), quote=F,
             sep="\t", row.names=F, col.names=F)
 
-## to read them back in, uncomment this:
-expanded_snp_idx_mat <- as.matrix(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_sample_mat.txt"), header=F, sep="\t", quote="", as.is=T))
-expanded_snp_regions <- as.matrix(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_sample_regions.txt"), header=F, sep="\t", quote="", as.is=T))
-expanded_snp_blocks <- as.matrix(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_sample_blocks.txt"), header=F, sep="\t", quote="", as.is=T))
+## ## to read them back in, uncomment this:
+## expanded_snp_idx_mat <- as.matrix(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_sample_mat.txt"), header=F, sep="\t", quote="", as.is=T))
+## expanded_snp_regions <- as.matrix(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_sample_regions.txt"), header=F, sep="\t", quote="", as.is=T))
+## expanded_snp_blocks <- as.matrix(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_sample_blocks.txt"), header=F, sep="\t", quote="", as.is=T))
 
-expanded_input_idxs <- as.vector(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_input_idxs.txt"), header=F, sep="\t", quote="", as.is=T)$V1)
-expanded_input_regions <- as.vector(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_input_regions.txt"), header=F, sep="\t", quote="", as.is=T)$V1)
-expanded_input_blocks <- as.vector(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_input_blocks.txt"), header=F, sep="\t", quote="", as.is=T)$V1)
+## expanded_input_idxs <- as.vector(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_input_idxs.txt"), header=F, sep="\t", quote="", as.is=T)$V1)
+## expanded_input_regions <- as.vector(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_input_regions.txt"), header=F, sep="\t", quote="", as.is=T)$V1)
+## expanded_input_blocks <- as.vector(read.table(paste0(output_dir, "/samples/", param_ref[["outprefix"]], "_expanded_input_blocks.txt"), header=F, sep="\t", quote="", as.is=T)$V1)
 
 cat("Auto LD expansion took:\n")
 cat((proc.time() - start_time)[["elapsed"]], 'seconds\n')
@@ -721,8 +728,21 @@ dev.off()
 {
 annot_start <- proc.time()
 
-## read in all the different tissue classes
-all_classes <- scan(paste0(ref_summary_dir, "/all_classes.txt"), "character", sep="\t")
+## first read in data to get the classes
+## use the 1000bp locus window for enhancers
+enh_locus_overlaps <- read.table(paste0(ref_summary_dir, "/uniq_class_enh_locus_snps.txt"),
+                                 header=F, sep="\t", quote="", comment.char="",
+                                 as.is=T, col.names=c("chr", "rsID", "pos", "tissue_class"))
+
+## read in roadmap HMM data
+hmm_overlaps <- read.table(paste0(ref_summary_dir, "/uniq_class_roadmap_hmm_snps.txt"),
+                            header=F, sep="\t", quote="", comment.char="", as.is=T,
+                            col.names=c("chr", "rsID", "pos", "tissue_class"))
+
+
+## ## read in all the different tissue classes
+## all_classes <- scan(paste0(ref_summary_dir, "/all_classes.txt"), "character", sep="\t")
+all_classes <- sort(unique(c(enh_locus_overlaps$tissue_class, hmm_overlaps$tissue_class)))
 
 ## make logical matrices for the different annotations
 enh_overlap_mat <- matrix(FALSE, nrow(snp_info), length(all_classes),
@@ -730,10 +750,7 @@ enh_overlap_mat <- matrix(FALSE, nrow(snp_info), length(all_classes),
 hmm_overlap_mat <- matrix(FALSE, nrow(snp_info), length(all_classes),
                           dimnames=list(snp_info$rsID, all_classes))
 
-## use the 1000bp locus window for enhancers
-enh_locus_overlaps <- read.table(paste0(ref_summary_dir, "/uniq_class_enh_locus_snps.txt"),
-                                 header=F, sep="\t", quote="", comment.char="",
-                                 as.is=T, col.names=c("chr", "rsID", "pos", "tissue_class"))
+## now analyze the FANTOM5 data
 ## add an indexing column so we don't have to match on row names
 enh_locus_overlaps$snp_idx <- match(enh_locus_overlaps$rsID, snp_info$rsID)
 ## also add a tissue indexing column
@@ -742,10 +759,7 @@ enh_locus_overlaps$tiss_idx <- match(enh_locus_overlaps$tissue_class, colnames(e
 enh_overlap_mat[cbind(enh_locus_overlaps$snp_idx, enh_locus_overlaps$tiss_idx)] <- TRUE
 rm(enh_locus_overlaps)
 
-## read in roadmap HMM data
-hmm_overlaps <- read.table(paste0(ref_summary_dir, "/uniq_class_roadmap_hmm_snps.txt"),
-                            header=F, sep="\t", quote="", comment.char="", as.is=T,
-                            col.names=c("chr", "rsID", "pos", "tissue_class"))
+## and analyze the Roadmap data
 ## add an indexing column
 hmm_overlaps$snp_idx <- match(hmm_overlaps$rsID, snp_info$rsID)
 ## also add a tissue indexing column
@@ -762,7 +776,8 @@ input_annotation_counts <- read.table(paste0(param_ref[['outdir']],
                                              r2_thresh, '_ld_', dist_thresh, '_dist.txt'),
                                       header=T, sep="\t", quote="", comment.char="", as.is=T)
 ## parse this down to only include the enhancer annotations for this analysis
-input_annotation_counts <- input_annotation_counts[grep("eqtl", input_annotation_counts$annotation, invert=T),]
+## and the corresponding tissue classes
+input_annotation_counts <- input_annotation_counts[!grepl("eqtl", input_annotation_counts$annotation) & input_annotation_counts$tissue_class %in% all_classes,]
 
 annot_names <- unique(input_annotation_counts$annotation)
 ## now we want to convert this into a count matrix so that we can easily compare
@@ -776,7 +791,7 @@ region_annotation_counts <- read.table(paste0(param_ref[['outdir']],
                                               r2_thresh, '_ld_', dist_thresh, '_dist.txt'),
                                        header=T, sep="\t", quote="", comment.char="", as.is=T)
 ## also parse this one down
-region_annotation_counts <- region_annotation_counts[grep("eqtl", region_annotation_counts$annotation, invert=T),]
+region_annotation_counts <- region_annotation_counts[!grepl("eqtl", region_annotation_counts$annotation) & region_annotation_counts$tissue_class %in% all_classes,]
 
 ## make a 3d array for each tag region, tissue class, and annotation
 input_region_annot_arr <- acast(region_annotation_counts, tissue_class ~ annotation ~ tag_region, value.var="count")
