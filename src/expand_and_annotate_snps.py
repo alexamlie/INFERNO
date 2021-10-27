@@ -117,6 +117,9 @@ def expand_ld_snps(input_snp_list, kg_pop, kg_dir, ld_threshold, ld_check_area, 
                     ## if we had been previously looking at a chromosome:
                     if this_chr:
                         kg_file = kg_dir+"/"+kg_pop+"/"+this_chr+".phase1_release_v3.20101123.snps_indels_svs.genotypes.refpanel."+kg_pop+".vcf.gz"
+                        # 10_EUR_SNP_biallelic.no_monomorphic.vcf.gz
+                        kg_file = kg_dir+"/"+kg_pop+"/"+str.replace(this_chr,"chr","")+"_" + kg_pop + "_SNP_biallelic.no_monomorphic.vcf.gz"
+			
                         ## check if this chromosome actually exists
                         if not os.path.isfile(kg_file):
                             logging_function("Chromosome %s does not have 1,000 genomes data, skipping." % (this_chr))
@@ -394,6 +397,8 @@ def expand_ld_snps(input_snp_list, kg_pop, kg_dir, ld_threshold, ld_check_area, 
                 logging_function("Analyzing SNPs from chromosome %s, buffer number %s" % (this_chr, str(buffer_snp_ctr/buffer_size)))
 
             kg_file = kg_dir+"/"+kg_pop+"/"+this_chr+".phase1_release_v3.20101123.snps_indels_svs.genotypes.refpanel."+kg_pop+".vcf.gz"
+            # 10_EUR_SNP_biallelic.no_monomorphic.vcf.gz
+            kg_file = kg_dir+"/"+kg_pop+"/"+str.replace(this_chr,"chr","")+"_" + kg_pop + "_SNP_biallelic.no_monomorphic.vcf.gz"
             ## check if this chromosome actually exists
             if not os.path.isfile(kg_file):
                 logging_function("Chromosome %s does not have 1,000 genomes data, skipping." % (this_chr))
