@@ -517,6 +517,7 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
     ## ---------------------------------------------------
     ## ----------------------
     ## we want to know how many SNPs in each tag region are supported by each overlap type
+message("how many SNPs in each tag region are supported by each overlap type")
     tagregion_support_counts <- melt(ddply(ld_stats_df, .(tag_name), function(x) {
         this_region_snps <- unique(x$rsID)
         f5_count <- sum(this_region_snps %in% f5_overlap_df$rsID)
@@ -537,7 +538,7 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
         }
         breaks
     }
-    
+
     make_graphic(paste0(outdir, 'plots/', prefix, '_indiv_annotation_snp_counts_per_region_',
                         r2_thresh, "_ld_", dist_thresh, "_dist"), height_ratio = 2.0)
     print(ggplot(tagregion_support_counts, aes(x=tag_name, y=SNP_Count, fill=tag_name)) +
@@ -554,7 +555,7 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
                 plot.title=element_text(size=TITLE_SIZE, hjust=0.5), strip.text=element_text(size=15)) + 
           plot_title("Number of SNPs overlapping FANTOM5 Enhancers, Roadmap HMM Enhancers, and GTEx eQTLs", r2_thresh, dist_thresh, out_subtitle))
     dev.off()    
-        
+message("look at the number of SNPs that are supported by all 3")
     ## ----------------------
     ## just look at the number of SNPs that are supported by all 3
     threeway_snp_count <- as.data.frame(table(roadmap_f5_eqtl_overlap_snps$tag_name[!duplicated(roadmap_f5_eqtl_overlap_snps[,c("rsID", "tag_name")])], dnn="tag_name"))
@@ -580,6 +581,7 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
     ## get the supporting data sets across all SNPs and tissue categories
     ## for this, we are just looking for the data source - tissue category combinations that
     ## are present
+message("get the supporting data sets across all SNPs and tissue categories")
     enh_snp_category_combos <- melt(unique(f5_overlap_df[,c("rsID", "pos", "tag_name", "enh_class")]),
                                     id.vars=c("rsID", "tag_name", "pos"),
                                     variable.name="data_source", value.name="tissue_class")
@@ -633,6 +635,7 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
     rm(enh_snp_category_combos, eqtl_snp_category_combos, roadmap_enh_snp_category_combos)
 
     ## we also need to add annotations for all SNP-tissue combos that were not observed
+message("add annotations for all SNP-tissue combos that were not observed")
     snp_support_df_full <- merge(expand.grid(rsID = unique(ld_stats_df$rsID),
                                              tissue_class=Reduce(union, list(fantom5_category_df$Class, gtex_category_df$Class, roadmap_category_df$Class)),
                                              stringsAsFactors = F),
@@ -665,6 +668,7 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
     snp_text_cols <- tag_name_cols[snp_support_df_full$tag_name[match(ordered_rsIDs, snp_support_df_full$rsID)]]
 
     ## find the unique combinations of full states and also get them in the desired factor order
+message("find the unique combinations of full states and also get them in the desired factor order")
     unique_supports <- sort(unique(snp_support_df_full$support))
     snp_support_df_full$support <- factor(snp_support_df_full$support, ordered=T,
                                           levels=c(grep("\\+|No support", unique_supports, val=T, inv=T),
@@ -682,15 +686,17 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
     ## plot the full heatmap of all states
     ## this goes in the main output directory and uses the normal prefix
     snp_support_heatmap(snp_support_df_full, paste0(outdir, 'plots/'), prefix, "all", support_text_cols, tag_name_cols, snp_text_cols)
+message("plot the full heatmap of all states")
 
     ## ----------------------
     ## also plot heatmaps for each tag region
+message("plot the full heatmap for each tag region")
     for(tag_region in unique(snp_support_df_full$tag_name)) {
         tag_region_name <- strsplit(tag_region, ":")[[1]][1]
         tag_region_name <- gsub("/", "_", tag_region_name)
         tag_outdir <- paste0(outdir, "/plots/", tag_region_name, "/")
         dir.create(tag_outdir, F, T)
-
+message(tag_region_name)
         this_tag_support_df <- snp_support_df_full[snp_support_df_full$tag_name==tag_region,]
         ## just to make sure this is sorted
         this_tag_ordered_rsIDs <- unique(as.vector(this_tag_support_df$rsID[order(this_tag_support_df$pos, this_tag_support_df$rsID, decreasing=F)]))
@@ -803,7 +809,6 @@ analyze_fantom5_eqtl_chromHMM_overlap <- function(prefix, datadir, outdir, out_s
     
     ## make the combined tag region heatmap!
     bg_color <- "#e6e6e6"
-
     ## make two plots, one with color text and one without
     make_graphic(paste0(outdir, 'plots/', prefix, '_roadmap_fantom5_gtex_tag_region_support_heatmap_color_axis_',
                         r2_thresh, "_ld_", dist_thresh,

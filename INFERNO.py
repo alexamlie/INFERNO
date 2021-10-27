@@ -9,7 +9,7 @@ python script or submitted through bsub/qsub using the INFERNO.sh wrapper script
 """
 
 import argparse, subprocess, datetime, os, time, sys
-
+import pprint
 if __name__=="__main__":
     ## record the starting time. this only really works for the non-bsub steps of the pipeline
     ## that run sequentially, but it's in here for the web server
@@ -79,19 +79,32 @@ if __name__=="__main__":
         os.makedirs(pargs.outdir+"/logs/")        
     except OSError:
         pass
-    
+
+    pprint.pprint(config_vars)
+    have_missing = False
+    for c in config_vars.keys():
+       if 'FILE' in c:
+         if not os.path.exists(config_vars[c]):
+             print("missing file: " + config_vars[c])
+             have_missing = True
+    if have_missing:
+        sys.exit(1)
+
+
     if not pargs.summary_file and not pargs.skip_annotation:
         print "Running analysis without summary stats"
         ## first run the annotation script
         start_time = time.time()
         if not pargs.skip_ld_expansion:
             print "Running LD expansion and annotation"        
-            subprocess.call(["python", "-u", "./src/expand_and_annotate_snps.py", "--loglevel",
+            obj1=subprocess.call(["python", "-u", "./src/expand_and_annotate_snps.py", "--loglevel",
                             "full", "--kg_pop", config_vars["KG_POP"], "--ld_threshold",
                             config_vars["LD_THRESH"], "--ld_check_area", config_vars["LD_AREA"]] +
                             annotation_arg_list +
                             [config_vars["KG_DIR"]+"/sorted_files/", pargs.top_snpf, pargs.outdir, pargs.outprefix])
             print "LD expansion and annotation took %.2f seconds" % (time.time()-start_time)
+            if obj1!=0:
+              sys.exit(obj1)
         else:
             print "Running direct annotation (no LD expansion)"
             subprocess.call(["python", "-u", "./src/expand_and_annotate_snps.py", "--loglevel",
@@ -102,7 +115,20 @@ if __name__=="__main__":
         
         print "Summarizing annotation results"
         ## TODO: check that the class files exist
-        subprocess.call(["./analysis_scripts/count_annotation_overlaps.sh",  "-l", config_vars["ENHANCER_LOCUS_WINDOW"], "-f", config_vars["F5_CLASSES"], "-g", config_vars["GTEX_CLASSES"], "-r", config_vars["ROADMAP_CLASSES"], pargs.outdir, config_vars["LD_THRESH"], config_vars["LD_AREA"], pargs.outprefix, pargs.outdir+"/summaries/"])
+
+        pgram = ["./analysis_scripts/count_annotation_overlaps.sh",  
+                          "-l", config_vars["ENHANCER_LOCUS_WINDOW"], 
+                          "-f", config_vars["F5_CLASSES"], 
+                          "-g", config_vars["GTEX_CLASSES"], 
+                          "-r", config_vars["ROADMAP_CLASSES"], 
+                  pargs.outdir, config_vars["LD_THRESH"], config_vars["LD_AREA"], pargs.outprefix, pargs.outdir+"/summaries/"]
+        print(' '.join(pgram))
+        subprocess.call(["./analysis_scripts/count_annotation_overlaps.sh",  
+                          "-l", config_vars["ENHANCER_LOCUS_WINDOW"], 
+                          "-f", config_vars["F5_CLASSES"], 
+                          "-g", config_vars["GTEX_CLASSES"], 
+                          "-r", config_vars["ROADMAP_CLASSES"], 
+                  pargs.outdir, config_vars["LD_THRESH"], config_vars["LD_AREA"], pargs.outprefix, pargs.outdir+"/summaries/"])
 
         ## find the parameter file from this most recent run
         param_file = subprocess.Popen('ls -t '+pargs.outdir+'/parameters/*parameters* | head -1', shell=True, stdout=subprocess.PIPE).stdout.read().strip()

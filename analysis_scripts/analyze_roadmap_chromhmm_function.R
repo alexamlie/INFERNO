@@ -9,18 +9,18 @@ analyze_roadmap_chromHMM <- function(prefix, datadir, outdir, out_subtitle, r2_t
     ## -----------------------------------------------------------------------------
     dir.create(paste0(outdir, 'plots/'), F, T)
     dir.create(paste0(outdir, 'tables/'), F, T)
-
+message("read in the roadmap file")
     ## read in the roadmap file
     roadmap_state_file <- paste0(datadir, '/roadmap_chromhmm_states/', prefix, "_", r2_thresh,
                                 "_ld_cutoff_snps_within_", dist_thresh, "_roadmap_chromHMM_states.txt")
     roadmap_state_df <- read.table(roadmap_state_file, header=T, sep="\t", quote="", as.is=T)
     roadmap_state_df$tag_no_rsid <- gsub(":rs.*", "", roadmap_state_df$tag_name)
-
+message("read in the roadmap category file")
     ## read in the roadmap category file
     roadmap_category_df <- read.table(roadmap_class_file, header=T, sep="\t", quote="", as.is=T, comment.char="")
     ## rename the EID column to be easier to match
     colnames(roadmap_category_df)[3] <- "EID"
-
+message("table with only unique hits")
     ## get a table with only unique hits, also rename the state columns
     uniq_snp_cols <- colnames(roadmap_state_df)[!(colnames(roadmap_state_df) %in% tagsnp_cols)]
     uniq_snp_state_df <- ddply(roadmap_state_df, uniq_snp_cols, function(x) {
@@ -110,7 +110,7 @@ analyze_roadmap_chromHMM <- function(prefix, datadir, outdir, out_subtitle, r2_t
     ordered_rsIDs <- unique(melt_uniq_state_df$rsID[snp_order])
     melt_uniq_state_df$rsID <- factor(melt_uniq_state_df$rsID, ordered=T,
                                       levels=ordered_rsIDs)
-
+message("generate figures")
     ## -----------------------------------------------------------------------------
     ## generate figures
     ## -----------------------------------------------------------------------------
@@ -218,7 +218,7 @@ analyze_roadmap_chromHMM <- function(prefix, datadir, outdir, out_subtitle, r2_t
     }
 
     ## next: majority state by tissue class
-
+message("enhancer analysis")
     ## -------------------------
     ## enhancer analysis
     ## we want to know how many SNPs are characterized as an enhancer in any tissue
@@ -425,7 +425,7 @@ analyze_roadmap_chromHMM <- function(prefix, datadir, outdir, out_subtitle, r2_t
                 title=element_text(size=TITLE_SIZE), plot.title = element_text(hjust = 0.5)) + 
           plot_title("Numbers of variants in enhancer Roadmap ChromHMM states across tissue categories", r2_thresh, dist_thresh, out_subtitle))
     dev.off()
-
+message("check the tissue patterns across tag regions")
     ## -------------------------
     ## also want to check the tissue patterns across tag regions
     ## -------------------------

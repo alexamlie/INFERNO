@@ -11,6 +11,18 @@ Then, it annotates this list of SNPs with several genomic features
 """
 
 import argparse, subprocess, sys, os, datetime, commands, gzip, re, glob, pickle, math
+import gzip
+
+def get_read_filehandle(filename, open_options='rb'):
+   if not os.path.exists(filename):
+       print("file doesn't exist: " + filename)
+       sys.exit(1)
+
+   if filename.endswith('.gz'):
+      return gzip.open(filename, open_options)
+
+   return open(filename, open_options)
+
 
 def create_logging_function(logfile, loglevel="full"):
     """
@@ -64,7 +76,7 @@ def expand_ld_snps(input_snp_list, kg_pop, kg_dir, ld_threshold, ld_check_area, 
 
         ## find the number of lines (to know how often we should give output messages)
         num_snps = 0
-        with open(sorted_snp_list, 'rb') as sort_snps:
+        with get_read_filehandle(sorted_snp_list, 'rb') as sort_snps:
             for line in sort_snps:
                 num_snps += 1
         sparse_output = True if num_snps > 10000 else False
@@ -72,7 +84,7 @@ def expand_ld_snps(input_snp_list, kg_pop, kg_dir, ld_threshold, ld_check_area, 
         ## define our header
         outf_header = ['chr', 'rsID', 'pos', 'ref', 'alt', 'MAF', 'tag_rsID', 'tag_pos', 'tag_MAF', 'tag_name', 'R2', 'Dprime']
         outf_idx = {outf_header[x]:x for x in range(len(outf_header))}
-        with open(sorted_snp_list, 'rb') as sort_snps, open(outfile_path, 'wb') as outf:
+        with get_read_filehandle(sorted_snp_list, 'rb') as sort_snps, open(outfile_path, 'wb') as outf:
             outf.write("\t".join(outf_header)+"\n")
             ## store all the SNPs on a given chromosome to find their neighbors
             this_chr = ""
@@ -117,6 +129,8 @@ def expand_ld_snps(input_snp_list, kg_pop, kg_dir, ld_threshold, ld_check_area, 
                     ## if we had been previously looking at a chromosome:
                     if this_chr:
                         kg_file = kg_dir+"/"+kg_pop+"/"+this_chr+".phase1_release_v3.20101123.snps_indels_svs.genotypes.refpanel."+kg_pop+".vcf.gz"
+                        # 10_EUR_SNP_biallelic.no_monomorphic.vcf.gz
+                        kg_file = kg_dir+"/"+kg_pop+"/"+str.replace(this_chr,"chr","")+"_" + kg_pop + "_SNP_biallelic.no_monomorphic.vcf.gz"
                         ## check if this chromosome actually exists
                         if not os.path.isfile(kg_file):
                             logging_function("Chromosome %s does not have 1,000 genomes data, skipping." % (this_chr))
@@ -394,6 +408,8 @@ def expand_ld_snps(input_snp_list, kg_pop, kg_dir, ld_threshold, ld_check_area, 
                 logging_function("Analyzing SNPs from chromosome %s, buffer number %s" % (this_chr, str(buffer_snp_ctr/buffer_size)))
 
             kg_file = kg_dir+"/"+kg_pop+"/"+this_chr+".phase1_release_v3.20101123.snps_indels_svs.genotypes.refpanel."+kg_pop+".vcf.gz"
+            # 10_EUR_SNP_biallelic.no_monomorphic.vcf.gz
+            kg_file = kg_dir+"/"+kg_pop+"/"+str.replace(this_chr,"chr","")+"_" + kg_pop + "_SNP_biallelic.no_monomorphic.vcf.gz"
             ## check if this chromosome actually exists
             if not os.path.isfile(kg_file):
                 logging_function("Chromosome %s does not have 1,000 genomes data, skipping." % (this_chr))
@@ -664,7 +680,7 @@ def expand_ld_snps(input_snp_list, kg_pop, kg_dir, ld_threshold, ld_check_area, 
 
         ## generate a bed file from the LD SNPs
         snp_bed_prefix = outdir+"/ld_expansion/bed_files/"+outprefix+"_"+str(ld_threshold)+"_ld_cutoff_snps_within_"+str(ld_check_area)
-        with open(snp_bed_prefix+".tmp", 'wb') as bedout, open(outfile_path, 'rb') as snpin:
+        with open(snp_bed_prefix+".tmp", 'wb') as bedout, get_read_filehandle(outfile_path, 'rb') as snpin:
             # get the header
             snp_header_data = next(snpin).strip().split('\t')
             snp_idx = {snp_header_data[x]:x for x in range(len(snp_header_data))}
@@ -730,6 +746,8 @@ def compute_closest_genes(outdir, outprefix, ld_snp_file, ld_threshold, ld_check
         bed_call = subprocess.Popen([code_dir+"/bedtools_wrapper_script.sh", str(bedtools_bin_dir),
                          "closest", "-a", ld_snp_bed, "-b", gene_bed_file,
                          "-t", "all", "-d"], stdout=bedtools_out)
+        bed_call.wait()
+        bedtools_out.flush()
     ## use the wrapper script to parse it
     parse_call = subprocess.Popen([code_dir+"/parse_closest_gene_output.sh", snp_bedtools_outf])
     
@@ -747,7 +765,7 @@ def compute_closest_genes(outdir, outprefix, ld_snp_file, ld_threshold, ld_check
 
     ## now combine this with the LD SNP list (in a new file)
     closest_genes_outf = bedout_prefix+"_closest_genes.txt"
-    with open(snp_bedtools_outf, 'rb') as bed_out, open(ld_snp_file, 'rb') as snpin, open(closest_genes_outf, 'wb') as parsed_outf:
+    with get_read_filehandle(snp_bedtools_outf, 'rb') as bed_out, get_read_filehandle(ld_snp_file, 'rb') as snpin, open(closest_genes_outf, 'wb') as parsed_outf:
         # get the header
         snp_header_data = next(snpin).strip().split('\t')
         snp_idx = {snp_header_data[x]:x for x in range(len(snp_header_data))}
@@ -1641,7 +1659,7 @@ def compute_fantom5_midpoint_overlap(outdir, outprefix, ld_snp_file, ld_threshol
         cell_tissue_types.append(this_key)
         
         ## open the file and associate it with the key
-        enh_files[this_key] = open(enh_f, 'rb')
+        enh_files[this_key] = get_read_filehandle(enh_f, 'rb')
         ## initialize the list of enhancers
         enh_loci[this_key] = []
         ## initialize the current enhancer storage (this will get added to the list later)
@@ -1799,8 +1817,8 @@ def compute_fantom5_locus_overlap(outdir, outprefix, ld_snp_file, ld_threshold, 
         this_key = os.path.basename(enh_f).replace("_expressed_enhancers.bed", "")
         cell_tissue_types.append(this_key)
 
-        ## open the file and associate it with the key        
-        enh_files[this_key] = open(enh_f, 'rb')
+        ## open the file and associate it with the key
+        enh_files[this_key] = get_read_filehandle(enh_f, 'rb')
         ## initialize the list of enhancers
         enh_loci[this_key] = []
         ## initialize the current enhancer storage (this will get added to the list later)
@@ -1956,7 +1974,7 @@ def compute_closest_enhancer(outdir, outprefix, ld_snp_file, ld_threshold, ld_ch
         cell_tissue_types.append(this_key)
         
         ## open the file and associate it with the key
-        enh_files[this_key] = open(enh_f, 'rb')
+        enh_files[this_key] = get_read_filehandle(enh_f, 'rb')
         ## initialize the list of enhancers
         enh_loci[this_key] = []
         ## initialize the current enhancer storage (this will get added to the list later)
@@ -1967,7 +1985,7 @@ def compute_closest_enhancer(outdir, outprefix, ld_snp_file, ld_threshold, ld_ch
         
     ## write one output file, containing the closest enhancer(s), the tissue(s) of origin,
     ## and the distances
-    with open(ld_snp_file, 'rb') as snpin, open(enh_outprefix+"_closest_enhancers.txt", 'wb') as enh_out:
+    with get_read_filehandle(ld_snp_file, 'rb') as snpin, open(enh_outprefix+"_closest_enhancers.txt", 'wb') as enh_out:
         # get the LD SNP header
         snp_header_data = next(snpin).strip().split('\t')
         snp_idx = {snp_header_data[x]:x for x in range(len(snp_header_data))}
@@ -1992,7 +2010,7 @@ def compute_closest_enhancer(outdir, outprefix, ld_snp_file, ld_threshold, ld_ch
             if entry_data[snp_idx['chr']] != this_chr:
                 this_chr = entry_data[snp_idx['chr']]
                 logging_function('Parsing chromosome '+this_chr)
-                        
+
                 for k in cell_tissue_types:
                     # reset the enhancer lists
                     enh_loci[k] = []
@@ -2016,7 +2034,7 @@ def compute_closest_enhancer(outdir, outprefix, ld_snp_file, ld_threshold, ld_ch
             ## store the smallest current distance, and the enhancer(s) that gave that dist
             cur_min_enh_dist = "UNSET"
             closest_enhs = {'chr':[], 'start':[], 'end':[], 'tissue':[]}
-            for k in cell_tissue_types:               
+            for k in cell_tissue_types:
                 ## compare the SNP to the enhancers in this tissue type
                 for enh in enh_loci[k]:
                     enh_start = int(enh[bed_idx['start']])
@@ -2078,7 +2096,7 @@ def correlation_enh_overlap_targets(outdir, outprefix, ld_threshold, ld_check_ar
   
     ## read in the correlation file, store in a dict for reference
     tss_associations = {}
-    with open(correlation_file, 'rb') as enh_tss_associations:
+    with get_read_filehandle(correlation_file, 'rb') as enh_tss_associations:
         ## skip the header (it's just a bed format with a special name column)
         enh_tss_associations.next()
         ## now store all the enh-tss associations
@@ -2095,10 +2113,10 @@ def correlation_enh_overlap_targets(outdir, outprefix, ld_threshold, ld_check_ar
 
     ## analyze the overlap data:
     if overlap_type=="midpoint":
-        overlaps = open(overlap_file, 'rb')
+        overlaps = get_read_filehandle(overlap_file, 'rb')
         target_out = open(target_outprefix+"_fantom5_midpoint_overlap_target_genes.txt", 'wb')
     elif overlap_type=="locus":
-        overlaps = open(overlap_file, 'rb')
+        overlaps = get_read_filehandle(overlap_file, 'rb')
         target_out = open(target_outprefix+"_fantom5_locus_overlap_target_genes.txt", 'wb')
     else:
         logging_function("Overlap type not supported!")
@@ -2153,7 +2171,7 @@ def correlation_closest_enh_targets(outdir, outprefix, ld_threshold, ld_check_ar
   
     ## read in the correlation file, store in a dict for reference
     tss_associations = {}
-    with open(correlation_file, 'rb') as enh_tss_associations:
+    with get_read_filehandle(correlation_file, 'rb') as enh_tss_associations:
         ## skip the header
         enh_tss_associations.next()
         ## now store all the enh-tss associations
@@ -2169,7 +2187,7 @@ def correlation_closest_enh_targets(outdir, outprefix, ld_threshold, ld_check_ar
                     tss_associations[enh_tss_info[0]] = [enh_tss_info[1:]]
 
     ## analyze the closest enhancer data
-    with open(closest_enh_file, 'rb') as closest_enhs, open(target_outprefix+"_closest_enhancer_target_genes.txt", 'wb') as target_out:
+    with get_read_filehandle(closest_enh_file, 'rb') as closest_enhs, open(target_outprefix+"_closest_enhancer_target_genes.txt", 'wb') as target_out:
         ## store the header as a dict
         closest_enh_header = next(closest_enhs).strip().split("\t")
         closest_enh_dict = {closest_enh_header[x]:x for x in range(len(closest_enh_header))}
@@ -2212,7 +2230,7 @@ def gtex_eqtl_overlap(outdir, outprefix, ld_snp_file, ld_threshold, ld_check_are
 
     eqtl_outprefix = outdir+"/gtex_eqtl_overlap/"+outprefix+"_"+str(ld_threshold)+"_ld_cutoff_snps_within_"+str(ld_check_area)
     
-    with open(ld_snp_file, 'rb') as snpin, open(eqtl_outprefix+"_eqtl_overlaps_unsorted.txt", 'wb') as eqtl_overlap_out:
+    with get_read_filehandle(ld_snp_file, 'rb') as snpin, open(eqtl_outprefix+"_eqtl_overlaps_unsorted.txt", 'wb') as eqtl_overlap_out:
         ## write the header to the eQTL output file
         # start by getting the LD SNP header
         snp_header_data = next(snpin).strip().split('\t')
@@ -2234,7 +2252,7 @@ def gtex_eqtl_overlap(outdir, outprefix, ld_snp_file, ld_threshold, ld_check_are
         ## note that we assume these files are all sorted correctly
         for eqtl_file in glob.glob(gtex_dir+"/*.snpgenes"):  
             this_tiss = eqtl_file.split("/")[-1].replace("_Analysis.snpgenes", "")
-            eqtl_files[this_tiss] = open(eqtl_file, 'rb')
+            eqtl_files[this_tiss] = get_read_filehandle(eqtl_file, 'rb')
             ## read the header, and move on to the data
             ## we overwrite the header dict a bunch of times
             eqtl_header_data = eqtl_files[this_tiss].readline().strip().split("\t")            
@@ -2376,7 +2394,7 @@ def factorbook_overlap(outdir, outprefix, ld_snp_file, ld_threshold, ld_check_ar
     bed_idx["cell_types"] = 5
     
     ## we will write just the one file, containing all specific overlaps
-    with open(ld_snp_file, 'rb') as snpin, open(tfbs_file, 'rb') as tf_sites, open(tfbs_outf, 'wb') as tf_overlap_out:
+    with get_read_filehandle(ld_snp_file, 'rb') as snpin, get_read_filehandle(tfbs_file, 'rb') as tf_sites, open(tfbs_outf, 'wb') as tf_overlap_out:
         # get the LD SNP header
         snp_header_data = next(snpin).strip().split('\t')
         snp_idx = {snp_header_data[x]:x for x in range(len(snp_header_data))}
@@ -2446,8 +2464,7 @@ def roadmap_chromhmm_overlap(outdir, outprefix, ld_snp_file, ld_threshold, ld_ch
       pass
 
     hmm_outprefix = outdir+"/roadmap_chromhmm_states/"+outprefix+"_"+str(ld_threshold)+"_ld_cutoff_snps_within_"+str(ld_check_area)
-
-    with open(ld_snp_file, 'rb') as snpin, open(hmm_outprefix+"_roadmap_chromHMM_states.txt", 'wb') as hmm_state_out:
+    with get_read_filehandle(ld_snp_file, 'rb') as snpin, open(hmm_outprefix+"_roadmap_chromHMM_states.txt", 'wb') as hmm_state_out:
         ## write the header to the chromHMM output file
         # start by getting the LD SNP header
         snp_header_data = next(snpin).strip().split('\t')
@@ -2458,11 +2475,11 @@ def roadmap_chromhmm_overlap(outdir, outprefix, ld_snp_file, ld_threshold, ld_ch
         hmm_files = {}
         ## this dict points to the interval we are currently on
         cur_hmm = {}
-        for hmm_file in glob.glob(roadmap_chromhmm_dir+"/*mnemonics.bed"):
+        for hmm_file in glob.glob(roadmap_chromhmm_dir+"/*mnemonics.bed.gz"):
             ## get the roadmap ID
             eid = hmm_file.split("/")[-1].split("_")[0]
             ## store the file pointer
-            hmm_files[eid] = open(hmm_file, 'rb')
+            hmm_files[eid] = get_read_filehandle(hmm_file, 'rb')
             ## read the first interval
             cur_hmm[eid] = hmm_files[eid].readline().strip().split("\t")
 
@@ -2536,7 +2553,8 @@ def homer_motif_overlap(outdir, outprefix, ld_snp_file, ld_threshold, ld_check_a
         outf = motif_outprefix+"_motif_overlap_and_disruption.txt"
         ## read in the PWM information
         pwm_dict = {}
-        with open(motif_pwm_file, 'rb') as motif_pwms:
+
+        with get_read_filehandle(motif_pwm_file) as motif_pwms:
             ## store the TF and PWM that we build up
             this_tf = ""
             this_pwm = []
@@ -2561,7 +2579,7 @@ def homer_motif_overlap(outdir, outprefix, ld_snp_file, ld_threshold, ld_check_a
             ## store the last PWM
             pwm_dict[this_tf] = this_pwm
         ## also open the sequence file for us to read concurrently with the bed file
-        motif_seqs = open(motif_seq_file, 'rb')
+        motif_seqs = get_read_filehandle(motif_seq_file, 'rb')
         ## create a convenience dict for mapping bases to PWM indices
         pwm_map = {"A":0, "C":1, "G":2, "T":3}
         ## finally, create a dict for taking the complement of bases
@@ -2569,7 +2587,8 @@ def homer_motif_overlap(outdir, outprefix, ld_snp_file, ld_threshold, ld_check_a
     else:
         outf = motif_outprefix+"_motif_overlap.txt"
         
-    with open(ld_snp_file, 'rb') as snpin, open(motif_bed_file, 'rb') as motif_beds, open(outf, 'wb') as motif_out:
+
+    with get_read_filehandle(ld_snp_file) as snpin, get_read_filehandle(motif_bed_file, 'rb') as motif_beds, open(outf, 'wb') as motif_out:
         snp_header_data = next(snpin).strip().split('\t')
         snp_idx = {snp_header_data[x]:x for x in range(len(snp_header_data))}
 
@@ -2739,8 +2758,7 @@ def dashr_ncrna_overlap(outdir, outprefix, ld_snp_file, ld_threshold, ld_check_a
       pass
   
     outf = outdir+"/dashr_ncrna_loci_overlap/"+outprefix+"_"+str(ld_threshold)+"_ld_cutoff_snps_within_"+str(ld_check_area)+"_dashr_locus_overlap.txt"
-    
-    with open(ld_snp_file, 'rb') as snpin, open(dashr_locus_file, 'rb') as dashr_loci, open(outf, 'wb') as ncrna_out:
+    with get_read_filehandle(ld_snp_file, 'rb') as snpin, get_read_filehandle(dashr_locus_file, 'rb') as dashr_loci, open(outf, 'wb') as ncrna_out:
         snp_header_data = next(snpin).strip().split('\t')
         snp_idx = {snp_header_data[x]:x for x in range(len(snp_header_data))}
         
@@ -2844,14 +2862,14 @@ def targetscan_overlap(outdir, outprefix, ld_snp_file, ld_threshold, ld_check_ar
         targetscan_types.append(this_key)
 
         ## open the file and associate it with the key        
-        targetscan_files[this_key] = open(targetscan_f, 'rb')
+        targetscan_files[this_key] = get_read_filehandle(targetscan_f, 'rb')
         ## initialize the list of miRNA seed loci
         targetscan_loci[this_key] = []
         ## initialize the current miRNA locus storage (this will get added to the list later)
         cur_target[this_key] = targetscan_files[this_key].readline().strip().split("\t")
 
     ## for now, just write the one output file, containing the miRNA target overlaps
-    with open(ld_snp_file, 'rb') as snpin, open(outf, 'wb') as targetscan_overlaps_out:        
+    with get_read_filehandle(ld_snp_file, 'rb') as snpin, open(outf, 'wb') as targetscan_overlaps_out:        
         # get the LD SNP header
         snp_header_data = next(snpin).strip().split('\t')
         snp_idx = {snp_header_data[x]:x for x in range(len(snp_header_data))}
